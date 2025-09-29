@@ -104,7 +104,7 @@
   async function loadUser() {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      window.location.href = "signin.html"; // not logged in
+      window.location.href = "index.html"; // not logged in
       return;
     }
     
@@ -129,7 +129,7 @@
     document.getElementById("logout-btn").addEventListener("click", async () => {
       await supabase.auth.signOut();
       localStorage.clear();
-      window.location.href = "signin.html";
+      window.location.href = "index.html";
     });
   }
 
