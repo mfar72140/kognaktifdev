@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Games</title>
+  <link rel="stylesheet" href="css/dashgames.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+        <img src="images/Kog_logowhite.png" alt="KognAktif Logo">
+    </div>
+    <ul class="nav-links">
+      <li><a href="dashboard.html" >Dashboard</a></li>
+      <li><a href="#"class="active" >Games</a></li>
+      <li><a href="dashanalytics.html">Analytic</a></li>
+      <li><a href="dashsetting.html">Setting</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="notif-btn">🔔</button>
+      <div class="user-menu">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="dropdown" id="dropdownMenu">
+          <button id="logout-btn">Logout</button>
+        </div>   
+      </div> 
+    </div>
+  </nav>
+
+  <!-- Page Content -->
+  <main class="headerdescription">
+    <h2>Games Section</h2>
+    <p>Go ahead, pick a game and start practising!</p>
+    <!-- Add your game content here -->
+  </main>
+
+  <!-- Games Section -->
+    <div class="games-container">
+    <!-- Buzz Tap -->
+    <div class="game-card">
+        <img src="images/backgr1cover.jpg" alt="Buzz Tap">
+        <div class="game-overlay">
+        <h3>BUZZ TAP!</h3>
+        <button class="play-btn" onclick="window.location.href='play1cover.html'">PLAY</button>
+        <p>Focus | Reaction | Hand-Eye Coordination</p>
+        </div>
+    </div>
+
+    <!-- Puzzle Card -->
+    <div class="game-card">
+        <img src="images/backgr2cover.jpg" alt="Puzzle Card">
+        <div class="game-overlay">
+        <h3>PUZZLE CARD</h3>
+        <button class="play-btn">PLAY</button>
+        <p>Focus | Reaction | Hand-Eye Coordination</p>
+        </div>
+    </div>
+    </div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = window.supabase.createClient(
+    "https://ijugaqvsszticpzrznnb.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
+  );
+
+   async function checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = "signin.html";
+      return;
+    }
+
+    const user = session.user;
+    document.getElementById("userName").textContent = user.email; 
+  }
+
+  checkAuth();
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = "signin.html";
+  }
+
+  document.getElementById("logout-btn").addEventListener("click", logout);
+
+  // ✅ Dropdown toggle for user menu
+  const userMenu = document.querySelector(".user-menu");
+  const userName = document.getElementById("userName");
+
+  userName.addEventListener("click", () => {
+    userMenu.classList.toggle("active");
+  });
+
+  // ✅ Close dropdown when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!userMenu.contains(e.target)) {
+      userMenu.classList.remove("active");
+    }
+  });
+</script>
+
+
+</body>
+</html>

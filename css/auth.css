@@ -1,0 +1,157 @@
+/* Fullscreen layout */
+body {
+  margin: 0;
+  font-family: 'Poppins', sans-serif;
+  background: #f5f7fa;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* Main container with 2 panels */
+.auth-container {
+  display: flex;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+  overflow: hidden;
+  width: 800px;
+  max-width: 95%;
+}
+
+/* Left panel (purple) */
+.auth-left {
+  background: #8e44ad;
+  color: #fff;
+  padding: 2.3rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.auth-left .logo {
+  width: 150px;
+  margin-bottom: 1rem;
+}
+
+.auth-left h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.8rem;
+}
+
+.auth-left p {
+  font-size: 0.8rem;
+  line-height: 1.4;
+  margin-bottom: 1.5rem;
+}
+
+.auth-left .cover-img {
+  width: 180px;
+  margin-top: auto;
+}
+
+/* Right panel (signin card) */
+.auth-card {
+  flex: 1.3;
+  padding: 2rem 2.5rem;
+  margin-right: 1.5rem;
+  text-align: left;
+}
+
+.auth-card h2 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.auth-card .subtitle {
+  font-size: 0.8rem;
+  color: #777;
+  margin-bottom: 1.5rem;
+}
+
+.auth-card label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #444;
+  font-family: 'Poppins', sans-serif;
+}
+
+.auth-card input {
+  width: 100%;
+  padding: 0.7rem;
+  margin: 0.5rem 0 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: 'Poppins', sans-serif;
+}
+
+.auth-card button {
+  width: 100%;
+  padding: 0.7rem;
+  margin-top: 0.5rem;
+  background: #2d6a4f;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.auth-card button:hover {
+  background: #1b4332;
+}
+
+.auth-card button:disabled {
+  background-color: #9e9e9e;
+  cursor: not-allowed;
+}
+
+.alt {
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: #555;
+  text-align: left;
+}
+
+.alt a {
+  color: #2d6a4f;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.required {
+  color: red;
+}
+
+
+/* Spinner style */
+button {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px; /* space between text and spinner */
+}
+
+.spinner {
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #ffffff;
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

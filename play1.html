@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Buzz Tap</title>
+  <link rel="stylesheet" href="/css/play1.css">
+  <link rel="stylesheet" href="css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1></h1>
+
+  
+  <!-- Wrap canvas + title -->
+  <div id="gameWrapper">
+    <canvas id="output_canvas" width="960" height="540"></canvas>
+    <div id="gameTitle">Buzz Tap!</div>
+    <button id="muteBtn">🔊</button>
+    <button id="startBtnOverlay">Start Game</button> 
+    <button id="playAgainBtn" style="display:none;">Play Again</button>
+    <button id="exitBtn" style="display:none;">Next Game</button>
+    
+    <!-- Black Status Bar -->
+    <div id="statusBar">
+      <div id="score">Score: 0</div>
+      <div id="timer">Time: 0s</div>
+      <button id="closeBtn">✖ Exit</button>
+    </div>
+  </div>
+  
+<!-- Custom Exit Popup -->
+<div id="exitPopup" class="popup">
+  <div class="popup-content">
+    <h3>Exit Game?</h3>
+    <p>Are you sure you want to leave this game?</p>
+    <div class="popup-buttons">
+      <button id="confirmExitBtn">Yes, Exit</button>
+      <button id="cancelExitBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+
+  <!-- MediaPipe & p5.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
+
+  <!-- ✅ Supabase client -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabaseUrl = "https://ijugaqvsszticpzrznnb.supabase.co";
+    const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY";  // use anon key only
+    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+  </script>
+
+  <!-- Game Logic -->
+  <script src="sketch.js"></script>
+
+  <script>
+    const closeBtn = document.getElementById("closeBtn");
+    const popup = document.getElementById("exitPopup");
+    const confirmExitBtn = document.getElementById("confirmExitBtn");
+    const cancelExitBtn = document.getElementById("cancelExitBtn");
+
+    // Show popup
+    closeBtn.addEventListener("click", () => {
+      popup.style.display = "flex";
+    });
+
+    // Exit confirmed
+    confirmExitBtn.addEventListener("click", () => {
+      window.location.href = "dashgames.html";
+    });
+
+    // Cancel exit
+    cancelExitBtn.addEventListener("click", () => {
+      popup.style.display = "none";
+    });
+
+    // Close popup if click outside
+    popup.addEventListener("click", (e) => {
+      if (e.target === popup) popup.style.display = "none";
+    });
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analytics</title>
+  <link rel="stylesheet" href="css/dashanalytics.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+        <img src="images/Kog_logowhite.png" alt="KognAktif Logo">
+    </div>
+    <ul class="nav-links">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="dashgames.html">Games</a></li>
+      <li><a href="#" class="active">Analytic</a></li>
+      <li><a href="dashsetting.html">Setting</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="notif-btn">🔔</button>
+      <div class="user-menu">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="dropdown" id="dropdownMenu">
+          <button id="logout-btn">Logout</button>
+        </div>   
+      </div> 
+    </div>
+  </nav>
+
+  <!-- Analytics Content -->
+  <main class="analytics-container">
+    <h2>Buzz Taps!</h2>
+    
+    <!-- Player Stats -->
+    <div class="stats">
+      <div class="stats-card">
+        <h3>Last Score</h3>
+        <p id="lastScore">Loading...</p>
+      </div>
+      <div class="stats-card">
+        <h3>Last Play Date</h3>
+        <p id="lastDate">Loading...</p>
+      </div>
+      <div class="stats-card">
+        <h3>Total Games Played</h3>
+        <p id="totalGames">Loading...</p>
+      </div>
+      <div class="stats-card">
+        <h3>Best Time</h3>
+        <p id="bestTime">Loading...</p>
+      </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="charts">
+      <div class="chart-card">
+        
+        <!-- Tabs -->
+        <div class="chart-tabs">
+          <button class="tab-btn active" data-chart="time">⏱ Time Taken per Game</button>
+          <button class="tab-btn" data-chart="distance">📏 Total Distance per Game</button>
+          <button class="tab-btn" data-chart="stability">📊 Movement Stability per Game</button>
+        </div>
+
+        <!-- Single Canvas -->
+        <div class="chart-wrapper">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Consistency Gauge Section -->
+    <section class="charts">
+      <div class="gauge-card">
+        <h3>Consistency</h3>
+        <div class="gauge-wrapper">
+          <canvas id="consistencyGauge"></canvas>
+          <div class="gauge-legend">
+            <div><span class="legend-box green"></span> Good</div>
+            <div><span class="legend-box yellow"></span> Moderate</div>
+            <div><span class="legend-box red"></span> Poor</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+<script type="module">
+  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+  import { initGameChart, initConsistencyGauge } from './gamechart.js';
+
+  const supabaseUrl = "https://ijugaqvsszticpzrznnb.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY";
+  const supabase = createClient(supabaseUrl, supabaseKey);
+
+  // ========== NAVBAR LOGIC ==========
+  async function loadUser() {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      window.location.href = "signin.html"; // not logged in
+      return;
+    }
+    
+    document.getElementById("userName").textContent = user.email;
+
+    // ✅ Dropdown toggle for user menu
+    const userMenu = document.querySelector(".user-menu");
+    const userName = document.getElementById("userName");
+
+    userName.addEventListener("click", () => {
+      userMenu.classList.toggle("active");
+    });
+
+    // ✅ Close dropdown when clicking outside
+    document.addEventListener("click", (e) => {
+      if (!userMenu.contains(e.target)) {
+        userMenu.classList.remove("active");
+      }
+    });
+
+    // Logout button
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      window.location.href = "signin.html";
+    });
+  }
+
+  // ========== ANALYTICS ==========
+  async function loadAnalytics() {
+    const userEmail = (await supabase.auth.getUser()).data.user?.email;
+    console.log("Using email for analytics:", userEmail);
+
+    const { data, error } = await supabase
+      .from("buzztap_results")
+      .select("norm_totaldistance, time_taken, av_devpath, created_at, score, consistency")
+      .eq("player_email", userEmail)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Results fetch error:", error);
+      document.querySelector(".analytics-container").innerHTML =
+        "<p style='color:red;'>⚠️ Error fetching game data.</p>";
+      return;
+    }
+
+    if (!data || data.length === 0) {
+      document.querySelector(".analytics-container").innerHTML =
+        "<p>No game data found yet. Play a game first!</p>";
+      return;
+    }
+
+    // ✅ Summary stats
+    const lastRow = data[data.length - 1];
+    document.getElementById("lastScore").textContent = lastRow.score;
+    document.getElementById("lastDate").textContent = new Date(lastRow.created_at).toLocaleDateString("en-GB");
+    document.getElementById("totalGames").textContent = data.length;
+    const best = Math.min(...data.map(row => row.time_taken));
+    document.getElementById("bestTime").textContent = best.toFixed(2) + "s";
+
+    // =========================
+    // Render Consistency Gauge
+    // =========================
+    console.log("Raw consistency from Supabase:", lastRow.consistency);
+    const latestConsistency = (lastRow.consistency ?? 0)* 100; // replace "consistency" with your Supabase field name
+    console.log("Consistency value:", latestConsistency);
+    initConsistencyGauge(latestConsistency);
+
+
+    // ✅ Prepare chart data
+    const labels = data.map((row, i) => "G " + (i + 1));
+    const norm_distance = data.map(row => row.norm_totaldistance);
+    const times = data.map(row => row.time_taken);
+    const stability = data.map(row => row.av_devpath ? row.av_devpath : null);
+
+
+    // Initialize chart
+    initGameChart(labels, times, norm_distance, stability);
+  }
+
+
+  // Run both
+  loadUser();
+  loadAnalytics();
+</script>
+
+
+
+</body>
+</html>

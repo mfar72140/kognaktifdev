@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+  <link rel="stylesheet" href="css/dashsetting.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+        <img src="images/Kog_logowhite.png" alt="KognAktif Logo">
+    </div>
+    <ul class="nav-links">
+      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="dashgames.html">Games</a></li>
+      <li><a href="dashanalytics.html">Analytic</a></li>
+      <li><a href="#" class="active">Setting</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="notif-btn">🔔</button>
+      <div class="user-menu">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="dropdown" id="dropdownMenu">
+          <button id="logout-btn">Logout</button>
+        </div>   
+      </div> 
+    </div>
+  </nav>
+
+  <!-- Settings Section -->
+  <section class="settings-container">
+    <h2>Account Settings</h2>
+    <form class="settings-form" id="settingsForm">
+      <div class="form-group">
+        <label for="fullname">Full Name <span class="required">*</span></label>
+        <input type="text" id="fullname" placeholder="Enter your full name" required>
+      </div>
+
+      <div class="form-group">
+        <label for="birthday">Birthday</label>
+        <input type="date" id="birthday">
+      </div>
+
+      <button type="submit" class="save-btn">Save Changes</button>
+    </form>
+
+    <p id="statusMsg" style="margin-top:10px;"></p>
+  </section>
+
+  
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = window.supabase.createClient(
+    "https://ijugaqvsszticpzrznnb.supabase.co",
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
+  );
+
+  let currentUserId = null;
+
+  async function checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = "signin.html";
+      return;
+    }
+
+    const user = session.user;
+    currentUserId = user.id;
+    document.getElementById("userName").textContent = user.email; 
+
+    // Load current profile data
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('fullname, birthday')
+      .eq('id', user.id)   // user.id = auth user UUID
+      .maybeSingle(); 
+
+    if (error) {
+      console.error('Error fetching profile:', error);
+    } else if (data) {
+      console.log('Profile:', data);
+      document.getElementById("fullname").value = data.fullname || "";
+      document.getElementById("birthday").value = data.birthday || "";
+    }
+  }
+
+  checkAuth();
+
+  async function logout() {
+    await supabase.auth.signOut();
+    window.location.href = "signin.html";
+  }
+
+  document.getElementById("logout-btn").addEventListener("click", logout);
+
+  // ✅ Dropdown toggle for user menu
+  const userMenu = document.querySelector(".user-menu");
+  const userName = document.getElementById("userName");
+
+  userName.addEventListener("click", () => {
+    userMenu.classList.toggle("active");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!userMenu.contains(e.target)) {
+      userMenu.classList.remove("active");
+    }
+  });
+
+  // ✅ Save profile updates
+  document.getElementById("settingsForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const fullname = document.getElementById("fullname").value;
+    const birthday = document.getElementById("birthday").value;
+
+    if (!currentUserId) {
+      alert("User not authenticated.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: currentUserId, fullname, birthday }); 
+
+    const statusMsg = document.getElementById("statusMsg");
+
+    if (error) {
+      console.error(error);
+      statusMsg.textContent = "❌ Error saving changes.";
+      statusMsg.style.color = "red";
+    } else {
+      statusMsg.textContent = "✅ Changes saved successfully!";
+      statusMsg.style.color = "green";
+    }
+  });
+</script>
+
+</body>
+</html>

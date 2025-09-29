@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Up</title>
+  <link rel="stylesheet" href="css/auth.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Supabase CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+  <div class="auth-container">
+    
+    <!-- Left panel -->
+    <div class="auth-left">
+      <img src="images/Kog_logowhite.png" alt="KognAktif Logo" class="logo">
+      <h2>Play, Learn, and Grow Together!</h2>
+      <p>Together we share laughter, learning, and the joy of growing up</p>
+      <img src="images/signcover.png" alt="Illustration" class="cover-img">
+    </div>
+
+    <!-- Right panel -->
+    <div class="auth-card">
+      <h2>Sign Up</h2>
+      <p class="subtitle">Register KognAktif account</p>
+      <form id="signup-form">
+         
+          <label for="email">Email <span class="required">*</span></label>
+          <input type="email" id="email" placeholder="Enter your email" required>
+          
+          <label for="password">Password <span class="required">*</span></label>
+          <input type="password" id="password" placeholder="Enter your password" required>
+        
+        <button type="submit">Sign Up</button>
+      </form>
+      <p class="alt">Have an account? <a href="signin.html">Sign In</a></p>
+      <p id="message"></p>
+    </div>
+  </div>
+
+  <script>
+    // Initialize Supabase
+    const supabase = window.supabase.createClient(
+      "https://ijugaqvsszticpzrznnb.supabase.co",   // replace with your project URL
+      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
+    );
+
+    const form = document.getElementById("signup-form");
+    const message = document.getElementById("message");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      // Sign up in auth
+      const { data, error } = await supabase.auth.signUp({ 
+          email,
+          password,
+
+        });
+
+      if (error) {
+        console.error("Signup error:", error);
+        message.textContent = "❌ " + error.message;
+        return;
+      }
+
+        message.textContent = "✅ Sign up successful! Please check your email to confirm.";
+        message.style.color = "green";
+        
+      //  setTimeout(() => {
+     //   window.location.href = "signin.html";
+      //}, 800);
+      
+    });
+  </script>
+</body>
+</html>
