@@ -1,7 +1,7 @@
 {
   "version": 2,
   "routes": [
-    { "src": "/", "dest": "/signin.html" }
+    { "src": "/", "dest": "/home.html" }
   ],
   "cleanUrls": true,
   "trailingSlash": false
