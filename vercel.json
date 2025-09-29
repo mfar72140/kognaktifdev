@@ -1,7 +1,7 @@
 {
   "version": 2,
-  "rewrites": [
-    { "source": "/", "destination": "/signin.html" }
+  "routes": [
+    { "src": "/", "dest": "/signin.html" }
   ],
   "cleanUrls": true,
   "trailingSlash": false
