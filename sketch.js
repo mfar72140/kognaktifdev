@@ -12,6 +12,7 @@ let bgMusic;
 let isMuted = false;
 let reactionTimes = [];
 let ballSpawnTime = null;
+let cameraReady = false;
 
 
 // Path Deviation using Distance
@@ -107,6 +108,11 @@ window.onload = () => {
   });
   hands.onResults((r) => {
     latestResults = r;
+
+    if (!cameraReady) {
+      cameraReady = true;
+      console.log("✅ Camera is ready!");
+    }
   });
 
   videoElement = document.createElement("video");
@@ -184,7 +190,7 @@ function startCountdown() {
   // Reset state
   score = 0;
   countdownValue = 3;
-  countdownRunning = true;
+  countdownRunning = false; // don’t start until camera is ready
   gameRunning = false;
   HoneySplashes = [];
   if (respawnTimeout) clearTimeout(respawnTimeout);
@@ -204,21 +210,31 @@ function startCountdown() {
   });
   camera.start();
 
-  if (countdownSound) {
-    countdownSound.currentTime = 0;
-    countdownSound.play();
-  }
 
-  countdownInterval = setInterval(() => {
-    drawCountdown(countdownValue);
-    countdownValue--;
+  // Wait until camera is ready
+  const waitForCamera = setInterval(() => {
+    if (cameraReady) {
+      clearInterval(waitForCamera);
+      console.log("🎥 Camera feed detected, starting countdown...");
+  
+      if (countdownSound) {
+        countdownSound.currentTime = 0;
+        countdownSound.play();
+      }
 
-    if (countdownValue < 0) {
-      clearInterval(countdownInterval);
-      countdownRunning = false;
-      startGame();
+      countdownRunning = true;
+      countdownInterval = setInterval(() => {
+        drawCountdown(countdownValue);
+        countdownValue--;
+
+        if (countdownValue < 0) {
+          clearInterval(countdownInterval);
+          countdownRunning = false;
+          startGame();
+        }
+      }, 1000);
     }
-  }, 1000);
+  }, 200);
 }
 
 function drawCountdown(value) {
