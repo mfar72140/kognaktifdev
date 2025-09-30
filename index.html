@@ -9,6 +9,22 @@
   <!-- Supabase CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
+
+<script>
+  function checkScreen() {
+    if (window.innerWidth < 700) { // 👈 threshold for mobile/tablet
+      document.body.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:sans-serif;padding:20px;">
+          <h2>⚠️ This app is only available on laptop or desktop. Please use a larger screen.</h2>
+        </div>`;
+    }
+  }
+  checkScreen();
+  window.addEventListener("resize", checkScreen);
+</script>
+
+
+
 <body>
   <div class="auth-container">
 
