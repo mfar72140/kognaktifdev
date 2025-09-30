@@ -75,18 +75,19 @@ window.onload = () => {
   bgMusic.volume = 0.6; // softer than effects
 
   const muteBtn = document.getElementById("muteBtn");
+  if (muteBtn)  {
+    muteBtn.addEventListener("click", () => {
+      isMuted = !isMuted;
 
-  muteBtn.addEventListener("click", () => {
-    isMuted = !isMuted;
-
-    if (isMuted) {
-      bgMusic.muted = true;
-      muteBtn.textContent = "🔇";
-    } else {
-      bgMusic.muted = false;
-      muteBtn.textContent = "🔊";
-    }
-  });
+      if (isMuted) {
+        bgMusic.muted = true;
+        muteBtn.textContent = "🔇";
+      } else {
+        bgMusic.muted = false;
+        muteBtn.textContent = "🔊";
+      }
+    });
+  }
 
   // Buttons
   document.getElementById("startBtnOverlay").addEventListener("click", () => {
