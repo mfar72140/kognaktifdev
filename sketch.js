@@ -70,7 +70,7 @@ window.onload = () => {
   countdownSound = new Audio("sounds/countdown.wav");
 
   // Background Music
-  bgMusic = new Audio("sounds/01Backmusic15s.mp3");
+  bgMusic = new Audio("sounds/01Backmusic20s.mp3");
   bgMusic.loop = true;  // keep looping
   bgMusic.volume = 0.6; // softer than effects
 
@@ -405,7 +405,7 @@ function drawScene(results) {
       ball.y = -100;
 
 
-      if (score >= 10) {
+      if (score >= 20) {
         endGame();
       } else {
         if (respawnTimeout) clearTimeout(respawnTimeout);
