@@ -39,8 +39,23 @@
 
       </form>
       
-      <p class="alt">Don’t have an account? <a href="signup.html">Sign Up</a></p>
+      <p class="alt">
+        Forgot your password? <a href="#" id="forgotPasswordLink">Reset here</a><br>
+        Don’t have an account? <a href="signup.html">Sign Up</a>
+      </p>
       <p id="message"></p>
+    </div>
+  </div>
+
+  <!-- Forgot Password Popup -->
+  <div id="forgotPopup" class="popup-overlay">
+    <div class="popup-card">
+      <h3>Reset Password</h3>
+      <p>Enter your email to receive a password reset link.</p>
+      <input type="email" id="resetEmail" placeholder="Enter your email" required>
+      <button id="resetPasswordBtn">Send Reset Link</button>
+      <p id="resetNotice" style="display:none; color:green; margin-top:10px;">✔ Reset email sent! Please check your inbox.</p>
+      <button class="close-btn" onclick="document.getElementById('forgotPopup').style.display='none'">Close</button>
     </div>
   </div>
 
@@ -97,6 +112,31 @@
       }, 800);
       }
     });
+
+    // Forgot password popup
+    document.getElementById("forgotPasswordLink").addEventListener("click", () => {
+      document.getElementById("forgotPopup").style.display = "flex";
+    });
+
+    document.getElementById("resetPasswordBtn").addEventListener("click", async () => {
+      const email = document.getElementById("resetEmail").value;
+      if (!email) {
+        alert("Please enter your email.");
+        return;
+      }
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "http://apps.kognaktif.com/resetpass.html"
+      });
+
+      if (error) {
+        alert("Error: " + error.message);
+      } else {
+        document.getElementById("resetNotice").style.display = "block";
+      }
+    });
+
+
   </script>
 </body>
 </html>
