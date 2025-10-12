@@ -1,7 +1,7 @@
 
 let videoElement, hands, camera;
 let ctx, canvas;
-let beeImg, handImg, bgImg;
+let beeImg, handImg, rhandImg, bgImg;
 let ball = { x: 0, y: 0, r: 30 };
 let score = 0;
 let gameRunning = false;
@@ -60,6 +60,9 @@ window.onload = () => {
 
   handImg = new Image();
   handImg.src = "images/hand1.png";
+
+  rhandImg = new Image();
+  rhandImg.src = "images/rhand.png";
 
   bgImg = new Image();
   bgImg.src = "images/backgr1.jpg";
@@ -316,17 +319,26 @@ function drawScene(results) {
   );
 
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-    const landmarks = results.multiHandLandmarks[0];
-    const palmIndices = [0, 1, 5, 9, 13, 17];
-    let sumX = 0, sumY = 0;
+    for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+      const landmarks = results.multiHandLandmarks[i];
+      const handType = results.multiHandedness?.[i]?.label || "Unknown"; // NEW
+      const palmIndices = [0, 1, 5, 9, 13, 17];
+      let sumX = 0, sumY = 0;
 
-    palmIndices.forEach((i) => {
-      sumX += canvas.width - landmarks[i].x * canvas.width;
-      sumY += landmarks[i].y * canvas.height;
-    });
+      palmIndices.forEach((j) => {
+        sumX += canvas.width - landmarks[j].x * canvas.width;
+        sumY += landmarks[j].y * canvas.height;
+      });
 
-    arrowX = sumX / palmIndices.length;
-    arrowY = sumY / palmIndices.length;
+      arrowX = sumX / palmIndices.length;
+      arrowY = sumY / palmIndices.length;
+
+      // 👇 NEW: choose left/right hand image
+      if (handType === "Right" && rhandImg) {
+        drawHand(arrowX, arrowY, rhandImg);
+      } else {
+        drawHand(arrowX, arrowY, handImg);
+      }
 
     // ✅ Initialize startPos when movement starts
     if (!startPos) {
@@ -368,6 +380,21 @@ function drawScene(results) {
     }
 
     drawHand(arrowX, arrowY);
+    handleGameLogic(arrowX, arrowY);
+
+    // Honey splashes
+    for (let i = HoneySplashes.length - 1; i >= 0; i--) {
+      HoneySplashes[i].update();
+      HoneySplashes[i].draw(ctx);
+      if (HoneySplashes[i].isFinished()) {
+        HoneySplashes.splice(i, 1);
+      }
+    }
+
+  }}}
+
+
+function handleGameLogic(arrowX, arrowY) {
 
     // Collision check
     const dx = arrowX - ball.x;
@@ -415,23 +442,19 @@ function drawScene(results) {
     }
   }
 
-  // Honey splashes
-  for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-    HoneySplashes[i].update();
-    HoneySplashes[i].draw(ctx);
-    if (HoneySplashes[i].isFinished()) {
-      HoneySplashes.splice(i, 1);
-    }
-  }
-}
 
-function drawHand(x, y) {
+
+
+function drawHand(x, y, img) {
+  // 🧱 Safety: skip drawing if image not ready
+  if (!img || !img.complete || img.naturalWidth === 0) return;
+
   const baseSize = 60;
   const size = baseSize * handScale; // scaled size
 
-  ctx.drawImage(handImg, x - size / 2, y - size / 2, size, size);
+  ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 
-  // Bounce logic
+  // ✨ Bounce animation
   if (handBounceActive) {
     handScale += (1.4 - handScale) * 0.3; // grow towards 1.4x
     if (handScale >= 1.35) {
@@ -441,6 +464,7 @@ function drawHand(x, y) {
     handScale += (1 - handScale) * 0.2; // return to normal
   }
 }
+
 
 
 function endGame() {
