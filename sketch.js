@@ -309,8 +309,8 @@ function drawScene(results) {
   ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
   // Animate bee flap
-  flap += flapDirection * 0.3;
-  if (flap > 5 || flap < -5) flapDirection *= -1;
+  flap += flapDirection * 0.4;
+  if (flap > 10 || flap < -10) flapDirection *= -1;
 
   ctx.drawImage(
     beeImg,
