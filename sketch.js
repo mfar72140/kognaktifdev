@@ -13,6 +13,8 @@ let isMuted = false;
 let reactionTimes = [];
 let ballSpawnTime = null;
 let cameraReady = false;
+let previousArrowX = null;
+let previousHandType = "Left"; // default
 
 
 // Path Deviation using Distance
@@ -333,12 +335,32 @@ function drawScene(results) {
       arrowX = sumX / palmIndices.length;
       arrowY = sumY / palmIndices.length;
 
-      // 👇 NEW: choose left/right hand image
-      if (handType === "Right" && rhandImg) {
+      // Smooth hand position slightly
+      if (previousArrowX !== null) {
+        arrowX = arrowX * 0.3 + previousArrowX * 0.7;
+
+      }
+
+      // Prevent sudden flip when hand jumps
+      let currentHandType = handType;
+      if (previousArrowX !== null) {
+        const dx = Math.abs(arrowX - previousArrowX);
+        if (dx > 250) {
+          currentHandType = previousHandType; // keep previous hand type
+        }
+      }
+
+      // Draw hand
+      if (currentHandType === "Right" && rhandImg) {
         drawHand(arrowX, arrowY, rhandImg);
       } else {
         drawHand(arrowX, arrowY, handImg);
       }
+
+      // Update previous for next frame
+      previousArrowX = arrowX;
+      previousHandType = currentHandType;
+
 
     // ✅ Initialize startPos when movement starts
     if (!startPos) {
@@ -449,15 +471,15 @@ function drawHand(x, y, img) {
   // 🧱 Safety: skip drawing if image not ready
   if (!img || !img.complete || img.naturalWidth === 0) return;
 
-  const baseSize = 60;
+  const baseSize = 65;
   const size = baseSize * handScale; // scaled size
 
   ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 
   // ✨ Bounce animation
   if (handBounceActive) {
-    handScale += (1.4 - handScale) * 0.3; // grow towards 1.4x
-    if (handScale >= 1.35) {
+    handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
+    if (handScale >= 1.55) {
       handBounceActive = false;
     }
   } else {
