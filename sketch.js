@@ -455,7 +455,7 @@ function handleGameLogic(arrowX, arrowY) {
       ball.y = -100;
 
 
-      if (score >= 20) {
+      if (score >= 10) {
         endGame();
       } else {
         if (respawnTimeout) clearTimeout(respawnTimeout);
@@ -535,6 +535,7 @@ function endGame() {
     endGameSound.currentTime = 0;
     endGameSound.play();
   }
+
 
   ctx.fillStyle = "rgba(0,0,0,0.6)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
