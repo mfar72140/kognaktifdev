@@ -536,47 +536,46 @@ function endGame() {
     endGameSound.play();
   }
 
+  // 🎇 Start fireworks
+  startFireworks();
 
-  ctx.fillStyle = "rgba(0,0,0,0.6)";
+  // Animate fireworks first, then show text
+  let fireworksDuration = 2500; // 2.5 seconds
+  let startTimeFireworks = Date.now();
+
+  function fireworksAnimation() {
+    if (!fireworksRunning) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawFireworks(ctx);
+
+    if (Date.now() - startTimeFireworks < fireworksDuration) {
+      requestAnimationFrame(fireworksAnimation);
+    } else {
+      stopFireworks();
+      showEndText(elapsed, avgReaction, normDistance, movementStability);
+    }
+  }
+  fireworksAnimation();
+}
+
+
+function showEndText(elapsed, avgReaction, normDistance, movementStability) {
+
+  ctx.fillStyle = "rgba(0,0,0,0.1)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
+
   ctx.fillStyle = "white";
   ctx.font = "55px poppins";
   ctx.textAlign = "center";
-  
-  ctx.fillText(
-    "Congratulations!",
-    canvas.width / 2,
-    canvas.height / 2 - 60
-  );
+  ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
 
-  ctx.font = "16px poppins";
+  ctx.font = "20px poppins";
+  ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 - 60);
+  ctx.fillText(`Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 - 30);
+  ctx.fillText(`Avg Reaction: ${avgReaction}s`, canvas.width / 2, canvas.height / 2);
+  ctx.fillText(`Normalized Distance: ${normDistance.toFixed(2)}`, canvas.width / 2, canvas.height / 2 + 30);
+  ctx.fillText(`Movement Stability: ${movementStability}%`, canvas.width / 2, canvas.height / 2 + 60);
 
-  ctx.fillText(
-    "Final Score: " + score,
-    canvas.width / 2,
-    canvas.height / 2 - 20
-  );
-  
-  ctx.fillText(
-    "Your Time: " + elapsed + "s",
-    canvas.width / 2,
-    canvas.height / 2 
-  );
-
-  ctx.fillText(
-    "Avg Reaction Time: " + avgReaction + " s", 
-    canvas.width / 2, canvas.height / 2 + 20
-  );
-
-  ctx.fillText("Norm Total Distance: " + normDistance.toFixed(2), 
-  canvas.width / 2, canvas.height / 2 + 40
-  );
-
-  // ✅ Show on results screen
-  ctx.fillText(
-    "Movement Stability: " + movementStability + "%",
-    canvas.width / 2, canvas.height / 2 + 60
-  );
 
   // ✅ Reset Path Deviation variables for next game
   startPos = null;
