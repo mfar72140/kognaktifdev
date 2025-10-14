@@ -209,6 +209,11 @@ function startCountdown() {
   document.getElementById("startBtnOverlay").disabled = true;
   document.getElementById("gameTitle").style.display = "none";
 
+  // Show Loading Overlay
+  const loadingOverlay = document.getElementById("loadingOverlay");
+  loadingOverlay.style.display = "flex";
+  loadingOverlay.innerText = "📷 Loading... Starting Camera";
+
   // Camera ON
   camera = new Camera(videoElement, {
     onFrame: async () => {
@@ -226,6 +231,10 @@ function startCountdown() {
       clearInterval(waitForCamera);
       console.log("🎥 Camera feed detected, starting countdown...");
   
+      // Hide Loading Overlay once camera ready
+      loadingOverlay.style.display = "none";
+      console.log("🎥 Camera feed detected, starting countdown...");
+
       if (countdownSound) {
         countdownSound.currentTime = 0;
         countdownSound.play();
