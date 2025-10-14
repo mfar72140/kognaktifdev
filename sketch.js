@@ -16,7 +16,6 @@ let cameraReady = false;
 let previousArrowX = null;
 let previousHandType = "Left"; // default
 
-
 // Path Deviation using Distance
 let startPos = null; // starting hand position for path deviation
 let deviationRatios = []; // store ratio per frame for current path
@@ -51,6 +50,8 @@ let flapDirection = 1;
 
 // Track respawn timeout
 let respawnTimeout = null;
+
+// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 window.onload = () => {
   canvas = document.getElementById("output_canvas");
@@ -127,9 +128,10 @@ window.onload = () => {
   requestAnimationFrame(gameLoop);
 };
 
-// ============================
+// =============================================
 // Save Game Result to Supabase
-// ============================
+// =============================================
+
 async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency) {
   console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency);
 
@@ -163,6 +165,7 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
 }
 
 // Helper: perpendicular distance from point to line
+
 function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
   const A = px - x1;
   const B = py - y1;
@@ -243,6 +246,7 @@ function startCountdown() {
   }, 200);
 }
 
+
 function drawCountdown(value) {
   ctx.fillStyle = "rgba(0,0,0,0.6)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -253,6 +257,7 @@ function drawCountdown(value) {
   ctx.textBaseline = "middle";
   ctx.fillText(value > 0 ? value : "GO!", canvas.width / 2, canvas.height / 2);
 }
+
 
 function startGame() {
   gameRunning = true;
@@ -276,6 +281,7 @@ function startGame() {
 
 const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
 
+
 function spawnBall() {
   // Randomize new bee position
   ball.x = Math.random() * (canvas.width - 80) + 40;
@@ -294,6 +300,7 @@ function spawnBall() {
   lastY = null;
 }
 
+
 function gameLoop() {
   if (countdownRunning) {
     drawCountdown(countdownValue);
@@ -303,13 +310,14 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
+
 function drawScene(results) {
   ctx.fillStyle = "white";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
   // Animate bee flap
-  flap += flapDirection * 0.4;
+  flap += flapDirection * 0.8;
   if (flap > 10 || flap < -10) flapDirection *= -1;
 
   ctx.drawImage(
@@ -465,8 +473,6 @@ function handleGameLogic(arrowX, arrowY) {
   }
 
 
-
-
 function drawHand(x, y, img) {
   // 🧱 Safety: skip drawing if image not ready
   if (!img || !img.complete || img.naturalWidth === 0) return;
@@ -486,7 +492,6 @@ function drawHand(x, y, img) {
     handScale += (1 - handScale) * 0.2; // return to normal
   }
 }
-
 
 
 function endGame() {
