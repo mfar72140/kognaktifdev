@@ -486,7 +486,7 @@ function drawHand(x, y, img) {
   // 🧱 Safety: skip drawing if image not ready
   if (!img || !img.complete || img.naturalWidth === 0) return;
 
-  const baseSize = 65;
+  const baseSize = 90;
   const size = baseSize * handScale; // scaled size
 
   ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
