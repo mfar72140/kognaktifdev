@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Buzz Tap</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/playpuzzlecover.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Cover Screen -->
+  <div id="coverScreen">
+    
+    <button id="closeBtn">&times;</button>
+
+    <div class="cover-card">
+      <div class="cover-left">
+        <h2>How to play</h2>
+        <p>Move your hand to match and arrange the puzzle pieces!
+            Follow the shape and photo on the screen.</p>
+        <p>Let’s see how fast you can finish it!</p>   
+        <p>Press 'Let's Play' when you're ready</p>
+        <h3>Trained skills</h3>
+        <ul>
+          <li>👀 Focused Attention</li>
+          <li>🧩 Hand-Eye Coordination</li>
+          <li>⚡ Reaction Speed</li>
+        </ul>
+        <p>The game is based on speed — your time to finish is your final score!</p>
+      </div>
+      <div class="cover-right">
+        <h2>Puzzle Card</h2>
+        <button id="startBtnOverlay">Let's Play</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas for the game -->
+  <canvas id="output_canvas" width="640" height="480"></canvas>
+
+  <!-- MediaPipe & p5.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
+
+  <!-- Game Logic -->
+  <script src="playpuzzle.js"></script>
+
+  <script>
+  // Hide cover screen & start game
+   document.getElementById("startBtnOverlay").addEventListener("click", () => {
+   document.getElementById("coverScreen").style.display = "none";
+   window.location.href = "dashgames.html"; // call your game start function from sketch.js
+   });
+
+     // Close button -> redirect to dashgames.html
+    document.getElementById("closeBtn").addEventListener("click", () => {
+    window.location.href = "dashgames.html";
+    });
+  </script>
+
+</body>
+</html>
