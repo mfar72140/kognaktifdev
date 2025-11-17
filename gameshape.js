@@ -24,7 +24,7 @@ const state = {
   draggingShape: null,
   dragOffset: { x: 0, y: 0 },
   score: 0,
-
+  attempts: 0,
 
   // timer
   startTime: null,
@@ -42,6 +42,7 @@ const state = {
   // loop
   rafId: null,
 };
+
 
 let isMuted = false;
 
@@ -325,6 +326,8 @@ function initGame() {
   
   state.score = 0;
   updateScore();
+
+  state.attempts = 0;
   
   state.shapes = [];
   state.targets = [];
@@ -444,6 +447,9 @@ function updateScore() {
 
 function checkPlacement(shape) {
   if (!shape || shape.placed) return;
+  
+  state.attempts++;
+    
   const target = state.targets.find(t => t.name === shape.name);
   if (!target) return;
 
@@ -593,6 +599,8 @@ function stopTimer() {
     clearInterval(state.timerIntervalId);
     state.timerIntervalId = null;
   }
+  // store final elapsed time (in seconds)
+  state.finalElapsed = Math.floor((Date.now() - state.startTime) / 1000);
 }
 
 /* =========================
@@ -629,22 +637,30 @@ function fadeInWinOverlay() {
   const fadeDuration = 3000;
   const startTime = performance.now();
 
+  // format time
+  const finalTime = state.finalElapsed ?? 0;  // seconds only
+
   function drawOverlay(now) {
     const elapsed = now - startTime;
     opacity = Math.min(elapsed / fadeDuration, 1);
 
-    // dark background
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = `rgba(0,0,0,${0.5 * opacity})`;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // text
     ctx.fillStyle = `rgba(255,255,255,${opacity})`;
-    ctx.font = "bold 70px Poppins, Arial";
+    ctx.font = "70px Poppins";
     ctx.textAlign = "center";
-    ctx.fillText("🎉 Well done! 🎉", canvas.width / 2, canvas.height / 2 - 50);
-    ctx.font = "35px Poppins, Arial";
-    ctx.fillText("You’ve completed the game!", canvas.width / 2, canvas.height / 2 + 20);
+    ctx.fillText("🎉 Well done! 🎉", canvas.width / 2, canvas.height / 2 - 80);
+
+    ctx.font = "35px Poppins";
+    ctx.fillText("You’ve completed the game!", canvas.width / 2, canvas.height / 2 - 10);
+
+    ctx.font = "20px Poppins";
+    ctx.fillText(`Time: ${finalTime}s`, canvas.width / 2, canvas.height / 2 + 30);
+
+    ctx.font = "20px Poppins";
+    ctx.fillText(`Attempts: ${state.attempts}`, canvas.width / 2, canvas.height / 2 + 70);
 
 
     if (opacity < 1) {

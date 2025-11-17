@@ -148,10 +148,10 @@ function drawFireworks(ctx) {
   }
 
   // Draw happy sun
-  if (happySun) {
-    happySun.update();
-    happySun.draw(ctx);
-  }
+ // if (happySun) {
+ //   happySun.update();
+  //  happySun.draw(ctx);
+  //}
 }
 
 function stopFireworks() {
