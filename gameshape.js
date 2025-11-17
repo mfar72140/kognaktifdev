@@ -112,8 +112,8 @@ const shapeImages = {};
 /* =========================
    ======= Layout Boxes ====
    ========================= */
-const leftBox = { x: 80, y: 120, width: 380, height: 330 };
-const rightBox = { x: 530, y: 120, width: 380, height: 330 };
+const leftBox = { x: 60, y: 120, width: 400, height: 350 };
+const rightBox = { x: 500, y: 120, width: 400, height: 350 };
 
 /* =========================
    ======= Initialization ==
