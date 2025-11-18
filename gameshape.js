@@ -25,6 +25,7 @@ const state = {
   dragOffset: { x: 0, y: 0 },
   score: 0,
   attempts: 0,
+  
 
   // timer
   startTime: null,
@@ -45,7 +46,7 @@ const state = {
 
 
 let isMuted = false;
-
+let finalTime = 0;
 
 /* =========================
    ====== DOM & UI ELTS ====
@@ -601,6 +602,8 @@ function stopTimer() {
   }
   // store final elapsed time (in seconds)
   state.finalElapsed = Math.floor((Date.now() - state.startTime) / 1000);
+  saveGameResult();
+
 }
 
 /* =========================
@@ -715,30 +718,31 @@ if (coverImg.complete) {
 // =============================================
 // Save Game Result to Supabase
 // =============================================
+async function saveGameResult() {
+  console.log("Saving game result...");
 
-async function saveGameResult(finalTime) {
-  console.log("Saving result...", finalTime);
-
+  // Get logged-in user
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
     console.error("No user logged in:", userError);
     return;
   }
 
-  console.log("User found:", user);
+  console.log("User found:", user.email);
 
-  // Insert using email only (since player_id is int8 and not compatible with UUID)
+  // Prepare game result
+  const finalTime = state.finalElapsed ?? 0;
+  const attempts = state.attempts ?? 0;
+  const score = state.score ?? 0;
+
   const { error: insertError } = await supabase
     .from("shapesense_results")
     .insert([{
       player_email: user.email,
-      //score: score,
       time_taken: finalTime,
-      //avg_reaction_time: avgReaction,
-      //norm_totaldistance: normDistance,
-      //av_devpath: parseFloat(movementStability), // Save path deviation %
-      //consistency: consistency
-      // leave player_id empty
+      attempts: attempts,
+      score: score
+      // future metrics can be added here
     }]);
 
   if (insertError) {
