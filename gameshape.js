@@ -711,3 +711,39 @@ if (coverImg.complete) {
 } else {
   coverImg.onload = () => drawCover();
 }
+
+// =============================================
+// Save Game Result to Supabase
+// =============================================
+
+async function saveGameResult(finalTime) {
+  console.log("Saving result...", finalTime);
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("No user logged in:", userError);
+    return;
+  }
+
+  console.log("User found:", user);
+
+  // Insert using email only (since player_id is int8 and not compatible with UUID)
+  const { error: insertError } = await supabase
+    .from("shapesense_results")
+    .insert([{
+      player_email: user.email,
+      //score: score,
+      time_taken: finalTime,
+      //avg_reaction_time: avgReaction,
+      //norm_totaldistance: normDistance,
+      //av_devpath: parseFloat(movementStability), // Save path deviation %
+      //consistency: consistency
+      // leave player_id empty
+    }]);
+
+  if (insertError) {
+    console.error("Insert error:", insertError);
+  } else {
+    console.log("Result saved successfully!");
+  }
+}
