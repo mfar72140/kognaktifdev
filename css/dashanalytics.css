@@ -125,6 +125,29 @@ body {
   
 }
 
+
+.game-selector {
+  margin: 20px auto;
+  text-align: center;
+}
+
+#gameSelect {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #ccc;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+}
+
+.no-data {
+  text-align: center;
+  font-size: 16px;
+  color: #777;
+  margin-top: 20px;
+  display: none;
+}
+
+
 /* =====================
    Analytics Section
 ===================== */

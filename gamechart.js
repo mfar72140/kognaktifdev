@@ -98,12 +98,25 @@ export function initGameChart(labels, times, norm_distance, stability) {
 }
 
 // ========================
-// Consistency Gauge
+// Consistency Gauge (FIXED)
 // ========================
 export function initConsistencyGauge(value) {
-  const ctx = document.getElementById("consistencyGauge").getContext("2d");
 
-  // Decide color based on value
+  // ⛔ STOP if canvas does not exist
+  const canvas = document.getElementById("consistencyGauge");
+  if (!canvas) {
+    console.warn("⚠ consistencyGauge canvas not found. Skipping chart init.");
+    return null;
+  }
+
+  const ctx = canvas.getContext("2d");
+
+  // 💥 Destroy previous chart if exists
+  if (window.consistencyGaugeChart) {
+    window.consistencyGaugeChart.destroy();
+  }
+
+  // Decide gauge color
   let color;
   if (value >= 70) color = "#4CAF50";      // green
   else if (value >= 40) color = "#FFEB3B"; // yellow
@@ -124,8 +137,8 @@ export function initConsistencyGauge(value) {
     }
   };
 
-
-  new Chart(ctx, {
+  // 💥 CREATE & STORE new chart instance
+  window.consistencyGaugeChart = new Chart(ctx, {
     type: "doughnut",
     data: {
       labels: ["Consistency", "Remaining"],
@@ -148,4 +161,7 @@ export function initConsistencyGauge(value) {
     },
     plugins: [centerTextPlugin]
   });
+
+  return window.consistencyGaugeChart;
 }
+

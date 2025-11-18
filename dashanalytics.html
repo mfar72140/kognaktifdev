@@ -32,9 +32,19 @@
     </div>
   </nav>
 
+  <div class="game-selector">
+      <label>Select Game:</label>
+      <select id="gameSelect">
+          <option value="buzz">Buzz Tap!</option>
+          <option value="shape">Shape Sense</option>
+      </select>
+  </div>
+
+  <div id="noDataMessage" class="no-data"></div>
+
   <!-- Analytics Content -->
   <main class="analytics-container">
-    <h2>Buzz Taps!</h2>
+    <h2 id="gameTitle">Buzz Tap!</h2>
     
     <!-- Player Stats -->
     <div class="stats">
@@ -93,103 +103,13 @@
 
 
 <script type="module">
-  import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-  import { initGameChart, initConsistencyGauge } from './gamechart.js';
+  import { loadUser } from './dashauth.js';
+  import { loadAnalytics } from './dashanalytics.js';
 
-  const supabaseUrl = "https://ijugaqvsszticpzrznnb.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY";
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  // ========== NAVBAR LOGIC ==========
-  async function loadUser() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      window.location.href = "index.html"; // not logged in
-      return;
-    }
-    
-    document.getElementById("userName").textContent = user.email;
-
-    // ✅ Dropdown toggle for user menu
-    const userMenu = document.querySelector(".user-menu");
-    const userName = document.getElementById("userName");
-
-    userName.addEventListener("click", () => {
-      userMenu.classList.toggle("active");
-    });
-
-    // ✅ Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!userMenu.contains(e.target)) {
-        userMenu.classList.remove("active");
-      }
-    });
-
-    // Logout button
-    document.getElementById("logout-btn").addEventListener("click", async () => {
-      await supabase.auth.signOut();
-      localStorage.clear();
-      window.location.href = "index.html";
-    });
-  }
-
-  // ========== ANALYTICS ==========
-  async function loadAnalytics() {
-    const userEmail = (await supabase.auth.getUser()).data.user?.email;
-    console.log("Using email for analytics:", userEmail);
-
-    const { data, error } = await supabase
-      .from("buzztap_results")
-      .select("norm_totaldistance, time_taken, av_devpath, created_at, score, consistency")
-      .eq("player_email", userEmail)
-      .order("created_at", { ascending: true });
-
-    if (error) {
-      console.error("Results fetch error:", error);
-      document.querySelector(".analytics-container").innerHTML =
-        "<p style='color:red;'>⚠️ Error fetching game data.</p>";
-      return;
-    }
-
-    if (!data || data.length === 0) {
-      document.querySelector(".analytics-container").innerHTML =
-        "<p>No game data found yet. Play a game first!</p>";
-      return;
-    }
-
-    // ✅ Summary stats
-    const lastRow = data[data.length - 1];
-    document.getElementById("lastScore").textContent = lastRow.score;
-    document.getElementById("lastDate").textContent = new Date(lastRow.created_at).toLocaleDateString("en-GB");
-    document.getElementById("totalGames").textContent = data.length;
-    const best = Math.min(...data.map(row => row.time_taken));
-    document.getElementById("bestTime").textContent = best.toFixed(2) + "s";
-
-    // =========================
-    // Render Consistency Gauge
-    // =========================
-    console.log("Raw consistency from Supabase:", lastRow.consistency);
-    const latestConsistency = (lastRow.consistency ?? 0)* 100; // replace "consistency" with your Supabase field name
-    console.log("Consistency value:", latestConsistency);
-    initConsistencyGauge(latestConsistency);
-
-
-    // ✅ Prepare chart data
-    const labels = data.map((row, i) => "G " + (i + 1));
-    const norm_distance = data.map(row => row.norm_totaldistance);
-    const times = data.map(row => row.time_taken);
-    const stability = data.map(row => row.av_devpath ? row.av_devpath : null);
-
-
-    // Initialize chart
-    initGameChart(labels, times, norm_distance, stability);
-  }
-
-
-  // Run both
   loadUser();
   loadAnalytics();
 </script>
+
 
 
 
