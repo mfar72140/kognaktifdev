@@ -1,9 +1,18 @@
 // gamechart.js
 
-export function initGameChart(labels, times, norm_distance, stability) {
-  const ctx = document.getElementById("mainChart").getContext("2d");
+// ============================
+// Initialize Main Game Chart
+// ============================
+export function initGameChart(labels, times, norm_distance = [], stability = []) {
+  const canvas = document.getElementById("mainChart");
+  if (!canvas) {
+    console.warn("⚠ mainChart canvas not found. Skipping chart init.");
+    return null;
+  }
 
-  let mainChart = new Chart(ctx, {
+  const ctx = canvas.getContext("2d");
+
+  const mainChart = new Chart(ctx, {
     type: "line",
     data: {
       labels,
@@ -70,39 +79,13 @@ export function initGameChart(labels, times, norm_distance, stability) {
     }
   });
 
-  // ✅ Tab switch logic
-  document.querySelectorAll(".tab-btn").forEach(btn => {
-    btn.addEventListener("click", () => {
-      document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-
-      if (btn.dataset.chart === "time") {
-        mainChart.data.datasets[0].label = "Time Taken (s)";
-        mainChart.data.datasets[0].data = times;
-        mainChart.data.datasets[0].borderColor = "green";
-      } else if (btn.dataset.chart === "distance") {
-        mainChart.data.datasets[0].label = "Norm Distance";
-        mainChart.data.datasets[0].data = norm_distance;
-        mainChart.data.datasets[0].borderColor = "blue";
-      } else if (btn.dataset.chart === "stability") {
-        mainChart.data.datasets[0].label = "Movement Stability (%)";
-        mainChart.data.datasets[0].data = stability;
-        mainChart.data.datasets[0].borderColor = "orange";
-      }
-
-      mainChart.update();
-    });
-  });
-
   return mainChart;
 }
 
-// ========================
-// Consistency Gauge (FIXED)
-// ========================
+// ============================
+// Initialize Consistency Gauge
+// ============================
 export function initConsistencyGauge(value) {
-
-  // ⛔ STOP if canvas does not exist
   const canvas = document.getElementById("consistencyGauge");
   if (!canvas) {
     console.warn("⚠ consistencyGauge canvas not found. Skipping chart init.");
@@ -111,7 +94,7 @@ export function initConsistencyGauge(value) {
 
   const ctx = canvas.getContext("2d");
 
-  // 💥 Destroy previous chart if exists
+  // Destroy previous chart if exists
   if (window.consistencyGaugeChart) {
     window.consistencyGaugeChart.destroy();
   }
@@ -137,7 +120,6 @@ export function initConsistencyGauge(value) {
     }
   };
 
-  // 💥 CREATE & STORE new chart instance
   window.consistencyGaugeChart = new Chart(ctx, {
     type: "doughnut",
     data: {
@@ -164,4 +146,3 @@ export function initConsistencyGauge(value) {
 
   return window.consistencyGaugeChart;
 }
-

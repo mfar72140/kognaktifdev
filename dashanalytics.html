@@ -72,9 +72,10 @@
         
         <!-- Tabs -->
         <div class="chart-tabs">
-          <button class="tab-btn active" data-chart="time">⏱ Time Taken per Game</button>
-          <button class="tab-btn" data-chart="distance">📏 Total Distance per Game</button>
-          <button class="tab-btn" data-chart="stability">📊 Movement Stability per Game</button>
+          <button id="tabTime"      class="tab-btn active" data-chart="time">⏱ Time Taken per Game</button>
+          <button id="tabDistance"  class="tab-btn" data-chart="distance">📏 Total Distance per Game</button>
+          <button id="tabStability" class="tab-btn" data-chart="stability">📊 Movement Stability per Game</button>
+          <button id="tabAttempts"  class="tab-btn" data-chart="attempts">🎯 Attempts per Game</button>
         </div>
 
         <!-- Single Canvas -->
@@ -86,7 +87,7 @@
     
     <!-- Consistency Gauge Section -->
     <section class="charts">
-      <div class="gauge-card">
+      <div class="gauge-card" id="gaugeSection">
         <h3>Consistency</h3>
         <div class="gauge-wrapper">
           <canvas id="consistencyGauge"></canvas>
