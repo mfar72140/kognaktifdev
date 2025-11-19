@@ -60,7 +60,7 @@ export function initGameChart(labels, times, norm_distance = [], stability = [])
         x: {
           ticks: {
             font: {
-              size: 12,
+              size: 11,
               family: "Poppins"
             },
             color: "#444"
@@ -69,7 +69,7 @@ export function initGameChart(labels, times, norm_distance = [], stability = [])
         y: {
           ticks: {
             font: {
-              size: 12,
+              size: 11,
               family: "Poppins"
             },
             color: "#444"

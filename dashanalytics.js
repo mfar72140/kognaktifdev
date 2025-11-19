@@ -58,6 +58,11 @@ function activateTab(activeBtn) {
 async function updateGameAnalytics() {
     const game = document.getElementById("gameSelect").value;
 
+    if (currentMainChart) {
+        currentMainChart.destroy();
+        currentMainChart = null;
+    }
+
     document.getElementById("gameTitle").textContent =
         game === "buzz" ? "Buzz Tap!" : "Shape Sense";
 
@@ -115,7 +120,11 @@ async function drawBuzzChart(type) {
     if (!buzzCache) return;
 
     const data = buzzCache;
-    const labels = data.map((_, i) => "G " + (i + 1));
+    const labels = data.map((r, i) => {
+    const date = new Date(r.created_at).toLocaleDateString("en-GB");
+    return `G${i + 1} (${date})`;
+    });
+
     const times = data.map(r => r.time_taken);
     const distances = data.map(r => r.norm_totaldistance);
     const stability = data.map(r => r.av_devpath);
@@ -179,7 +188,11 @@ async function drawShapeChart(type) {
     if (!shapeCache) return;
 
     const data = shapeCache;
-    const labels = data.map((_, i) => "G " + (i + 1));
+    const labels = data.map((r, i) => {
+    const date = new Date(r.created_at).toLocaleDateString("en-GB");
+    return `G${i + 1} (${date})`;
+    });
+
     const times = data.map(r => r.time_taken);
     const attempts = data.map(r => r.attempts);
 
