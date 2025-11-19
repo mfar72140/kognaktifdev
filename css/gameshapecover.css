@@ -93,3 +93,48 @@
 #closeBtn:hover {
   color: #ff5c5c;
 }
+
+
+.cover-right h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  font-weight: 500;
+  color: white;
+  background: rgba(200, 50, 230, 0.8);  /* Dark purple semi-transparent box */
+  padding: 6px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.level-btn {
+  display: block;
+  width: 110px;
+  padding: 8px 0;
+  margin: 10px auto;
+  font-size: 13px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  background: #ffffff;
+  color: #7a2cf4;
+  font-weight: 500;
+
+  /* 3D raised effect */
+  box-shadow: 0 6px 0 #c7b4f5, 
+              0 8px 15px rgba(0,0,0,0.25);
+
+  transition: all 0.2s ease;
+}
+
+/* Pressed / hover effect */
+.level-btn:hover {
+  box-shadow: 0 4px 0 #a88ce7, 
+              0 6px 12px rgba(0,0,0,0.2);
+  transform: translateY(-2px);
+}
+
+/* When clicked */
+.level-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #7a2cf4;
+}

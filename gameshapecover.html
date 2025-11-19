@@ -29,7 +29,11 @@
       </div>
       <div class="cover-right">
         <h2>Shape Sense</h2>
-        <button id="startBtnOverlay">Let's Play</button>
+        <h3>Select Level</h3>
+
+        <button class="level-btn" data-level="beginner">⭐<br>Beginner</button>
+        <button class="level-btn" data-level="intermediate">⭐⭐<br>Intermediate</button>
+        <button class="level-btn" data-level="advanced">⭐⭐⭐<br>Advanced</button>
       </div>
     </div>
   </div>
@@ -43,15 +47,20 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
 
-  <!-- Game Logic -->
-  <script src="playpuzzle.js"></script>
 
   <script>
-  // Hide cover screen & start game
-   document.getElementById("startBtnOverlay").addEventListener("click", () => {
-   document.getElementById("coverScreen").style.display = "none";
-   window.location.href = "gameshapeplay.html"; // call your game start function from sketch.js
-   });
+    // LEVEL BUTTON LOGIC
+    document.querySelectorAll(".level-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+
+        const lvl = btn.dataset.level;
+        localStorage.setItem("shapeSenseLevel", lvl);
+
+        if (lvl === "beginner") window.location.href = "gameshapeplay.html";
+        if (lvl === "intermediate") window.location.href = "#"; // future intermediate page
+        if (lvl === "advanced") window.location.href = "#";     // future advanced page
+      });
+    });
 
      // Close button -> redirect to dashgames.html
     document.getElementById("closeBtn").addEventListener("click", () => {
