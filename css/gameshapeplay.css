@@ -194,6 +194,14 @@ canvas {
   background: darkred;
 }
 
+#level {
+  text-align: left;
+  font-weight: 600;
+  font-size: 14px;
+  color: white;
+}
+
+
   /* Popup background */
   .popupexit {
     display: none; /* hidden by default */
