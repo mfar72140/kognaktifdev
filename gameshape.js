@@ -751,3 +751,23 @@ async function saveGameResult() {
     console.log("Result saved successfully!");
   }
 }
+
+// ========================
+// HOW TO PLAY POPUP SYSTEM
+// ========================
+
+function showPopup() {
+  guidePopup.style.display = "flex";
+}
+
+function hidePopup() {
+  guidePopup.style.display = "none";
+}
+
+howToPlayBtn.addEventListener("click", showPopup);
+closeGuideBtn.addEventListener("click", hidePopup);
+
+// Auto open popup on page load
+window.addEventListener("load", showPopup);
+
+// --- End How To Play Popup Logic ---

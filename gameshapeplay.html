@@ -33,16 +33,38 @@
     <div id="statusBar">
       <div id="score">Score: 0</div>
       <div id="timer">Time: 0s</div>
+      <button id="howToPlayBtn" class="how-btn">❔ Guide</button>
       <button id="closeBtn">✖ Exit</button>
     </div>
   </div>
   
+  <!-- HOW TO PLAY POPUP -->
+  <div id="guidePopup" class="popuphow">
+    <div class="popuphow-content">
+      <h2>How to Play!</h2>
+
+      <ul>
+        <li>Make sure your <strong>webcam is ON</strong> and working.</li>
+        <li>Please stay <strong>at least 2.0 ft</strong> from the webcam.</li>
+        <li>Use <strong>one hand</strong> — left or right.</li>
+        <li>Show your hand in front of the camera and let the hand icon <strong>track</strong> your movement.</li>
+        <li><strong>Pinch & drag</strong> a shape from the right and move it to match the shape on the left.</li>
+        <li><strong>Be careful!</strong> If the shape slips away from your hand, you’ll need to <strong>grab</strong> it again.</li>
+        <li>Each matched shape gives you <strong>score points</strong>.</li>
+        <li><strong>Match fast!</strong> The quicker you complete, the better.</li>
+        <li>The timer stops when <strong>all shapes are matched.</strong></li>
+      </ul>
+
+      <button id="closeGuideBtn" class="close-btn">Got it!</button>
+    </div>
+  </div>
+
 <!-- Custom Exit Popup -->
-<div id="exitPopup" class="popup">
-  <div class="popup-content">
+<div id="exitPopup" class="popupexit">
+  <div class="popupexit-content">
     <h3>Exit Game?</h3>
     <p>Are you sure you want to leave this game?</p>
-    <div class="popup-buttons">
+    <div class="popupexit-buttons">
       <button id="confirmExitBtn">Yes, Exit</button>
       <button id="cancelExitBtn">Cancel</button>
     </div>
