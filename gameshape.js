@@ -57,7 +57,7 @@ const ctx = canvas.getContext("2d");
 const titleEl = document.getElementById("gameTitle");
 const startBtn = document.getElementById("startBtnOverlay");
 const playAgainBtn = document.getElementById("playAgainBtn");
-const exitBtn = document.getElementById("exitBtn");
+const nextBtn = document.getElementById("nextBtn");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const timerDisplay = document.getElementById(TIMER_ID);
 
@@ -670,7 +670,7 @@ function fadeInWinOverlay() {
       requestAnimationFrame(drawOverlay);
     } else {
       playAgainBtn.style.display = "block";
-      exitBtn.style.display = "block";
+      nextBtn.style.display = "block";
     }
   }
 
@@ -686,7 +686,7 @@ startBtn.addEventListener("click", async () => {
   startBtn.style.display = "none";
   titleEl.style.display = "none";
   playAgainBtn.style.display = "none";
-  exitBtn.style.display = "none";
+  nextBtn.style.display = "none";
 
   // preload images then draw cover
   await preloadAssets();
@@ -700,8 +700,8 @@ startBtn.addEventListener("click", async () => {
 playAgainBtn.addEventListener("click", () => {
   window.location.href = "gameshapeplay.html";
 });
-exitBtn.addEventListener("click", () => {
-  window.location.href = "dashgames.html";
+nextBtn.addEventListener("click", () => {
+  window.location.href = "gameshapecover.html";
 });
 
 /* =========================
