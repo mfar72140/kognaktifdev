@@ -599,7 +599,7 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
   pathDeviations = [];
 
   document.getElementById("playAgainBtn").style.display = "block";
-  document.getElementById("exitBtn").style.display = "block";
+  document.getElementById("nextBtn").style.display = "block";
 
 
   async function calculateConsistency(newTimeTaken) {
@@ -649,12 +649,12 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
 
   document.getElementById("playAgainBtn").onclick = () => {
     document.getElementById("playAgainBtn").style.display = "none";
-    document.getElementById("exitBtn").style.display = "none";
-    window.location.href = "play1.html";
+    document.getElementById("nextBtn").style.display = "none";
+    window.location.href = "gamebuzzplay.html";
   };
 
-  document.getElementById("exitBtn").onclick = () => {
-    window.location.href = "dashgames.html";
+  document.getElementById("nextBtn").onclick = () => {
+    window.location.href = "gamebuzzcover.html";
   };
 }
 

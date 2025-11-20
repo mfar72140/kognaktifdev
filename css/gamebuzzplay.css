@@ -1,41 +1,11 @@
 body {
   text-align: center;
-  font-family: Arial, sans-serif;
+  font-family: 'poppin', sans-serif;
   background: #f2f2f2;
 }
 
 h1 {
   margin-top: 50px;
-}
-
-#startBtn {
-  padding: 10px 20px;
-  margin: 10px;
-  font-size: 18px;
-  background: #4a715d;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-#startBtn:hover {
-  background: #7a2cf4;
-}
-
-#exitBtn {
-  padding: 10px 20px;
-  margin: 10px;
-  font-size: 18px;
-  background: #4a715d;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-#exitBtn:hover {
-  background: #7a2cf4;
 }
 
 canvas {
@@ -50,6 +20,15 @@ canvas {
   background-size: cover;
 }
 
+/* ====================================================== */
+/* Canvas wrapper */
+/* ====================================================== */
+
+#gameWrapper {
+  position: relative;
+  display: inline-block;
+}
+
 #output_canvas {
   max-width: 100%;
   height: auto;
@@ -57,17 +36,6 @@ canvas {
   margin: auto;
 }
 
-/* Canvas wrapper */
-#gameWrapper {
-  position: relative;
-  display: inline-block;
-}
-
-#output_canvas {
-  display: block;
-}
-
-/* Title overlay on canvas */
 #gameTitle {
   position: absolute;
   top: 40%;
@@ -127,7 +95,7 @@ canvas {
   }
 }
 
-#playAgainBtn, #exitBtn {
+#playAgainBtn, #nextBtn {
   position: absolute;
   transform: translateX(-50%);
   padding: 8px 18px;
@@ -146,10 +114,10 @@ canvas {
   background: #7a2cf4;
 }
 
-#exitBtn {
+#nextBtn {
   top: 72%; /* just below Play Again */
   color: white;
-  left: 49%;
+  left: 50%;
   background: #43a047;
 }
 
@@ -157,9 +125,31 @@ canvas {
   background: #4b13a4;
 }
 
-#exitBtn:hover {
+#nextBtn:hover {
   background: #3a8a3e;
 }
+
+#muteBtn {
+  position: absolute;
+  top: 15px;
+  left: 15px;
+  background: rgba(255, 255, 255, 0.8);
+  border: none;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.3s;
+}
+
+#muteBtn:hover {
+  background: rgba(255, 255, 255, 1);
+}
+
+/* ====================================================== */
+/* Status Bar */
+/* ====================================================== */
 
 #statusBar {
   background: black;
@@ -193,24 +183,6 @@ canvas {
 
 #statusBar #closeBtn:hover {
   background: darkred;
-}
-
-#muteBtn {
-  position: absolute;
-  top: 15px;
-  left: 15px;
-  background: rgba(255, 255, 255, 0.8);
-  border: none;
-  border-radius: 50%;
-  width: 35px;
-  height: 35px;
-  font-size: 20px;
-  cursor: pointer;
-  transition: background 0.3s;
-}
-
-#muteBtn:hover {
-  background: rgba(255, 255, 255, 1);
 }
 
   /* Popup background */

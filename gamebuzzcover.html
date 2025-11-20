@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Buzz Tap</title>
   <link rel="stylesheet" href="css/style.css">
-  <link rel="stylesheet" href="css/play1cover.css">
+  <link rel="stylesheet" href="css/gamebuzzcover.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
@@ -61,7 +61,7 @@
         const lvl = btn.dataset.level;
         localStorage.setItem("buzzTapLevel", lvl);
 
-        if (lvl === "beginner") window.location.href = "play1.html";
+        if (lvl === "beginner") window.location.href = "gamebuzzplay.html";
         if (lvl === "intermediate") window.location.href = "#";
         if (lvl === "advanced") window.location.href = "#";
       });
