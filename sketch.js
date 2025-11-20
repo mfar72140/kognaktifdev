@@ -313,7 +313,8 @@ function spawnBall() {
 function gameLoop() {
   if (countdownRunning) {
     drawCountdown(countdownValue);
-  } else if (gameRunning && latestResults) {
+  } 
+  else if (gameRunning && latestResults) {
     drawScene(latestResults);
   }
   requestAnimationFrame(gameLoop);
@@ -696,3 +697,25 @@ class HoneySplash {
     return this.particles.length === 0;
   }
 }
+
+
+// ========================
+// HOW TO PLAY POPUP SYSTEM
+// ========================
+
+function showPopup() {
+  guidePopup.style.display = "flex";
+}
+
+function hidePopup() {
+  guidePopup.style.display = "none";
+}
+
+howToPlayBtn.addEventListener("click", showPopup);
+closeGuideBtn.addEventListener("click", hidePopup);
+
+// Auto open popup on page load
+window.addEventListener("load", showPopup);
+
+// --- End How To Play Popup Logic ---
+

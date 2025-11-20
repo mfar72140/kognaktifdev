@@ -8,7 +8,6 @@ h1 {
   margin-top: 50px;
 }
 
-
 #startBtn {
   padding: 10px 20px;
   margin: 10px;
@@ -38,7 +37,6 @@ h1 {
 #exitBtn:hover {
   background: #7a2cf4;
 }
-
 
 canvas {
   display: block;
@@ -146,7 +144,6 @@ canvas {
   color: white;
   left: 50%;
   background: #7a2cf4;
-
 }
 
 #exitBtn {
@@ -154,17 +151,14 @@ canvas {
   color: white;
   left: 49%;
   background: #43a047;
- 
 }
 
 #playAgainBtn:hover{
   background: #4b13a4;
-
 }
 
 #exitBtn:hover {
   background: #3a8a3e;
-
 }
 
 #statusBar {
@@ -172,12 +166,12 @@ canvas {
   color: white;
   display: flex;
   justify-content: flex-start; /* align items to the left */
-  align-items: center;
-  gap: 20px;  /* space between Score and Time */
+  align-items: left;
+  gap: 25px;  /* space between Score and Time */
   font-size: 14px;
   font-weight: 600;
   font-family: 'Poppins', sans-serif;
-  padding: 7px 20px;
+  padding: 8px 18px;
   border-radius: 0 0 12px 12px;
   width: 100%;
 }
@@ -194,7 +188,7 @@ canvas {
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
-  margin-left: 20px;
+  margin-left: 10px;
 }
 
 #statusBar #closeBtn:hover {
@@ -220,7 +214,7 @@ canvas {
 }
 
   /* Popup background */
-  .popup {
+  .popupexit {
     display: none; /* hidden by default */
     position: fixed;
     top: 0; left: 0;
@@ -232,7 +226,7 @@ canvas {
   }
 
   /* Popup box */
-  .popup-content {
+  .popupexit-content {
     background: #fff;
     padding: 20px;
     border-radius: 12px;
@@ -242,17 +236,17 @@ canvas {
     animation: fadeIn 0.3s ease;
   }
 
-  .popup-content h3 {
+  .popupexit-content h3 {
     margin: 0 0 10px;
   }
 
-  .popup-buttons {
+  .popupexit-buttons {
     margin-top: 15px;
     display: flex;
     justify-content: space-around;
   }
 
-  .popup-buttons button {
+  .popupexit-buttons button {
     padding: 8px 16px;
     border: none;
     border-radius: 8px;
@@ -282,3 +276,96 @@ canvas {
   #loadingOverlay {
     animation: blink 1s infinite;
   }
+
+
+/* Right Buttons in status bar */
+.right-buttons {
+  display: flex;
+  align-items: left;
+  gap: 10px;
+}
+
+/* How to play button inside status bar */
+.how-btn {
+  padding: 4px 9px;
+  background: #fdd835;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.how-btn:hover {
+  background: #fbc02d;
+}
+
+/* HOW TO PLAY POPUP WRAPPER */
+.popuphow {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  backdrop-filter: blur(4px);
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+/* POPUP BOX */
+.popuphow-content {
+  background: #ffffff;
+  padding: 25px 25px 30px;
+  border-radius: 16px;
+  width: 85%;
+  max-width: 420px;
+  animation: popupFade 0.25s ease;
+  font-family: 'Poppins', sans-serif;
+  color: #333;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+}
+
+/* TITLE */
+.popuphow-content h2 {
+  margin: 0 0 15px;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+/* LIST */
+.popuphow-content ul {
+  padding-left: 18px;
+  font-size: 15px;
+  line-height: 1.55;
+  text-align: left;
+}
+
+.popuphow-content li {
+  margin-bottom: 8px;
+}
+
+/* CLOSE BUTTON */
+.close-btn {
+  width: 100%;
+  margin-top: 20px;
+  padding: 10px 20px;
+  background:  #fdd835;
+  border-radius: 10px;
+  color: black;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 15px;
+  transition: background 0.25s ease;
+}
+
+.close-btn:hover {
+  background:  #fbc02d;
+}
+
+/* ANIMATION */
+@keyframes popupFade {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
