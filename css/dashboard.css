@@ -5,7 +5,10 @@ body {
   color: #333;
 }
 
-/* Navbar */
+/* =======================
+    NAVBAR
+======================= */
+
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -125,9 +128,10 @@ body {
   
 }
 
+/* =======================
+   MAIN DASHBOARD CONTENT
+======================= */
 
-
-/* Dashboard Content */
 .dashboard {
   max-width: 960px;
   margin: 40px auto;

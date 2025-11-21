@@ -5,7 +5,10 @@ body {
   color: #333;
 }
 
-/* Navbar */
+/* =======================
+    NAVBAR
+======================= */
+
 .navbar {
   display: flex;
   justify-content: space-between;
@@ -124,6 +127,10 @@ body {
   padding: 4px 0;
   
 }
+
+/* =======================
+   MAIN CONTENT
+======================= */
 
 /* Header Description */
 .headerdescription h2 {
