@@ -741,7 +741,8 @@ async function saveGameResult() {
       player_email: user.email,
       time_taken: finalTime,
       attempts: attempts,
-      score: score
+      score: score,
+      level: "BEGINNER"
       // future metrics can be added here
     }]);
 

@@ -141,11 +141,11 @@ body {
   margin: 20px auto;
 }
 
-.game-selector {
+.game-selector .level-selector {
   text-align: center;
 }
 
-#gameSelect {
+#gameSelect #levelSelect {
   padding: 8px 12px;
   border-radius: 6px;
   border: 1px solid #ccc;
@@ -484,7 +484,7 @@ body {
 
 
 /* =======================
-   SCORE CARD MODAL
+   SCORE CARD MODAL POPUP
 ======================= */
 
 .modal {

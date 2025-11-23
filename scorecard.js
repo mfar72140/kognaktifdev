@@ -19,9 +19,11 @@ const inputDate = document.getElementById("sessionDate"); // yyyy-mm-dd
 
 // Game selection
 const gameSelect = document.getElementById("gameSelect");
+const levelSelect = document.getElementById("levelSelect");
 
 // Output fields in modal
 const scGameName = document.getElementById("scGameName");
+const scGameLevel = document.getElementById("scGameLevel");
 const scBestTime = document.getElementById("scBestTime");
 const scTotalPlayed = document.getElementById("scTotalGames");
 const scTotalScore = document.getElementById("scTotalScore");
@@ -36,6 +38,7 @@ const pdfTeacher = document.getElementById("pdfTeacher");
 const pdfSessionDate = document.getElementById("pdfsessiondate");
 
 const pdfGameName = document.getElementById("pdfGameName");
+const pdfGameLevel = document.getElementById("pdfGameLevel");
 const pdfBestTime = document.getElementById("pdfBestTime");
 const pdfGamesPlayed = document.getElementById("pdfGamesPlayed");
 const pdfTotalScore = document.getElementById("pdfTotalScore");
@@ -58,10 +61,12 @@ async function getGameStatsByDate() {
 
     const game = gameSelect?.value || "buzz";
     const selectedDate = inputDate.value;
+    const level = levelSelect?.value || "BEGINNER";
 
     if (!selectedDate) {
         return {
             gameName: game === "buzz" ? "Buzz Tap!" : "Shape Sense",
+            gameLevel: levelSelect.value.toUpperCase(),
             date: "-",
             bestTime: "-",
             totalPlayed: "-",
@@ -71,7 +76,7 @@ async function getGameStatsByDate() {
         };
     }
 
-    const cacheKey = `${game}-${selectedDate}`;
+    const cacheKey = `${game}-${level}-${selectedDate}`;
     if (cache[cacheKey]) return cache[cacheKey];
 
     // Get email
@@ -91,12 +96,13 @@ async function getGameStatsByDate() {
     // Date range for filtering
     const start = selectedDate + "T00:00:00";
     const end = selectedDate + "T23:59:59";
-
+  
     // Get all results for the selected date
     const { data, count, error } = await supabase
         .from(table)
         .select("*", { count: "exact" })
         .eq("player_email", userEmail)
+        .or(`level.eq.${level},level.is.null`)
         .gte("created_at", start)
         .lte("created_at", end)
         .order("time_taken", { ascending: true });
@@ -139,6 +145,7 @@ async function getGameStatsByDate() {
 
     const result = {
         gameName: gameTitle,
+        gameLevel: levelSelect.value.toUpperCase(),
         date: selectedDate,
         bestTime: bestRecord?.time_taken ? bestRecord.time_taken.toFixed(1) + "s" : "-",
         totalPlayed: count || 0,
@@ -161,6 +168,7 @@ scoreCardBtn.addEventListener("click", async () => {
     const result = await getGameStatsByDate();
 
     scGameName.textContent = result.gameName;
+    scGameLevel.textContent = levelSelect.value.toUpperCase();
     scBestTime.textContent = result.bestTime;
     scTotalPlayed.textContent = result.totalPlayed;
     scTotalScore.textContent = result.totalScore;
@@ -184,6 +192,7 @@ async function updateScoreCard() {
     const result = await getGameStatsByDate();
 
     scGameName.textContent = result.gameName;
+    scGameLevel.textContent = levelSelect.value.toUpperCase();  
     scBestTime.textContent = result.bestTime;
     scTotalPlayed.textContent = result.totalPlayed;
     scTotalScore.textContent = result.totalScore;
@@ -214,6 +223,7 @@ downloadBtn.addEventListener("click", async () => {
     pdfSessionDate.textContent = inputDate.value;
 
     pdfGameName.textContent = scGameName.textContent;
+    pdfGameLevel.textContent = scGameLevel.textContent;
     pdfBestTime.textContent = scBestTime.textContent;
     pdfGamesPlayed.textContent = scTotalPlayed.textContent;
     pdfTotalScore.textContent = scTotalScore.textContent;

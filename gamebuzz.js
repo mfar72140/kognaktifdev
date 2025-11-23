@@ -153,7 +153,8 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
       avg_reaction_time: avgReaction,
       norm_totaldistance: normDistance,
       av_devpath: parseFloat(movementStability), // Save path deviation %
-      consistency: consistency
+      consistency: consistency,
+      level: "BEGINNER"
       // leave player_id empty
     }]);
 

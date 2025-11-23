@@ -32,7 +32,7 @@
     </div>
   </nav>
 
-  <!-- Game Selector -->
+  <!-- Game Selector / Score Card / Report Card-->
   <div class="selector-wrapper">
 
     <div class="game-selector">
@@ -40,6 +40,16 @@
         <select id="gameSelect">
             <option value="buzz">Buzz Tap!</option>
             <option value="shape">Shape Sense</option>
+        </select>
+    </div>
+
+    <!-- Level Selector -->
+    <div class="level-selector">
+        <label>Select Level:</label>
+        <select id="levelSelect">
+            <option value="beginner" selected>BEGINNER</option>
+            <option value="intermediate" disabled>INTERMEDIATE</option>
+            <option value="advanced" disabled>ADVANCED</option>
         </select>
     </div>
 
@@ -147,6 +157,7 @@
 
       <div class="score-section">
         <p><strong>Game Module:</strong> <span id="scGameName"></span></p>
+        <p><strong>Game Level:</strong> <span id="scGameLevel"></span></p>
         <p><strong>Best Time:</strong> <span id="scBestTime"></span></p>
         <p><strong>Total Games Played:</strong> <span id="scTotalGames"></span></p>
         <p><strong>Total Score:</strong> <span id="scTotalScore"></span></p>
@@ -177,7 +188,8 @@
 
     <div class="section">
         <h3>Game Performance</h3>
-        <p><strong>Game:</strong> <span id="pdfGameName"></span></p>
+        <p><strong>Game Module:</strong> <span id="pdfGameName"></span></p>
+        <p><strong>Game Level:</strong> <span id="pdfGameLevel"></span></p>
         <p><strong>Best Time:</strong> <span id="pdfBestTime"></span></p>
         <p><strong>Total Played:</strong> <span id="pdfGamesPlayed"></span></p>
         <p><strong>Total Score:</strong> <span id="pdfTotalScore"></span></p>
