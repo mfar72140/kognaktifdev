@@ -26,6 +26,7 @@ const scBestTime = document.getElementById("scBestTime");
 const scTotalPlayed = document.getElementById("scTotalGames");
 const scTotalScore = document.getElementById("scTotalScore");
 const scTimeList = document.getElementById("scTimeList");
+const scDistanceList = document.getElementById("scDistanceList");
 
 // Printable/PDF fields
 const pdfStudentName = document.getElementById("pdfStudentName");
@@ -39,6 +40,7 @@ const pdfBestTime = document.getElementById("pdfBestTime");
 const pdfGamesPlayed = document.getElementById("pdfGamesPlayed");
 const pdfTotalScore = document.getElementById("pdfTotalScore");
 const pdfTimeList = document.getElementById("pdfTimeList");
+const pdfDistanceList = document.getElementById("pdfDistanceList");
 
 // Download button
 const downloadBtn = document.getElementById("downloadScorePDF");
@@ -64,7 +66,8 @@ async function getGameStatsByDate() {
             bestTime: "-",
             totalPlayed: "-",
             totalScore: "-",
-            timeList: "-"
+            timeList: "-",
+            distanceList: "-"
         };
     }
 
@@ -105,7 +108,9 @@ async function getGameStatsByDate() {
             date: selectedDate,
             bestTime: "-",
             totalPlayed: 0,
-            totalScore: 0
+            totalScore: 0,
+            timeList: "-",
+            distanceList: "-"
         };
     }
 
@@ -116,7 +121,21 @@ async function getGameStatsByDate() {
         totalScore = data[data.length - 1].score || 0;
     }
 
+    // TIME LIST
     const timeList = data?.map(r => r.time_taken?.toFixed(1) + "s") || [];
+
+    // DISTANCE LIST (for Buzz Tap)
+    let distanceList = "-";
+
+    if (game === "buzz") {
+        const dist = data?.map(r => 
+            r.norm_totaldistance != null 
+                ? r.norm_totaldistance.toFixed(1) + "px"
+                : null
+        ).filter(v => v !== null);
+
+        distanceList = dist.length > 0 ? dist.join(", ") : "-";
+    }
 
     const result = {
         gameName: gameTitle,
@@ -124,7 +143,8 @@ async function getGameStatsByDate() {
         bestTime: bestRecord?.time_taken ? bestRecord.time_taken.toFixed(1) + "s" : "-",
         totalPlayed: count || 0,
         totalScore: totalScore,
-        timeList: timeList.length > 0 ? timeList.join(", ") : "-"
+        timeList: timeList.length > 0 ? timeList.join(", ") : "-",
+        distanceList
     };
 
     cache[cacheKey] = result;
@@ -145,6 +165,7 @@ scoreCardBtn.addEventListener("click", async () => {
     scTotalPlayed.textContent = result.totalPlayed;
     scTotalScore.textContent = result.totalScore;
     scTimeList.textContent = result.timeList;
+    scDistanceList.textContent = result.distanceList;
 });
 
 
@@ -167,6 +188,7 @@ async function updateScoreCard() {
     scTotalPlayed.textContent = result.totalPlayed;
     scTotalScore.textContent = result.totalScore;
     scTimeList.textContent = result.timeList;
+    scDistanceList.textContent = result.distanceList;
 }
 
 // Debounce
@@ -196,6 +218,7 @@ downloadBtn.addEventListener("click", async () => {
     pdfGamesPlayed.textContent = scTotalPlayed.textContent;
     pdfTotalScore.textContent = scTotalScore.textContent;
     pdfTimeList.textContent = scTimeList.textContent;
+    pdfDistanceList.textContent = scDistanceList.textContent;
 
     const element = document.getElementById("scorecardPrint");
     const canvas = await html2canvas(element, { scale: 2 });
