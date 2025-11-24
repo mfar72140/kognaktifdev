@@ -73,6 +73,28 @@
   </div>
 </div>
 
+<!-- Load game script based on selected level -->
+<<script>
+  const level = localStorage.getItem("buzzTapLevel") || "beginner";
+
+  // Update level text
+  const levelBar = document.getElementById("level");
+  levelBar.textContent = "Level: " + level.toUpperCase();
+
+  // Apply TEXT color only
+  levelBar.classList.add("text-" + level);
+
+  // Dynamic script loader depending on level
+  function loadScript(file) {
+    const s = document.createElement("script");
+    s.src = file;
+    document.body.appendChild(s);
+  }
+
+  if (level === "beginner") loadScript("gamebuzz.js");
+  if (level === "intermediate") loadScript("gamebuzz_inter.js");
+  if (level === "advanced") loadScript("gamebuzz_adv.js");
+</script>
 
 
   <!-- MediaPipe & p5.js -->
@@ -90,7 +112,6 @@
   </script>
 
   <!-- Game Logic -->
-  <script src="gamebuzz.js"></script>
   <script src="fireworks.js"></script>
 
 

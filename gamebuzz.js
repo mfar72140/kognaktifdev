@@ -1,7 +1,10 @@
+// ============================================
+// GLOBAL VARIABLES
+// ============================================
 
 let videoElement, hands, camera;
 let ctx, canvas;
-let beeImg, handImg, rhandImg, bgImg;
+let beeImg, LhandImg, rhandImg, bgImg;
 let ball = { x: 0, y: 0, r: 30 };
 let score = 0;
 let gameRunning = false;
@@ -51,7 +54,10 @@ let flapDirection = 1;
 // Track respawn timeout
 let respawnTimeout = null;
 
-// XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+// ============================================
+// WINDOW ONLOAD - INIT
+// ============================================
 
 window.onload = () => {
   canvas = document.getElementById("output_canvas");
@@ -61,8 +67,8 @@ window.onload = () => {
   beeImg = new Image();
   beeImg.src = "images/bee2.png";
 
-  handImg = new Image();
-  handImg.src = "images/hand1.png";
+  LhandImg = new Image();
+  LhandImg.src = "images/Lhand.png";
 
   rhandImg = new Image();
   rhandImg.src = "images/rhand.png";
@@ -128,73 +134,10 @@ window.onload = () => {
   requestAnimationFrame(gameLoop);
 };
 
-// =============================================
-// Save Game Result to Supabase
-// =============================================
 
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency) {
-  console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency);
-
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
-  if (userError || !user) {
-    console.error("No user logged in:", userError);
-    return;
-  }
-
-  console.log("User found:", user);
-
-  // Insert using email only (since player_id is int8 and not compatible with UUID)
-  const { error: insertError } = await supabase
-    .from("buzztap_results")
-    .insert([{
-      player_email: user.email,
-      score: score,
-      time_taken: timeTaken,
-      avg_reaction_time: avgReaction,
-      norm_totaldistance: normDistance,
-      av_devpath: parseFloat(movementStability), // Save path deviation %
-      consistency: consistency,
-      level: "BEGINNER"
-      // leave player_id empty
-    }]);
-
-  if (insertError) {
-    console.error("Insert error:", insertError);
-  } else {
-    console.log("Result saved successfully!");
-  }
-}
-
-// Helper: perpendicular distance from point to line
-
-function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
-  const A = px - x1;
-  const B = py - y1;
-  const C = x2 - x1;
-  const D = y2 - y1;
-
-  const dot = A * C + B * D;
-  const len_sq = C * C + D * D;
-  const param = len_sq !== 0 ? dot / len_sq : -1;
-
-  let xx, yy;
-
-  if (param < 0) {
-    xx = x1;
-    yy = y1;
-  } else if (param > 1) {
-    xx = x2;
-    yy = y2;
-  } else {
-    xx = x1 + param * C;
-    yy = y1 + param * D;
-  }
-
-  const dx = px - xx;
-  const dy = py - yy;
-  return Math.sqrt(dx * dx + dy * dy);
-}
-
+// ============================================
+// Countdown
+// ============================================
 
 function startCountdown() {
   // Reset state
@@ -269,6 +212,10 @@ function drawCountdown(value) {
 }
 
 
+// ============================================
+// Start Game
+// ============================================
+
 function startGame() {
   gameRunning = true;
 
@@ -292,6 +239,10 @@ function startGame() {
 const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
 
 
+// ============================================
+// Spawn Bee
+// ============================================
+
 function spawnBall() {
   // Randomize new bee position
   ball.x = Math.random() * (canvas.width - 80) + 40;
@@ -311,6 +262,10 @@ function spawnBall() {
 }
 
 
+// ============================================
+// Main Game Loop
+// ============================================
+
 function gameLoop() {
   if (countdownRunning) {
     drawCountdown(countdownValue);
@@ -321,6 +276,10 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
+
+// ============================================
+// Draw Scene
+// ============================================
 
 function drawScene(results) {
   ctx.fillStyle = "white";
@@ -373,7 +332,7 @@ function drawScene(results) {
       if (currentHandType === "Right" && rhandImg) {
         drawHand(arrowX, arrowY, rhandImg);
       } else {
-        drawHand(arrowX, arrowY, handImg);
+        drawHand(arrowX, arrowY, LhandImg);
       }
 
       // Update previous for next frame
@@ -435,6 +394,10 @@ function drawScene(results) {
   }}}
 
 
+// ============================================
+// Handle Game Logic
+// ============================================
+
 function handleGameLogic(arrowX, arrowY) {
 
     // Collision check
@@ -474,7 +437,7 @@ function handleGameLogic(arrowX, arrowY) {
       ball.y = -100;
 
 
-      if (score >= 10) {
+      if (score >= 20) {
         endGame();
       } else {
         if (respawnTimeout) clearTimeout(respawnTimeout);
@@ -483,6 +446,10 @@ function handleGameLogic(arrowX, arrowY) {
     }
   }
 
+
+// ============================================
+// Draw Hand
+// ============================================
 
 function drawHand(x, y, img) {
   // 🧱 Safety: skip drawing if image not ready
@@ -504,6 +471,10 @@ function drawHand(x, y, img) {
   }
 }
 
+
+// ============================================
+// End Game
+// ============================================
 
 function endGame() {
   gameRunning = false;
@@ -575,6 +546,48 @@ function endGame() {
 }
 
 
+// ============================================
+// Save Game Result to Supabase
+// ============================================
+
+async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency) {
+  console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency);
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) {
+    console.error("No user logged in:", userError);
+    return;
+  }
+
+  console.log("User found:", user);
+
+  // Insert using email only (since player_id is int8 and not compatible with UUID)
+  const { error: insertError } = await supabase
+    .from("buzztap_results")
+    .insert([{
+      player_email: user.email,
+      score: score,
+      time_taken: timeTaken,
+      avg_reaction_time: avgReaction,
+      norm_totaldistance: normDistance,
+      av_devpath: parseFloat(movementStability), // Save path deviation %
+      consistency: consistency,
+      level: "BEGINNER"
+      // leave player_id empty
+    }]);
+
+  if (insertError) {
+    console.error("Insert error:", insertError);
+  } else {
+    console.log("Result saved successfully!");
+  }
+}
+
+
+// ============================================
+// Show End Text
+// ============================================
+
 function showEndText(elapsed, avgReaction, normDistance, movementStability) {
 
   ctx.fillStyle = "rgba(0,0,0,0.1)";
@@ -602,6 +615,10 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
   document.getElementById("playAgainBtn").style.display = "block";
   document.getElementById("nextBtn").style.display = "block";
 
+
+// ============================================
+// Calculate Consistency
+// ============================================
 
   async function calculateConsistency(newTimeTaken) {
     const { data: { user } } = await supabase.auth.getUser();
@@ -658,6 +675,11 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
     window.location.href = "gamebuzzcover.html";
   };
 }
+
+
+// ============================================
+// HONEY SPLASH EFFECT
+// ============================================
 
 class HoneySplash {
   constructor(x, y) {
@@ -718,5 +740,37 @@ closeGuideBtn.addEventListener("click", hidePopup);
 // Auto open popup on page load
 window.addEventListener("load", showPopup);
 
-// --- End How To Play Popup Logic ---
 
+// =================================================
+// Helper: perpendicular distance from point to line
+// =================================================
+
+function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
+  const A = px - x1;
+  const B = py - y1;
+  const C = x2 - x1;
+  const D = y2 - y1;
+
+  const dot = A * C + B * D;
+  const len_sq = C * C + D * D;
+  const param = len_sq !== 0 ? dot / len_sq : -1;
+
+  let xx, yy;
+
+  if (param < 0) {
+    xx = x1;
+    yy = y1;
+  } else if (param > 1) {
+    xx = x2;
+    yy = y2;
+  } else {
+    xx = x1 + param * C;
+    yy = y1 + param * D;
+  }
+
+  const dx = px - xx;
+  const dy = py - yy;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+// --- End of gamebuzz.js ---

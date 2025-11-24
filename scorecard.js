@@ -55,13 +55,12 @@ const cache = {};
 
 
 // ==========================================================
-//  FUNCTION: Get Stats for Selected Date (fast + cached)
+//  FUNCTION: Get Stats for Selected Date (fixed UTC + caching)
 // ==========================================================
 async function getGameStatsByDate() {
-
     const game = gameSelect?.value || "buzz";
     const selectedDate = inputDate.value;
-    const level = levelSelect?.value || "BEGINNER";
+    const level = (levelSelect?.value || "BEGINNER").toUpperCase();
 
     if (!selectedDate) {
         return {
@@ -79,32 +78,33 @@ async function getGameStatsByDate() {
     const cacheKey = `${game}-${level}-${selectedDate}`;
     if (cache[cacheKey]) return cache[cacheKey];
 
-    // Get email
-    const { data: user } = await supabase.auth.getUser();
-    const userEmail = user.user?.email;
-
-    let table = "";
-    let gameTitle = "";
-    if (game === "buzz") {
-        table = "buzztap_results";
-        gameTitle = "Buzz Tap!";
-    } else {
-        table = "shapesense_results";
-        gameTitle = "Shape Sense";
+    // Get logged-in user's email
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+        console.error("User not logged in or error:", userError);
+        return {};
     }
+    const userEmail = userData.user.email;
 
-    // Date range for filtering
-    const start = selectedDate + "T00:00:00";
-    const end = selectedDate + "T23:59:59";
-  
-    // Get all results for the selected date
+    // Determine table and title
+    const table = game === "buzz" ? "buzztap_results" : "shapesense_results";
+    const gameTitle = game === "buzz" ? "Buzz Tap!" : "Shape Sense";
+
+    // ✅ Local day range (timezone-safe)
+    const localStart = new Date(selectedDate + "T00:00:00");
+    const localEnd = new Date(selectedDate + "T23:59:59");
+    const startUTC = localStart.toISOString();
+    const endUTC = localEnd.toISOString();
+    console.log("UTC Filter:", startUTC, endUTC);
+
+    // Fetch results
     const { data, count, error } = await supabase
         .from(table)
         .select("*", { count: "exact" })
         .eq("player_email", userEmail)
         .or(`level.eq.${level},level.is.null`)
-        .gte("created_at", start)
-        .lte("created_at", end)
+        .gte("created_at", startUTC)
+        .lte("created_at", endUTC)
         .order("time_taken", { ascending: true });
 
     if (error) {
@@ -122,24 +122,17 @@ async function getGameStatsByDate() {
 
     const bestRecord = data?.[0];
 
-    let totalScore = "-";
-    if (data && data.length > 0) {
-        totalScore = data[data.length - 1].score || 0;
-    }
+    // Total score = last record score
+    let totalScore = data && data.length > 0 ? data[data.length - 1].score || 0 : "-";
 
-    // TIME LIST
+    // Time list
     const timeList = data?.map(r => r.time_taken?.toFixed(1) + "s") || [];
 
-    // DISTANCE LIST (for Buzz Tap)
+    // Distance list (for Buzz Tap)
     let distanceList = "-";
-
     if (game === "buzz") {
-        const dist = data?.map(r => 
-            r.norm_totaldistance != null 
-                ? r.norm_totaldistance.toFixed(1) + "px"
-                : null
-        ).filter(v => v !== null);
-
+        const dist = data?.map(r => r.norm_totaldistance != null ? r.norm_totaldistance.toFixed(1) + "px" : null)
+                          .filter(v => v !== null);
         distanceList = dist.length > 0 ? dist.join(", ") : "-";
     }
 
