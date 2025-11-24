@@ -31,11 +31,6 @@ function showShapeSenseUI() {
            INITIALIZER
 ------------------------------*/
 export async function loadAnalytics() {
-
-    // Set default values BEFORE attaching event listeners
-    document.getElementById("gameSelect").value = "buzz";
-    document.getElementById("levelSelect").value = "BEGINNER";
-
     // Listen to both game and level changes
     document.getElementById("gameSelect").addEventListener("change", updateGameAnalytics);
     const levelEl = document.getElementById("levelSelect");
@@ -43,13 +38,12 @@ export async function loadAnalytics() {
 
     // Tab click events
     document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            activateTab(btn);
-            switchTab(btn.dataset.chart);
-        });
+           btn.addEventListener("click", () => {
+                  activateTab(btn);
+                  switchTab(btn.dataset.chart);
+           });
     });
 
-    // Run initial analytics load with default values
     updateGameAnalytics();
 }
 
@@ -65,43 +59,33 @@ function activateTab(activeBtn) {
           MAIN HANDLER
 ------------------------------*/
 async function updateGameAnalytics() {
-    const gameSelect = document.getElementById("gameSelect");
-    const levelSelect = document.getElementById("levelSelect");
-
-    // Reset default level when switching games
-    if (gameSelect.dataset.lastGame !== gameSelect.value) {
-        levelSelect.value = "BEGINNER";  // default level for any game
-        gameSelect.dataset.lastGame = gameSelect.value; // store last selected game
-    }
-
-    const game = gameSelect.value;
+    const game = document.getElementById("gameSelect").value;
     const level = getSelectedLevel();
 
     // Always destroy chart/gauge so new dataset/labels apply for different level
     if (currentMainChart) {
-        currentMainChart.destroy();
-        currentMainChart = null;
+           currentMainChart.destroy();
+           currentMainChart = null;
     }
     if (currentGauge) {
-        currentGauge.destroy?.();
-        currentGauge = null;
+           currentGauge.destroy?.();
+           currentGauge = null;
     }
 
     document.getElementById("gameTitle").textContent =
-        game === "buzz" ? "Buzz Tap!" : "Shape Sense";
+           game === "buzz" ? "Buzz Tap!" : "Shape Sense";
 
     // Clear no-data message and cards by default
     clearStatsCards();
 
     if (game === "buzz") {
-        showBuzzTapUI();
-        await loadBuzzTap(level);
+           showBuzzTapUI();
+           await loadBuzzTap(level);
     } else {
-        showShapeSenseUI();
-        await loadShapeSense(level);
+           showShapeSenseUI();
+           await loadShapeSense(level);
     }
 }
-
 
 /* ==========================================================
                          BUZZ TAP ANALYTICS
@@ -147,7 +131,7 @@ async function loadBuzzTap(level) {
     const consistencyPercent = (last.consistency ?? 0) * 100;
     currentGauge = initConsistencyGauge(consistencyPercent);
 
-    // Draw default main chart → time (also ensure the corresponding tab is activated)
+    // Draw default main chart → time
     await drawBuzzChart("time", level);
 }
 
@@ -166,10 +150,6 @@ async function drawBuzzChart(type, level) {
     const stability = data.map(r => r.av_devpath ?? null);
 
     await waitForCanvas("#mainChart");
-
-    // Ensure the UI's active tab matches the chart type being displayed
-    const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
-    if (tabBtn) activateTab(tabBtn);
 
     if (!currentMainChart) {
            // initGameChart signature: (labels, times, distances, stability)
@@ -230,11 +210,6 @@ async function loadShapeSense(level) {
     const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
     document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
 
-    // Ensure the default tab for shape sense is "time" (reset active tab on level change)
-    const timeTabBtn = document.querySelector('.tab-btn[data-chart="time"]');
-    if (timeTabBtn) activateTab(timeTabBtn);
-
-    // Ensure the default tab for shape sense is "time"
     await drawShapeChart("time", level);
 }
 
@@ -252,25 +227,9 @@ async function drawShapeChart(type, level) {
 
     await waitForCanvas("#mainChart");
 
-    // Ensure the UI's active tab matches the chart type being displayed
-    const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
-    if (tabBtn) activateTab(tabBtn);
-
     if (!currentMainChart) {
-           // initGameChart for shape: we pass labels and primary data (times)
+           // initGameChart for shape: we pass only labels and primary data (times)
            currentMainChart = initGameChart(labels, times);
-
-           // make sure initial dataset reflects the requested type
-           if (type === "attempts") {
-                  currentMainChart.data.datasets[0].label = "Attempts";
-                  currentMainChart.data.datasets[0].data = attempts;
-                  currentMainChart.data.datasets[0].borderColor = "purple";
-           } else {
-                  currentMainChart.data.datasets[0].label = "Time Taken (s)";
-                  currentMainChart.data.datasets[0].data = times;
-                  currentMainChart.data.datasets[0].borderColor = "green";
-           }
-           currentMainChart.update();
     } else {
            if (type === "attempts") {
                   currentMainChart.data.datasets[0].label = "Attempts";
@@ -302,11 +261,9 @@ function switchTab(type) {
 /* ==========================================================
            UTILITIES
 ==========================================================*/
-
 function getSelectedLevel() {
     const el = document.getElementById("levelSelect");
-    if (!el) return "BEGINNER";
-    return (el.value || "").toUpperCase();
+    return el ? el.value : "default";
 }
 
 function clearStatsCards() {
@@ -352,4 +309,3 @@ function waitForCanvas(selector) {
            check();
     });
 }
-

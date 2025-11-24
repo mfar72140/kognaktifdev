@@ -60,12 +60,13 @@ const cache = {};
 async function getGameStatsByDate() {
     const game = gameSelect?.value || "buzz";
     const selectedDate = inputDate.value;
-    const level = (levelSelect?.value || "BEGINNER").toUpperCase();
+    // Support BEGINNER / INTERMEDIATE / ADVANCED and an "ALL" option
+    const levelRaw = (levelSelect?.value || "ALL").toUpperCase();
 
     if (!selectedDate) {
         return {
             gameName: game === "buzz" ? "Buzz Tap!" : "Shape Sense",
-            gameLevel: levelSelect.value.toUpperCase(),
+            gameLevel: levelSelect.value ? levelSelect.value.toUpperCase() : levelRaw,
             date: "-",
             bestTime: "-",
             totalPlayed: "-",
@@ -75,7 +76,7 @@ async function getGameStatsByDate() {
         };
     }
 
-    const cacheKey = `${game}-${level}-${selectedDate}`;
+    const cacheKey = `${game}-${levelRaw}-${selectedDate}`;
     if (cache[cacheKey]) return cache[cacheKey];
 
     // Get logged-in user's email
@@ -90,22 +91,28 @@ async function getGameStatsByDate() {
     const table = game === "buzz" ? "buzztap_results" : "shapesense_results";
     const gameTitle = game === "buzz" ? "Buzz Tap!" : "Shape Sense";
 
-    // ✅ Local day range (timezone-safe)
+    // Local day range (timezone-safe)
     const localStart = new Date(selectedDate + "T00:00:00");
     const localEnd = new Date(selectedDate + "T23:59:59");
     const startUTC = localStart.toISOString();
     const endUTC = localEnd.toISOString();
     console.log("UTC Filter:", startUTC, endUTC);
 
-    // Fetch results
-    const { data, count, error } = await supabase
+    // Build query and apply level filter only when a specific level is selected
+    let query = supabase
         .from(table)
         .select("*", { count: "exact" })
         .eq("player_email", userEmail)
-        .or(`level.eq.${level},level.is.null`)
         .gte("created_at", startUTC)
         .lte("created_at", endUTC)
         .order("time_taken", { ascending: true });
+
+    if (levelRaw !== "ALL") {
+        // include records with matching level or null
+        query = query.or(`level.eq.${levelRaw},level.is.null`);
+    }
+
+    const { data, count, error } = await query;
 
     if (error) {
         console.error("Supabase Error:", error);
@@ -122,27 +129,28 @@ async function getGameStatsByDate() {
 
     const bestRecord = data?.[0];
 
-    // Total score = last record score
-    let totalScore = data && data.length > 0 ? data[data.length - 1].score || 0 : "-";
+    // Total score = last record score (if any)
+    let totalScore = data && data.length > 0 ? (data[data.length - 1].score ?? 0) : "-";
 
     // Time list
-    const timeList = data?.map(r => r.time_taken?.toFixed(1) + "s") || [];
+    const timeList = data?.map(r => (typeof r.time_taken === "number" ? r.time_taken.toFixed(1) + "s" : null))
+                       .filter(v => v !== null) || [];
 
     // Distance list (for Buzz Tap)
     let distanceList = "-";
     if (game === "buzz") {
-        const dist = data?.map(r => r.norm_totaldistance != null ? r.norm_totaldistance.toFixed(1) + "px" : null)
-                          .filter(v => v !== null);
+        const dist = data?.map(r => (r.norm_totaldistance != null ? r.norm_totaldistance.toFixed(1) + "px" : null))
+                          .filter(v => v !== null) || [];
         distanceList = dist.length > 0 ? dist.join(", ") : "-";
     }
 
     const result = {
         gameName: gameTitle,
-        gameLevel: levelSelect.value.toUpperCase(),
+        gameLevel: levelSelect.value ? levelSelect.value.toUpperCase() : levelRaw,
         date: selectedDate,
         bestTime: bestRecord?.time_taken ? bestRecord.time_taken.toFixed(1) + "s" : "-",
         totalPlayed: count || 0,
-        totalScore: totalScore,
+        totalScore,
         timeList: timeList.length > 0 ? timeList.join(", ") : "-",
         distanceList
     };
