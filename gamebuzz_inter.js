@@ -240,46 +240,64 @@ const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
 
 
 // ============================================
- // Spawn Bee
- // ============================================
+// Spawn Bee (spawn just outside screen edge and steer inward)
+// ============================================
+function spawnBall() {
+    // remember last zone to avoid immediate respawn on same side
+    if (typeof spawnBall.lastZone === "undefined") spawnBall.lastZone = -1;
 
- function spawnBall() {
-    const zone = Math.floor(Math.random() * 3); // 0 = left, 1 = right, 2 = top
+    // pick a zone (0 = left, 1 = right, 2 = top, 3 = bottom)
+    let zone;
+    let attempts = 0;
+    do {
+        zone = Math.floor(Math.random() * 4);
+        attempts++;
+        // allow same zone rarely (in case of repeated attempts)
+    } while (zone === spawnBall.lastZone && attempts < 6);
 
+    spawnBall.lastZone = zone;
+
+    const off = 80; // how far off-screen to place the bee
+    const margin = 40; // keep spawn within vertical/horizontal margins
+    // place just outside the chosen boundary
     if (zone === 0) {
-        // LEFT SIDE (20% width)
-        ball.x = Math.random() * (canvas.width * 0.2);
-        ball.y = Math.random() * (canvas.height - 80) + 40;
-
+        // LEFT: x just left of canvas
+        ball.x = -off - Math.random() * 40;
+        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
     } else if (zone === 1) {
-        // RIGHT SIDE (last 20% width)
-        ball.x = Math.random() * (canvas.width * 0.2) + (canvas.width * 0.8);
-        ball.y = Math.random() * (canvas.height - 80) + 40;
-
+        // RIGHT: x just right of canvas
+        ball.x = canvas.width + off + Math.random() * 40;
+        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
+    } else if (zone === 2) {
+        // TOP: y just above canvas
+        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
+        ball.y = -off - Math.random() * 40;
     } else {
-        // TOP AREA (top 20% height)
-        ball.x = Math.random() * (canvas.width - 80) + 40;
-        ball.y = Math.random() * (canvas.height * 0.2);
+        // BOTTOM: y just below canvas
+        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
+        ball.y = canvas.height + off + Math.random() * 40;
     }
 
-    // give bee an initial velocity so it moves
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 2 + 0.8; // moderate speed
+    // aim roughly toward screen center with some randomness
+    const targetX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.3;
+    const targetY = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.3;
+    const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
+    const speed = Math.random() * 1.6 + 0.8; // moderate inward speed
     ball.vx = Math.cos(angle) * speed;
     ball.vy = Math.sin(angle) * speed;
 
     // Record spawn time for reaction calculation
     ballSpawnTime = Date.now();
 
-    // ✅ Reset deviation tracking for this new bee
+    // Reset deviation tracking for this new bee
     startPos = null;       // will initialize on first hand movement toward new bee
     totalDeviation = 0;
     sampleCount = 0;
 
-    // Optionally reset last hand position to prevent huge distance jumps
+    // prevent huge distance jumps by resetting last hand pos
     lastX = null;
     lastY = null;
- }
+}
 
  // ============================================
  // Bee Movement: wandering steering
