@@ -72,7 +72,31 @@
   </div>
 </div>
 
-   
+
+<!-- Load game script based on selected level -->
+<script>
+  const level = localStorage.getItem("shapeSenseLevel") || "beginner";
+
+  // Update level text
+  const levelBar = document.getElementById("level");
+  levelBar.textContent = "Level: " + level.toUpperCase();
+
+  // Apply TEXT color only
+  levelBar.classList.add("text-" + level);
+
+  // Dynamic script loader depending on level
+  function loadScript(file) {
+    const s = document.createElement("script");
+    s.src = file;
+    document.body.appendChild(s);
+  }
+
+  if (level === "beginner") loadScript("gameshape.js");
+  if (level === "intermediate") loadScript("gameshape_inter.js");
+  if (level === "advanced") loadScript("gameshape_adv.js");
+</script>
+
+
 <script type="module">
   import {
     FilesetResolver,
@@ -97,12 +121,6 @@
   const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY";  // use anon key only
   window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 </script>
-
-
-<!-- Game Logic -->
-<script src="gameshape.js"></script>
-<script src="fireworks.js"></script>
- 
 
 
   <script>

@@ -303,18 +303,19 @@ function spawnBall() {
  // Bee Movement: wandering steering
  // ============================================
 
- function updateBallMovement() {
-    // small random steering occasionally
+function updateBallMovement() {
     if (Math.random() < 0.04) {
         let angle = Math.atan2(ball.vy, ball.vx);
         angle += (Math.random() - 0.5) * Math.PI * 0.6; // random turn
         let speed = Math.hypot(ball.vx, ball.vy);
         speed += (Math.random() - 0.5) * 0.6;
         speed = Math.max(0.6, Math.min(3.2, speed));
-        ball.vx = Math.cos(angle) * speed;
-        ball.vy = Math.sin(angle) * speed;
+        const targetVx = Math.cos(angle) * speed;
+        const targetVy = Math.sin(angle) * speed;
+        const blend = 0.25; // 0 = no change, 1 = immediate (original behavior)
+        ball.vx += (targetVx - ball.vx) * blend;
+        ball.vy += (targetVy - ball.vy) * blend;
     }
-
     // steer away from edges gently
     const margin = 50;
     const steerStrength = 0.45;
