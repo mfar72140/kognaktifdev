@@ -224,63 +224,6 @@ body {
   color: #333;
 }
 
-.charts {
-  display: flex;
-  justify-content: center;   /* center horizontally */
-  align-items: center;       /* center vertically (if needed) */
-  flex-wrap: wrap;           /* allow multiple charts to wrap */
-  gap: 25px;
-}
-
-.chart-card {
-  background: white;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: transform 0.2s ease;
-  width: 950px;          /* control chart width */
-  margin: 0 auto;            /* center chart cards */
-
-}
-
-.chart-card:hover {
-  transform: translateY(-3px);
-}
-
-.chart-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  max-width: 1000px;   /* control max size */
-  margin: 0 auto; 
-  height: 250px;    /* center horizontally */
-}
-
-.chart-wrapper canvas {
-  width: 100% !important;
-  height: 100% !important;
-  aspect-ratio: 16 / 9; /* keep scaling proportion */
-}
-
-.chart-tabs {
-  margin-bottom: 10px;
-}
-
-.tab-btn {
-  padding: 6px 12px;
-  margin-right: 5px;
-  border: none;
-  background: #ddd;
-  cursor: pointer;
-  border-radius: 4px;
-  font-family: poppins, sans-serif;
-}
-
-.tab-btn.active {
-  background: #4CAF50;
-  color: #fff;
-}
 
 .stats {
   display: flex;
@@ -331,6 +274,99 @@ body {
   color: #8e24aa;
   text-align: left;
 }
+
+/* =====================
+   CHARTS
+===================== */ 
+
+.charts {
+  display: flex;
+  justify-content: center;   /* center horizontally */
+  align-items: center;       /* center vertically (if needed) */
+  flex-wrap: wrap;           /* allow multiple charts to wrap */
+  gap: 25px;
+}
+
+.chart-card {
+  background: white;
+  border-radius: 12px;
+  padding: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  transition: transform 0.2s ease;
+  width: 950px;          /* control chart width */
+  margin: 0 auto;            /* center chart cards */
+
+}
+
+.chart-card:hover {
+  transform: translateY(-3px);
+}
+
+.chart-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  max-width: 1000px;   /* control max size */
+  margin: 0 auto; 
+  height: 250px;    /* center horizontally */
+}
+
+.chart-wrapper canvas {
+  width: 100% !important;
+  height: 100% !important;
+  aspect-ratio: 16 / 9; /* keep scaling proportion */
+}
+
+/* =====================
+   PILL STYLE CHART TABS
+===================== */
+
+.chart-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+/* Pill-shape button */
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border: 1px solid #ddd;
+  background: #fafafa;
+  border-radius: 999px;          /* <<< makes pill shape */
+  font-family: poppins, sans-serif;
+  font-size: 14px;
+  color: #444;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+/* Icon sizing */
+.tab-icon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+}
+
+/* Hover effect */
+.tab-btn:hover {
+  background: #f0f0f0;
+  transform: translateY(-1px);
+}
+
+/* Active pill (selected) */
+.tab-btn.active {
+  background: #4CAF50;
+  color: #fff;
+  border-color: #4CAF50;
+  box-shadow: 0px 3px 10px rgba(76, 175, 80, 0.35);
+}
+
+
 
 /* =====================
    Consistency Gauge

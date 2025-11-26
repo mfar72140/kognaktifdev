@@ -49,7 +49,7 @@
         <select id="levelSelect">
             <option value="BEGINNER" selected>BEGINNER</option>
             <option value="INTERMEDIATE" >INTERMEDIATE</option>
-            <option value="ADVANCED" disabled>ADVANCED</option>
+            <option value="ADVANCED" >ADVANCED</option>
         </select>
     </div>
 
@@ -97,12 +97,26 @@
     <div class="charts">
       <div class="chart-card">
         
-        <!-- Tabs -->
         <div class="chart-tabs">
-          <button id="tabTime"      class="tab-btn active" data-chart="time">⏱ Time Taken per Game</button>
-          <button id="tabDistance"  class="tab-btn" data-chart="distance">📏 Total Distance per Game</button>
-          <button id="tabStability" class="tab-btn" data-chart="stability">📊 Movement Stability per Game</button>
-          <button id="tabAttempts"  class="tab-btn" data-chart="attempts">🎯 Attempts per Game</button>
+          <button id="tabTime" class="tab-btn active" data-chart="time">
+            <img src="images/time.png" class="tab-icon">
+            Time Taken
+          </button>
+
+          <button id="tabDistance" class="tab-btn" data-chart="distance">
+            <img src="images/distance.png" class="tab-icon">
+            Average Distance
+          </button>
+
+          <button id="tabStability" class="tab-btn" data-chart="stability">
+            <img src="images/movement.png" class="tab-icon">
+            Movement Stability
+          </button>
+
+          <button id="tabAttempts" class="tab-btn" data-chart="attempts">
+            <img src="images/attempt.png" class="tab-icon">
+            Attempts
+          </button>
         </div>
 
         <!-- Single Canvas -->
@@ -162,7 +176,7 @@
         <p><strong>Total Games Played:</strong> <span id="scTotalGames"></span></p>
         <p><strong>Total Score:</strong> <span id="scTotalScore"></span></p>
         <p><strong>Time Taken:</strong> <span id="scTimeList">-</span></p>
-        <p><strong>Total Movement Distance:</strong> <span id="scDistanceList">-</span></p>
+        <p><strong>Average Distance:</strong> <span id="scDistanceList">-</span></p>
       </div>
 
       <button id="downloadScorePDF" class="download-btn">Download PDF</button>
@@ -194,7 +208,7 @@
         <p><strong>Total Played:</strong> <span id="pdfGamesPlayed"></span></p>
         <p><strong>Total Score:</strong> <span id="pdfTotalScore"></span></p>
         <p><strong>Time Taken:</strong> <span id="pdfTimeList"></span></p>
-        <p><strong>Total Movement Distance:</strong> <span id="pdfDistanceList"></span></p>
+        <p><strong>Average Distance:</strong> <span id="pdfDistanceList"></span></p>
     </div>
 
     <div class="footer">

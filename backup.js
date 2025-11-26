@@ -1,14 +1,14 @@
+// gamebuzz_inter.js backup
+
 // ============================================
 // GLOBAL VARIABLES
 // ============================================
 
 let videoElement, hands, camera;
 let ctx, canvas;
-let beeImg, LhandImg, rhandImg, bgImg, bflyImg;
+let beeImg, LhandImg, rhandImg, bgImg;
 let ball = { x: 0, y: 0, r: 30, vx: 0, vy: 0 };
-let butterfly = { x: 0, y: 0, r: 25, baseY: 0, wiggle: 0, visible: true, respawnTime: null };
 let score = 0;
-let bflyScore = 0;
 let gameRunning = false;
 let countdownRunning = false;
 let touchSound, endGameSound, countdownSound;
@@ -19,37 +19,42 @@ let reactionTimes = [];
 let ballSpawnTime = null;
 let cameraReady = false;
 let previousArrowX = null;
-let previousHandType = "Left";
+let previousHandType = "Left"; // default
 
-let startPos = null;
-let deviationRatios = [];
-let pathDeviations = [];
+// Path Deviation using Distance
+let startPos = null; // starting hand position for path deviation
+let deviationRatios = []; // store ratio per frame for current path
+let pathDeviations = []; // store avg deviation % per bee
 
+// Distance Tracking
 let totalDistance = 0;
 let lastX = null, lastY = null;
 
+// Hand bounce
 let handScale = 1;
 let handBounceActive = false;
 
+// Timer variables
 let startTime;
 let timerInterval;
 
+// Countdown
 let countdownValue = 3;
 let countdownInterval;
 
+// Hand position
 let arrowX = 0;
 let arrowY = 0;
 
+// Store latest results
 let latestResults = null;
 
+// Bee animation
 let flap = 0;
 let flapDirection = 1;
 
+// Track respawn timeout
 let respawnTimeout = null;
-let bflyToggleInterval = null;
-
-const HAND_MOVE_THRESHOLD = 10;
-const BFLY_TOGGLE_INTERVAL = 4000; // 4 seconds
 
 
 // ============================================
@@ -73,22 +78,21 @@ window.onload = () => {
     bgImg = new Image();
     bgImg.src = "images/backgr1.jpg";
 
-    bflyImg = new Image();
-    bflyImg.src = "images/bfly2.png";
-
     // Load sound
     touchSound = new Audio("sounds/touch.wav");
-    endGameSound = new Audio("sounds/endgame1.wav");
+    endGameSound = new Audio("sounds/endapplause.wav");
     countdownSound = new Audio("sounds/countdown.wav");
 
+    // Background Music
     bgMusic = new Audio("sounds/01Backmusic20s.mp3");
-    bgMusic.loop = true;
-    bgMusic.volume = 0.6;
+    bgMusic.loop = true;  // keep looping
+    bgMusic.volume = 0.6; // softer than effects
 
     const muteBtn = document.getElementById("muteBtn");
-    if (muteBtn) {
+    if (muteBtn)  {
         muteBtn.addEventListener("click", () => {
             isMuted = !isMuted;
+
             if (isMuted) {
                 bgMusic.muted = true;
                 muteBtn.textContent = "🔇";
@@ -99,12 +103,14 @@ window.onload = () => {
         });
     }
 
+    // Buttons
     document.getElementById("startBtnOverlay").addEventListener("click", () => {
         document.getElementById("startBtnOverlay").style.display = "none";
         document.getElementById("gameTitle").style.display = "none";
         startCountdown();
     });
 
+    // MediaPipe Hands setup
     hands = new Hands({
         locateFile: (file) =>
             `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
@@ -117,6 +123,7 @@ window.onload = () => {
     });
     hands.onResults((r) => {
         latestResults = r;
+
         if (!cameraReady) {
             cameraReady = true;
             console.log("✅ Camera is ready!");
@@ -135,25 +142,25 @@ window.onload = () => {
 // ============================================
 
 function startCountdown() {
+    // Reset state
     score = 0;
-    bflyScore = 0;
     countdownValue = 3;
-    countdownRunning = false;
+    countdownRunning = false; // don’t start until camera is ready
     gameRunning = false;
     HoneySplashes = [];
     if (respawnTimeout) clearTimeout(respawnTimeout);
     respawnTimeout = null;
-    if (bflyToggleInterval) clearInterval(bflyToggleInterval);
-    bflyToggleInterval = null;
 
     document.getElementById("score").innerText = "Score: 0";
     document.getElementById("startBtnOverlay").disabled = true;
     document.getElementById("gameTitle").style.display = "none";
 
+    // Show Loading Overlay
     const loadingOverlay = document.getElementById("loadingOverlay");
     loadingOverlay.style.display = "flex";
     loadingOverlay.innerText = "📷 Loading... Starting Camera";
 
+    // Camera ON
     camera = new Camera(videoElement, {
         onFrame: async () => {
             await hands.send({ image: videoElement });
@@ -163,12 +170,16 @@ function startCountdown() {
     });
     camera.start();
 
+
+    // Wait until camera is ready
     const waitForCamera = setInterval(() => {
         if (cameraReady) {
             clearInterval(waitForCamera);
             console.log("🎥 Camera feed detected, starting countdown...");
 
+            // Hide Loading Overlay once camera ready
             loadingOverlay.style.display = "none";
+            console.log("🎥 Camera feed detected, starting countdown...");
 
             if (countdownSound) {
                 countdownSound.currentTime = 0;
@@ -210,8 +221,9 @@ function drawCountdown(value) {
 function startGame() {
     gameRunning = true;
 
+    // ✅ Play background music here
     if (bgMusic) {
-        bgMusic.currentTime = 0;
+        bgMusic.currentTime = 0; 
         bgMusic.play();
     }
 
@@ -224,137 +236,89 @@ function startGame() {
     }, 1000);
 
     spawnBall();
-    initButterfly();
-    startButterflyToggle();
 }
 
-
-// ============================================
-// Initialize Butterfly
-// ============================================
-
-function initButterfly() {
-    // place butterfly at a safe random position away from edges
-    const margin = Math.max(butterfly.r * 2, 60); // ensure not clipped by canvas edges
-    butterfly.x = Math.random() * (canvas.width - margin * 2) + margin;
-    butterfly.y = Math.random() * (canvas.height - margin * 2) + margin;
-    butterfly.baseY = butterfly.y;
-    butterfly.visible = true;
-    butterfly.respawnTime = null;
-}
+const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
 
 
 // ============================================
-// Start Butterfly Toggle (Appear/Disappear)
+// Spawn Bee (spawn just outside screen edge and steer inward)
 // ============================================
-
-function startButterflyToggle() {
-    // clear any previous schedule
-    if (bflyToggleInterval) {
-        clearTimeout(bflyToggleInterval);
-        bflyToggleInterval = null;
-    }
-    if (respawnTimeout) {
-        clearTimeout(respawnTimeout);
-        respawnTimeout = null;
-    }
-
-    // recursive scheduler using setTimeout so intervals are randomized
-    const scheduleNext = () => {
-        // next change in 2s..6s (centered around BFLY_TOGGLE_INTERVAL)
-        const delay = Math.max(800, BFLY_TOGGLE_INTERVAL / 2 + (Math.random() - 0.5) * BFLY_TOGGLE_INTERVAL);
-        bflyToggleInterval = setTimeout(() => {
-            if (butterfly.visible) {
-                // hide butterfly for a random short duration
-                butterfly.visible = false;
-                butterfly.respawnTime = Date.now() + delay;
-            } else {
-                // respawn at a new safe random position (keep away from canvas edges)
-                const margin = Math.max(butterfly.r * 2, 60);
-                butterfly.x = Math.random() * (canvas.width - margin * 2) + margin;
-                butterfly.y = Math.random() * (canvas.height - margin * 2) + margin;
-                butterfly.baseY = butterfly.y;
-                butterfly.visible = true;
-                butterfly.respawnTime = null;
-            }
-            scheduleNext();
-        }, delay);
-    };
-
-    // kick off scheduler
-    scheduleNext();
-}
-
-
-// ============================================
-// Spawn Bee
-// ============================================
-
 function spawnBall() {
+    // remember last zone to avoid immediate respawn on same side
     if (typeof spawnBall.lastZone === "undefined") spawnBall.lastZone = -1;
 
+    // pick a zone (0 = left, 1 = right, 2 = top, 3 = bottom)
     let zone;
     let attempts = 0;
     do {
         zone = Math.floor(Math.random() * 4);
         attempts++;
+        // allow same zone rarely (in case of repeated attempts)
     } while (zone === spawnBall.lastZone && attempts < 6);
 
     spawnBall.lastZone = zone;
 
-    const off = 80;
-    const margin = 40;
-
+    const off = 80; // how far off-screen to place the bee
+    const margin = 40; // keep spawn within vertical/horizontal margins
+    // place just outside the chosen boundary
     if (zone === 0) {
+        // LEFT: x just left of canvas
         ball.x = -off - Math.random() * 40;
         ball.y = Math.random() * (canvas.height - margin * 2) + margin;
     } else if (zone === 1) {
+        // RIGHT: x just right of canvas
         ball.x = canvas.width + off + Math.random() * 40;
         ball.y = Math.random() * (canvas.height - margin * 2) + margin;
     } else if (zone === 2) {
+        // TOP: y just above canvas
         ball.x = Math.random() * (canvas.width - margin * 2) + margin;
         ball.y = -off - Math.random() * 40;
     } else {
+        // BOTTOM: y just below canvas
         ball.x = Math.random() * (canvas.width - margin * 2) + margin;
         ball.y = canvas.height + off + Math.random() * 40;
     }
 
+    // aim roughly toward screen center with some randomness
     const targetX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.3;
     const targetY = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.3;
     const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
-    const speed = Math.random() * 1.6 + 0.8;
+    const speed = Math.random() * 1.6 + 0.8; // moderate inward speed
     ball.vx = Math.cos(angle) * speed;
     ball.vy = Math.sin(angle) * speed;
 
+    // Record spawn time for reaction calculation
     ballSpawnTime = Date.now();
 
-    startPos = null;
+    // Reset deviation tracking for this new bee
+    startPos = null;       // will initialize on first hand movement toward new bee
     totalDeviation = 0;
     sampleCount = 0;
 
+    // prevent huge distance jumps by resetting last hand pos
     lastX = null;
     lastY = null;
 }
 
-
-// ============================================
-// Bee Movement
-// ============================================
+ // ============================================
+ // Bee Movement: wandering steering
+ // ============================================
 
 function updateBallMovement() {
     if (Math.random() < 0.04) {
         let angle = Math.atan2(ball.vy, ball.vx);
-        angle += (Math.random() - 0.5) * Math.PI * 0.6;
+        angle += (Math.random() - 0.5) * Math.PI * 0.6; // random turn
         let speed = Math.hypot(ball.vx, ball.vy);
         speed += (Math.random() - 0.5) * 0.6;
         speed = Math.max(0.6, Math.min(3.2, speed));
         const targetVx = Math.cos(angle) * speed;
         const targetVy = Math.sin(angle) * speed;
-        const blend = 0.25;
+        const blend = 0.25; // 0 = no change, 1 = immediate (original behavior)
         ball.vx += (targetVx - ball.vx) * blend;
         ball.vy += (targetVy - ball.vy) * blend;
     }
-
+    // steer away from edges gently
     const margin = 50;
     const steerStrength = 0.45;
     if (ball.x < margin) ball.vx += steerStrength;
@@ -362,6 +326,7 @@ function updateBallMovement() {
     if (ball.y < margin) ball.vy += steerStrength;
     if (ball.y > canvas.height - margin) ball.vy -= steerStrength;
 
+    // limit speed
     const maxSpeed = 3;
     let sp = Math.hypot(ball.vx, ball.vy);
     if (sp > maxSpeed) {
@@ -369,9 +334,11 @@ function updateBallMovement() {
         ball.vy = (ball.vy / sp) * maxSpeed;
     }
 
+    // update position
     ball.x += ball.vx;
     ball.y += ball.vy;
 
+    // keep inside bounds (bounce minimally)
     if (ball.x < ball.r) {
         ball.x = ball.r;
         ball.vx = Math.abs(ball.vx) * 0.8;
@@ -388,17 +355,7 @@ function updateBallMovement() {
         ball.y = canvas.height - ball.r;
         ball.vy = -Math.abs(ball.vy) * 0.8;
     }
-}
-
-
-// ============================================
-// Update Butterfly Wiggle
-// ============================================
-
-function updateButterflyWiggle() {
-    butterfly.wiggle += 0.1;
-    butterfly.y = butterfly.baseY + Math.sin(butterfly.wiggle) * 8;
-}
+ }
 
 
 // ============================================
@@ -408,7 +365,8 @@ function updateButterflyWiggle() {
 function gameLoop() {
     if (countdownRunning) {
         drawCountdown(countdownValue);
-    } else if (gameRunning && latestResults) {
+    } 
+    else if (gameRunning && latestResults) {
         drawScene(latestResults);
     }
     requestAnimationFrame(gameLoop);
@@ -424,11 +382,8 @@ function drawScene(results) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    // Update bee movement
+    // Update bee movement before drawing
     updateBallMovement();
-
-    // Update butterfly wiggle
-    updateButterflyWiggle();
 
     // Animate bee flap
     flap += flapDirection * 0.8;
@@ -442,15 +397,10 @@ function drawScene(results) {
         ball.r * 2
     );
 
-    // Draw butterfly with glow effect
-    if (butterfly.visible) {
-        drawButterflyWithGlow(butterfly.x, butterfly.y, butterfly.r);
-    }
-
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
         for (let i = 0; i < results.multiHandLandmarks.length; i++) {
             const landmarks = results.multiHandLandmarks[i];
-            const handType = results.multiHandedness?.[i]?.label || "Unknown";
+            const handType = results.multiHandedness?.[i]?.label || "Unknown"; // NEW
             const palmIndices = [0, 1, 5, 9, 13, 17];
             let sumX = 0, sumY = 0;
 
@@ -462,186 +412,138 @@ function drawScene(results) {
             arrowX = sumX / palmIndices.length;
             arrowY = sumY / palmIndices.length;
 
+            // Smooth hand position slightly
             if (previousArrowX !== null) {
                 arrowX = arrowX * 0.3 + previousArrowX * 0.7;
             }
 
+            // Prevent sudden flip when hand jumps
             let currentHandType = handType;
             if (previousArrowX !== null) {
                 const dx = Math.abs(arrowX - previousArrowX);
                 if (dx > 250) {
-                    currentHandType = previousHandType;
+                    currentHandType = previousHandType; // keep previous hand type
                 }
             }
 
+            // Draw hand
             if (currentHandType === "Right" && rhandImg) {
                 drawHand(arrowX, arrowY, rhandImg);
             } else {
                 drawHand(arrowX, arrowY, LhandImg);
             }
 
+            // Update previous for next frame
             previousArrowX = arrowX;
             previousHandType = currentHandType;
 
-            if (!startPos) {
-                const dx = arrowX - ball.x;
-                const dy = arrowY - ball.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
 
-                if (dist > HAND_MOVE_THRESHOLD) {
-                    startPos = { x: arrowX, y: arrowY };
-                    lastX = arrowX;
-                    lastY = arrowY;
-                    deviationRatios = [];
-                }
-            }
+        // ✅ Initialize startPos when movement starts
+        if (!startPos) {
+            const dx = arrowX - ball.x;
+            const dy = arrowY - ball.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
 
-            if (lastX !== null && lastY !== null) {
-                let dxMove = arrowX - lastX;
-                let dyMove = arrowY - lastY;
-                let moveDist = Math.sqrt(dxMove * dxMove + dyMove * dyMove);
-
-                if (moveDist > HAND_MOVE_THRESHOLD) {
-                    totalDistance += moveDist;
-                    lastX = arrowX;
-                    lastY = arrowY;
-                }
-            }
-
-            if (startPos) {
-                const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-                if (pathLength > 0) {
-                    const perpDist = getPerpendicularDistance(
-                        arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-                    );
-                    const ratio = perpDist / pathLength;
-                    deviationRatios.push(ratio);
-                }
-            }
-
-            handleGameLogic(arrowX, arrowY);
-
-            for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-                HoneySplashes[i].update();
-                HoneySplashes[i].draw(ctx);
-                if (HoneySplashes[i].isFinished()) {
-                    HoneySplashes.splice(i, 1);
-                }
+            if (dist > HAND_MOVE_THRESHOLD) {
+                startPos = { x: arrowX, y: arrowY };
+                lastX = arrowX;
+                lastY = arrowY;
+                deviationRatios = []; // reset for new path
             }
         }
-    }
-}
 
+        // ✅ Track total hand movement distance (ignore small jitter)
+        if (lastX !== null && lastY !== null) {
+            let dxMove = arrowX - lastX;
+            let dyMove = arrowY - lastY;
+            let moveDist = Math.sqrt(dxMove * dxMove + dyMove * dyMove);
 
-// ============================================
-// Draw Butterfly with Glow Effect
-// ============================================
+            if (moveDist > HAND_MOVE_THRESHOLD) {
+                totalDistance += moveDist;
+                lastX = arrowX;
+                lastY = arrowY;
+            }
+        }
 
-function drawButterflyWithGlow(x, y, r) {
-    if (!bflyImg || !bflyImg.complete || bflyImg.naturalWidth === 0) return;
+        // ✅ Update Path Deviation per frame
+        if (startPos) {
+            const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
+            if (pathLength > 0) {
+                const perpDist = getPerpendicularDistance(
+                    arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
+                );
+                const ratio = perpDist / pathLength; // 0 = perfect straight
+                deviationRatios.push(ratio);
+            }
+        }
 
-    // Draw glow
-    ctx.shadowColor = "rgba(229, 208, 146, 0.82)";
-    ctx.shadowBlur = 20;
+        drawHand(arrowX, arrowY);
+        handleGameLogic(arrowX, arrowY);
 
-    const size = r * 3;
-    ctx.drawImage(bflyImg, x - size / 2, y - size / 2, size, size);
-
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-}
+        // Honey splashes
+        for (let i = HoneySplashes.length - 1; i >= 0; i--) {
+            HoneySplashes[i].update();
+            HoneySplashes[i].draw(ctx);
+            if (HoneySplashes[i].isFinished()) {
+                HoneySplashes.splice(i, 1);
+            }
+        }
+    }}}
 
 
 // ============================================
 // Handle Game Logic
 // ============================================
 
-function handleGameLogic(handX, handY) {
-    // Check collision with bee
-    const dx = handX - ball.x;
-    const dy = handY - ball.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
+function handleGameLogic(arrowX, arrowY) {
 
-    if (dist < ball.r + 30) {
-        score++;
-        document.getElementById("score").innerText = "Score: " + score;
+        // Collision check
+        const dx = arrowX - ball.x;
+        const dy = arrowY - ball.y;
+        if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
+            let reaction = Date.now() - ballSpawnTime; 
+            reactionTimes.push(reaction);  // ⏱ save reaction time  
         
-        if (touchSound) {
-            touchSound.currentTime = 0;
-            touchSound.play();
-        }
+            // ✅ Compute avg deviation for this bee
+            if (deviationRatios.length > 0) {
+                const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
+                pathDeviations.push(avgRatio * 100); // store as %
+            }
 
-        HoneySplashes.push(new HoneySplash(ball.x, ball.y));
-        handBounceActive = true;
+            score++;
+            document.getElementById("score").innerText = "Score: " + score;
 
-        const reactionTime = Date.now() - ballSpawnTime;
-        reactionTimes.push(reactionTime);
+            handBounceActive = true; // trigger hand bounce
 
-        spawnBall();
-    }
 
-    // Check collision with butterfly
-    const bflyDx = handX - butterfly.x;
-    const bflyDy = handY - butterfly.y;
-    const bflyDist = Math.sqrt(bflyDx * bflyDx + bflyDy * bflyDy);
+            if (touchSound) {
+                touchSound.currentTime = 0;
+                touchSound.play();
+            }
 
-    if (butterfly.visible && bflyDist < butterfly.r + 30) {
-        bflyScore++;
-        butterfly.visible = false;
+            HoneySplashes.push(new HoneySplash(ball.x, ball.y));
 
-        if (touchSound) {
-            touchSound.currentTime = 0;
-            touchSound.play();
-        }
+            // Reset for next bee
+            startPos = null;
+            deviationRatios = [];
+            lastX = null;
+            lastY = null;
 
-        for (let i = 0; i < 3; i++) {
-            HoneySplashes.push(new ButterflySparkles(butterfly.x, butterfly.y));
-        }
-    }
+            // Hide current bee off-screen (so it doesn't get hit during respawn delay)
+            ball.x = -200;
+            ball.y = -200;
+            ball.vx = 0;
+            ball.vy = 0;
 
-    // End game when score reaches 20
-    if (score >= 20 && gameRunning) {
-        endGame();
-    }
-}
 
-class ButterflySparkles {
-    constructor(x, y) {
-        this.particles = [];
-        for (let i = 0; i < 12; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 4 + 1,
-                size: Math.random() * 4 + 2,
-                alpha: 1.0,
-            });
+            if (score >= 20) {
+                endGame();
+            } else {
+                if (respawnTimeout) clearTimeout(respawnTimeout);
+                respawnTimeout = setTimeout(spawnBall, 700);
+            }
         }
     }
-
-    update() {
-        this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.05;
-        });
-        this.particles = this.particles.filter((p) => p.alpha > 0);
-    }
-
-    draw(ctx) {
-        this.particles.forEach((p) => {
-            ctx.fillStyle = `rgba(147, 51, 234, ${p.alpha})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    isFinished() {
-        return this.particles.length === 0;
-    }
-}
 
 
 // ============================================
@@ -649,20 +551,22 @@ class ButterflySparkles {
 // ============================================
 
 function drawHand(x, y, img) {
+    // 🧱 Safety: skip drawing if image not ready
     if (!img || !img.complete || img.naturalWidth === 0) return;
 
     const baseSize = 90;
-    const size = baseSize * handScale;
+    const size = baseSize * handScale; // scaled size
 
     ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 
+    // ✨ Bounce animation
     if (handBounceActive) {
-        handScale += (1.6 - handScale) * 0.25;
+        handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
         if (handScale >= 1.55) {
             handBounceActive = false;
         }
     } else {
-        handScale += (1 - handScale) * 0.2;
+        handScale += (1 - handScale) * 0.2; // return to normal
     }
 }
 
@@ -679,41 +583,50 @@ function endGame() {
     clearInterval(timerInterval);
     if (respawnTimeout) clearTimeout(respawnTimeout);
     respawnTimeout = null;
-    if (bflyToggleInterval) clearInterval(bflyToggleInterval);
-    bflyToggleInterval = null;
 
     let elapsed = Math.floor((Date.now() - startTime) / 1000);
+ // document.getElementById("timer").innerText = "Final Time: " + elapsed + "s";
 
+    // 🎯 Calculate average reaction time
     let avgReaction = 0;
     if (reactionTimes.length > 0) {
         avgReaction = (
             reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length / 1000
-        ).toFixed(2);
+        ).toFixed(2); // keep 2 decimal places
     }
 
+ // ✅ Normalize distance = total movement / score
     let normDistance = score > 0 ? totalDistance / score : totalDistance;
 
     console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
 
+    // Calculate Movement Stability based on distance deviation
     let movementStability = 0;
     if (pathDeviations.length > 0) {
+        // pathDeviations currently stores deviation %, lower = more stable
         const avgDeviation = pathDeviations.reduce((a, b) => a + b, 0) / pathDeviations.length;
+
+        // Invert: higher value = higher stability
         movementStability = (100 - avgDeviation).toFixed(2);
     }
 
+
+    // ✅ Stop background music here
     if (bgMusic) {
         bgMusic.pause();
         bgMusic.currentTime = 0;
     }
-
+    
     if (endGameSound) {
         endGameSound.currentTime = 0;
         endGameSound.play();
     }
 
+    // 🎇 Start fireworks
     startFireworks();
 
-    let fireworksDuration = 2500;
+    // Animate fireworks first, then show text
+    let fireworksDuration = 2500; // 2.5 seconds
     let startTimeFireworks = Date.now();
 
     function fireworksAnimation() {
@@ -736,8 +649,8 @@ function endGame() {
 // Save Game Result to Supabase
 // ============================================
 
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, bflyTouch) {
-    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, bflyTouch);
+async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance) {
+    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -747,6 +660,7 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
 
     console.log("User found:", user);
 
+    // Insert using email only (since player_id is int8 and not compatible with UUID)
     const { error: insertError } = await supabase
         .from("buzztap_results")
         .insert([{
@@ -755,10 +669,11 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
             time_taken: timeTaken,
             avg_reaction_time: avgReaction,
             norm_totaldistance: normDistance,
-            av_devpath: parseFloat(movementStability),
+            av_devpath: parseFloat(movementStability), // Save path deviation %
             consistency: consistency,
-            bfly_touch: bflyTouch,
-            level: "ADVANCED",
+            level: "INTERMEDIATE",
+            totaldistance: parseFloat(totalDistance)
+            // leave player_id empty
         }]);
 
     if (insertError) {
@@ -774,21 +689,24 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
 // ============================================
 
 function showEndText(elapsed, avgReaction, normDistance, movementStability) {
+
     ctx.fillStyle = "rgba(0,0,0,0.1)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
-    ctx.font = "55px poppins";
+    ctx.font = "bold 65px poppins";
     ctx.textAlign = "center";
     ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
+    
+    ctx.font = "40px poppins";
+    ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+    
+    ctx.font = "35px poppins";
+    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
+    ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
 
-    ctx.font = "20px poppins";
-    ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 - 60);
-    ctx.fillText(`Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2);
-    ctx.fillText(`Avg Reaction: ${avgReaction}s`, canvas.width / 2, canvas.height / 2 + 30);
-    ctx.fillText(`Normalized Distance: ${normDistance.toFixed(2)}`, canvas.width / 2, canvas.height / 2 + 60);
-    ctx.fillText(`Movement Stability: ${movementStability}%`, canvas.width / 2, canvas.height / 2 + 90);
 
+    // ✅ Reset Path Deviation variables for next game
     startPos = null;
     totalDeviation = 0;
     sampleCount = 0;
@@ -797,10 +715,16 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
     document.getElementById("playAgainBtn").style.display = "block";
     document.getElementById("nextBtn").style.display = "block";
 
+
+// ============================================
+// Calculate Consistency
+// ============================================
+
     async function calculateConsistency(newTimeTaken) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return 0;
 
+        // Get last 4 games (we’ll add this new one = 5 total)
         const { data, error } = await supabase
             .from("buzztap_results")
             .select("time_taken")
@@ -818,25 +742,29 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
 
         if (times.length < 5) {
             console.log("Not enough games for consistency");
-            return 0;
+            return 0; // need minimum 5 games
         }
 
+        // Coefficient of variation: std / mean
         let mean = times.reduce((a, b) => a + b, 0) / times.length;
         let variance = times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / times.length;
         let std = Math.sqrt(variance);
 
-        let consistency = 1 - (std / mean);
-        return Math.max(0, Math.min(1, consistency)).toFixed(3);
+        let consistency = 1 - (std / mean); 
+        return Math.max(0, Math.min(1, consistency)).toFixed(3); // clamp 0–1
     }
 
-    calculateConsistency(elapsed).then(consistency => {
-        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, bflyScore);
-    });
 
+    // ✅ Save score + time + reaction + distance + path + consistency
+    calculateConsistency(elapsed).then(consistency => {
+        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, totalDistance);
+    
     reactionTimes = [];
     totalDistance = 0;
     lastX = null;
     lastY = null;
+    
+    });
 
     document.getElementById("playAgainBtn").onclick = () => {
         document.getElementById("playAgainBtn").style.display = "none";
@@ -910,6 +838,7 @@ function hidePopup() {
 howToPlayBtn.addEventListener("click", showPopup);
 closeGuideBtn.addEventListener("click", hidePopup);
 
+// Auto open popup on page load
 window.addEventListener("load", showPopup);
 
 
@@ -945,6 +874,5 @@ function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
     return Math.sqrt(dx * dx + dy * dy);
 }
 
-// --- End of gamebuzz_adv.js ---
-
-
+// --- End of gamebuzz_inter.js ---
+ 

@@ -17,12 +17,14 @@ let reactionTimes = [];
 let ballSpawnTime = null;
 let cameraReady = false;
 let previousArrowX = null;
-let previousHandType = "Left"; // default
+let previousHandType = "Left";
 
 // Path Deviation using Distance
-let startPos = null; // starting hand position for path deviation
-let deviationRatios = []; // store ratio per frame for current path
-let pathDeviations = []; // store avg deviation % per bee
+let startPos = null;
+let deviationRatios = [];
+let pathDeviations = [];
+let totalDeviation = 0; // FIX: define (was used but not declared)
+let sampleCount = 0;    // FIX: define (was used but not declared)
 
 // Distance Tracking
 let totalDistance = 0;
@@ -63,7 +65,6 @@ window.onload = () => {
   canvas = document.getElementById("output_canvas");
   ctx = canvas.getContext("2d");
 
-  // Load images
   beeImg = new Image();
   beeImg.src = "images/bee2.png";
 
@@ -76,42 +77,31 @@ window.onload = () => {
   bgImg = new Image();
   bgImg.src = "images/backgr1.jpg";
 
-  // Load sound
   touchSound = new Audio("sounds/touch.wav");
-  endGameSound = new Audio("sounds/endgame1.wav");
+  endGameSound = new Audio("sounds/endapplause.wav");
   countdownSound = new Audio("sounds/countdown.wav");
 
-  // Background Music
   bgMusic = new Audio("sounds/01Backmusic20s.mp3");
-  bgMusic.loop = true;  // keep looping
-  bgMusic.volume = 0.6; // softer than effects
+  bgMusic.loop = true;
+  bgMusic.volume = 0.6;
 
   const muteBtn = document.getElementById("muteBtn");
   if (muteBtn)  {
     muteBtn.addEventListener("click", () => {
       isMuted = !isMuted;
-
-      if (isMuted) {
-        bgMusic.muted = true;
-        muteBtn.textContent = "🔇";
-      } else {
-        bgMusic.muted = false;
-        muteBtn.textContent = "🔊";
-      }
+      bgMusic.muted = isMuted;
+      muteBtn.textContent = isMuted ? "🔇" : "🔊";
     });
   }
 
-  // Buttons
   document.getElementById("startBtnOverlay").addEventListener("click", () => {
     document.getElementById("startBtnOverlay").style.display = "none";
     document.getElementById("gameTitle").style.display = "none";
     startCountdown();
   });
 
-  // MediaPipe Hands setup
   hands = new Hands({
-    locateFile: (file) =>
-      `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+    locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
   });
   hands.setOptions({
     maxNumHands: 1,
@@ -121,7 +111,6 @@ window.onload = () => {
   });
   hands.onResults((r) => {
     latestResults = r;
-
     if (!cameraReady) {
       cameraReady = true;
       console.log("✅ Camera is ready!");
@@ -140,25 +129,31 @@ window.onload = () => {
 // ============================================
 
 function startCountdown() {
-  // Reset state
   score = 0;
   countdownValue = 3;
-  countdownRunning = false; // don’t start until camera is ready
+  countdownRunning = false;
   gameRunning = false;
   HoneySplashes = [];
   if (respawnTimeout) clearTimeout(respawnTimeout);
   respawnTimeout = null;
 
+  // FIX: Reset metrics for fresh run
+  reactionTimes = [];
+  totalDistance = 0;
+  lastX = null;
+  lastY = null;
+  pathDeviations = [];
+  deviationRatios = [];
+  startPos = null;
+
   document.getElementById("score").innerText = "Score: 0";
   document.getElementById("startBtnOverlay").disabled = true;
   document.getElementById("gameTitle").style.display = "none";
 
-  // Show Loading Overlay
   const loadingOverlay = document.getElementById("loadingOverlay");
   loadingOverlay.style.display = "flex";
   loadingOverlay.innerText = "📷 Loading... Starting Camera";
 
-  // Camera ON
   camera = new Camera(videoElement, {
     onFrame: async () => {
       await hands.send({ image: videoElement });
@@ -168,27 +163,18 @@ function startCountdown() {
   });
   camera.start();
 
-
-  // Wait until camera is ready
   const waitForCamera = setInterval(() => {
     if (cameraReady) {
       clearInterval(waitForCamera);
-      console.log("🎥 Camera feed detected, starting countdown...");
-  
-      // Hide Loading Overlay once camera ready
       loadingOverlay.style.display = "none";
-      console.log("🎥 Camera feed detected, starting countdown...");
-
       if (countdownSound) {
         countdownSound.currentTime = 0;
         countdownSound.play();
       }
-
       countdownRunning = true;
       countdownInterval = setInterval(() => {
         drawCountdown(countdownValue);
         countdownValue--;
-
         if (countdownValue < 0) {
           clearInterval(countdownInterval);
           countdownRunning = false;
@@ -198,7 +184,6 @@ function startCountdown() {
     }
   }, 200);
 }
-
 
 function drawCountdown(value) {
   ctx.fillStyle = "rgba(0,0,0,0.6)";
@@ -219,9 +204,13 @@ function drawCountdown(value) {
 function startGame() {
   gameRunning = true;
 
-  // ✅ Play background music here
+  // FIX: Ensure fresh distance tracking
+  totalDistance = 0;
+  lastX = null;
+  lastY = null;
+
   if (bgMusic) {
-    bgMusic.currentTime = 0; 
+    bgMusic.currentTime = 0;
     bgMusic.play();
   }
 
@@ -236,7 +225,7 @@ function startGame() {
   spawnBall();
 }
 
-const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
+const HAND_MOVE_THRESHOLD = 10;
 
 
 // ============================================
@@ -244,19 +233,13 @@ const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
 // ============================================
 
 function spawnBall() {
-  // Randomize new bee position
   ball.x = Math.random() * (canvas.width - 80) + 40;
   ball.y = Math.random() * (canvas.height - 80) + 40;
-
-  // Record spawn time for reaction calculation
   ballSpawnTime = Date.now();
 
-  // ✅ Reset deviation tracking for this new bee
-  startPos = null;       // will initialize on first hand movement toward new bee
+  startPos = null;
   totalDeviation = 0;
   sampleCount = 0;
-
-  // Optionally reset last hand position to prevent huge distance jumps
   lastX = null;
   lastY = null;
 }
@@ -269,8 +252,7 @@ function spawnBall() {
 function gameLoop() {
   if (countdownRunning) {
     drawCountdown(countdownValue);
-  } 
-  else if (gameRunning && latestResults) {
+  } else if (gameRunning && latestResults) {
     drawScene(latestResults);
   }
   requestAnimationFrame(gameLoop);
@@ -286,7 +268,6 @@ function drawScene(results) {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
   ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-  // Animate bee flap
   flap += flapDirection * 0.8;
   if (flap > 10 || flap < -10) flapDirection *= -1;
 
@@ -301,7 +282,7 @@ function drawScene(results) {
   if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
     for (let i = 0; i < results.multiHandLandmarks.length; i++) {
       const landmarks = results.multiHandLandmarks[i];
-      const handType = results.multiHandedness?.[i]?.label || "Unknown"; // NEW
+      const handType = results.multiHandedness?.[i]?.label || "Unknown";
       const palmIndices = [0, 1, 5, 9, 13, 17];
       let sumX = 0, sumY = 0;
 
@@ -313,85 +294,76 @@ function drawScene(results) {
       arrowX = sumX / palmIndices.length;
       arrowY = sumY / palmIndices.length;
 
-      // Smooth hand position slightly
       if (previousArrowX !== null) {
         arrowX = arrowX * 0.3 + previousArrowX * 0.7;
-
       }
 
-      // Prevent sudden flip when hand jumps
       let currentHandType = handType;
       if (previousArrowX !== null) {
         const dx = Math.abs(arrowX - previousArrowX);
-        if (dx > 250) {
-          currentHandType = previousHandType; // keep previous hand type
-        }
+        if (dx > 250) currentHandType = previousHandType;
       }
 
-      // Draw hand
       if (currentHandType === "Right" && rhandImg) {
         drawHand(arrowX, arrowY, rhandImg);
       } else {
         drawHand(arrowX, arrowY, LhandImg);
       }
 
-      // Update previous for next frame
       previousArrowX = arrowX;
       previousHandType = currentHandType;
 
-
-    // ✅ Initialize startPos when movement starts
-    if (!startPos) {
-      const dx = arrowX - ball.x;
-      const dy = arrowY - ball.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-
-      if (dist > HAND_MOVE_THRESHOLD) {
-        startPos = { x: arrowX, y: arrowY };
+      // FIX: Initialize lastX/lastY immediately (not gated by startPos)
+      if (lastX === null || lastY === null) {
         lastX = arrowX;
         lastY = arrowY;
-        deviationRatios = []; // reset for new path
       }
-    }
 
-    // ✅ Track total hand movement distance (ignore small jitter)
-    if (lastX !== null && lastY !== null) {
+      // Initialize path start when meaningful movement starts
+      if (!startPos) {
+        const dxStart = arrowX - ball.x;
+        const dyStart = arrowY - ball.y;
+        const dist = Math.sqrt(dxStart * dxStart + dyStart * dyStart);
+        if (dist > HAND_MOVE_THRESHOLD) {
+          startPos = { x: arrowX, y: arrowY };
+          deviationRatios = [];
+        }
+      }
+
+      // FIX: Always accumulate meaningful movement
       let dxMove = arrowX - lastX;
       let dyMove = arrowY - lastY;
       let moveDist = Math.sqrt(dxMove * dxMove + dyMove * dyMove);
-
       if (moveDist > HAND_MOVE_THRESHOLD) {
         totalDistance += moveDist;
         lastX = arrowX;
         lastY = arrowY;
       }
-    }
 
-    // ✅ Update Path Deviation per frame
-    if (startPos) {
-      const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-      if (pathLength > 0) {
-        const perpDist = getPerpendicularDistance(
-          arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-        );
-        const ratio = perpDist / pathLength; // 0 = perfect straight
-        deviationRatios.push(ratio);
+      if (startPos) {
+        const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
+        if (pathLength > 0) {
+          const perpDist = getPerpendicularDistance(
+            arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
+          );
+            const ratio = perpDist / pathLength;
+            deviationRatios.push(ratio);
+        }
+      }
+
+      drawHand(arrowX, arrowY);
+      handleGameLogic(arrowX, arrowY);
+
+      for (let p = HoneySplashes.length - 1; p >= 0; p--) {
+        HoneySplashes[p].update();
+        HoneySplashes[p].draw(ctx);
+        if (HoneySplashes[p].isFinished()) {
+          HoneySplashes.splice(p, 1);
+        }
       }
     }
-
-    drawHand(arrowX, arrowY);
-    handleGameLogic(arrowX, arrowY);
-
-    // Honey splashes
-    for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-      HoneySplashes[i].update();
-      HoneySplashes[i].draw(ctx);
-      if (HoneySplashes[i].isFinished()) {
-        HoneySplashes.splice(i, 1);
-      }
-    }
-
-  }}}
+  }
+}
 
 
 // ============================================
@@ -399,52 +371,44 @@ function drawScene(results) {
 // ============================================
 
 function handleGameLogic(arrowX, arrowY) {
+  const dx = arrowX - ball.x;
+  const dy = arrowY - ball.y;
+  if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
+    let reaction = Date.now() - ballSpawnTime;
+    reactionTimes.push(reaction);
 
-    // Collision check
-    const dx = arrowX - ball.x;
-    const dy = arrowY - ball.y;
-    if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
-      let reaction = Date.now() - ballSpawnTime; 
-      reactionTimes.push(reaction);  // ⏱ save reaction time  
-    
-      // ✅ Compute avg deviation for this bee
-      if (deviationRatios.length > 0) {
-        const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
-        pathDeviations.push(avgRatio * 100); // store as %
-      }
+    if (deviationRatios.length > 0) {
+      const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
+      pathDeviations.push(avgRatio * 100);
+    }
 
-      score++;
-      document.getElementById("score").innerText = "Score: " + score;
+    score++;
+    document.getElementById("score").innerText = "Score: " + score;
+    handBounceActive = true;
 
-      handBounceActive = true; // trigger hand bounce
+    if (touchSound) {
+      touchSound.currentTime = 0;
+      touchSound.play();
+    }
 
+    HoneySplashes.push(new HoneySplash(ball.x, ball.y));
 
-      if (touchSound) {
-        touchSound.currentTime = 0;
-        touchSound.play();
-      }
+    startPos = null;
+    deviationRatios = [];
+    lastX = null;
+    lastY = null;
 
-      HoneySplashes.push(new HoneySplash(ball.x, ball.y));
+    ball.x = -100;
+    ball.y = -100;
 
-      // Reset for next bee
-      startPos = null;
-      deviationRatios = [];
-      lastX = null;
-      lastY = null;
-
-      // Hide current bee
-      ball.x = -100;
-      ball.y = -100;
-
-
-      if (score >= 20) {
-        endGame();
-      } else {
-        if (respawnTimeout) clearTimeout(respawnTimeout);
-        respawnTimeout = setTimeout(spawnBall, 700);
-      }
+    if (score >= 20) {
+      endGame();
+    } else {
+      if (respawnTimeout) clearTimeout(respawnTimeout);
+      respawnTimeout = setTimeout(spawnBall, 700);
     }
   }
+}
 
 
 // ============================================
@@ -452,22 +416,16 @@ function handleGameLogic(arrowX, arrowY) {
 // ============================================
 
 function drawHand(x, y, img) {
-  // 🧱 Safety: skip drawing if image not ready
   if (!img || !img.complete || img.naturalWidth === 0) return;
-
   const baseSize = 90;
-  const size = baseSize * handScale; // scaled size
-
+  const size = baseSize * handScale;
   ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 
-  // ✨ Bounce animation
   if (handBounceActive) {
-    handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
-    if (handScale >= 1.55) {
-      handBounceActive = false;
-    }
+    handScale += (1.6 - handScale) * 0.25;
+    if (handScale >= 1.55) handBounceActive = false;
   } else {
-    handScale += (1 - handScale) * 0.2; // return to normal
+    handScale += (1 - handScale) * 0.2;
   }
 }
 
@@ -486,55 +444,40 @@ function endGame() {
   respawnTimeout = null;
 
   let elapsed = Math.floor((Date.now() - startTime) / 1000);
- // document.getElementById("timer").innerText = "Final Time: " + elapsed + "s";
 
-  // 🎯 Calculate average reaction time
   let avgReaction = 0;
   if (reactionTimes.length > 0) {
     avgReaction = (
       reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length / 1000
-    ).toFixed(2); // keep 2 decimal places
+    ).toFixed(2);
   }
 
- // ✅ Normalize distance = total movement / score
   let normDistance = score > 0 ? totalDistance / score : totalDistance;
 
-  console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
-
-  // Calculate Movement Stability based on distance deviation
   let movementStability = 0;
   if (pathDeviations.length > 0) {
-    // pathDeviations currently stores deviation %, lower = more stable
     const avgDeviation = pathDeviations.reduce((a, b) => a + b, 0) / pathDeviations.length;
-
-    // Invert: higher value = higher stability
     movementStability = (100 - avgDeviation).toFixed(2);
   }
 
-
-  // ✅ Stop background music here
   if (bgMusic) {
     bgMusic.pause();
     bgMusic.currentTime = 0;
   }
-  
   if (endGameSound) {
     endGameSound.currentTime = 0;
     endGameSound.play();
   }
 
-  // 🎇 Start fireworks
   startFireworks();
 
-  // Animate fireworks first, then show text
-  let fireworksDuration = 2500; // 2.5 seconds
+  let fireworksDuration = 2500;
   let startTimeFireworks = Date.now();
 
   function fireworksAnimation() {
     if (!fireworksRunning) return;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     drawFireworks(ctx);
-
     if (Date.now() - startTimeFireworks < fireworksDuration) {
       requestAnimationFrame(fireworksAnimation);
     } else {
@@ -550,8 +493,8 @@ function endGame() {
 // Save Game Result to Supabase
 // ============================================
 
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency) {
-  console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency);
+async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance) {
+  console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance);
 
   const { data: { user }, error: userError } = await supabase.auth.getUser();
   if (userError || !user) {
@@ -559,21 +502,18 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
     return;
   }
 
-  console.log("User found:", user);
-
-  // Insert using email only (since player_id is int8 and not compatible with UUID)
   const { error: insertError } = await supabase
     .from("buzztap_results")
     .insert([{
       player_email: user.email,
       score: score,
       time_taken: timeTaken,
-      avg_reaction_time: avgReaction,
-      norm_totaldistance: normDistance,
-      av_devpath: parseFloat(movementStability), // Save path deviation %
-      consistency: consistency,
+      avg_reaction_time: parseFloat(avgReaction),
+      norm_totaldistance: parseFloat(normDistance.toFixed(2)),
+      totaldistance: parseFloat(totalDistance),
+      av_devpath: parseFloat(movementStability),
+      consistency: parseFloat(consistency),
       level: "BEGINNER"
-      // leave player_id empty
     }]);
 
   if (insertError) {
@@ -589,24 +529,24 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
 // ============================================
 
 function showEndText(elapsed, avgReaction, normDistance, movementStability) {
-
   ctx.fillStyle = "rgba(0,0,0,0.1)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   ctx.fillStyle = "white";
-  ctx.font = "55px poppins";
+  ctx.font = "bold 65px poppins";
   ctx.textAlign = "center";
   ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
+  
+  ctx.font = "45px poppins";
+  ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+  
+  ctx.font = "35px poppins";
+  ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
+  ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
+  //ctx.fillText(`Avg Reaction: ${avgReaction}s`, canvas.width / 2, canvas.height / 2);
+  //ctx.fillText(`Average Distance: ${normDistance.toFixed(2)}`, canvas.width / 2, canvas.height / 2 + 30);
+  //ctx.fillText(`Movement Stability: ${movementStability}%`, canvas.width / 2, canvas.height / 2 + 60);
 
-  ctx.font = "20px poppins";
-  ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 - 60);
-  ctx.fillText(`Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 - 30);
-  ctx.fillText(`Avg Reaction: ${avgReaction}s`, canvas.width / 2, canvas.height / 2);
-  ctx.fillText(`Normalized Distance: ${normDistance.toFixed(2)}`, canvas.width / 2, canvas.height / 2 + 30);
-  ctx.fillText(`Movement Stability: ${movementStability}%`, canvas.width / 2, canvas.height / 2 + 60);
-
-
-  // ✅ Reset Path Deviation variables for next game
   startPos = null;
   totalDeviation = 0;
   sampleCount = 0;
@@ -615,16 +555,10 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
   document.getElementById("playAgainBtn").style.display = "block";
   document.getElementById("nextBtn").style.display = "block";
 
-
-// ============================================
-// Calculate Consistency
-// ============================================
-
   async function calculateConsistency(newTimeTaken) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return 0;
 
-    // Get last 4 games (we’ll add this new one = 5 total)
     const { data, error } = await supabase
       .from("buzztap_results")
       .select("time_taken")
@@ -640,30 +574,35 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
     let times = data.map(r => r.time_taken);
     times.push(newTimeTaken);
 
-    if (times.length < 5) {
-      console.log("Not enough games for consistency");
-      return 0; // need minimum 5 games
-    }
+    if (times.length < 5) return 0;
 
-    // Coefficient of variation: std / mean
     let mean = times.reduce((a, b) => a + b, 0) / times.length;
     let variance = times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / times.length;
     let std = Math.sqrt(variance);
-
-    let consistency = 1 - (std / mean); 
-    return Math.max(0, Math.min(1, consistency)).toFixed(3); // clamp 0–1
+    let consistency = 1 - (std / mean);
+    return Math.max(0, Math.min(1, consistency)).toFixed(3);
   }
 
+calculateConsistency(elapsed).then(consistency => {
 
-  // ✅ Save score + time + reaction + distance + path + consistency
-  calculateConsistency(elapsed).then(consistency => {
-    saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency);
-  });
+    // Save first
+    saveGameResult(
+        score,
+        elapsed,
+        avgReaction,
+        normDistance,
+        movementStability,
+        consistency,
+        totalDistance // ← correct non-zero value
+    );
 
-  reactionTimes = [];
-  totalDistance = 0;
-  lastX = null;
-  lastY = null;
+    // Reset AFTER saving
+    reactionTimes = [];
+    totalDistance = 0;
+    lastX = null;
+    lastY = null;
+});
+
 
   document.getElementById("playAgainBtn").onclick = () => {
     document.getElementById("playAgainBtn").style.display = "none";
@@ -697,7 +636,6 @@ class HoneySplash {
       });
     }
   }
-
   update() {
     this.particles.forEach((p) => {
       p.x += Math.cos(p.angle) * p.speed;
@@ -706,7 +644,6 @@ class HoneySplash {
     });
     this.particles = this.particles.filter((p) => p.alpha > 0);
   }
-
   draw(ctx) {
     this.particles.forEach((p) => {
       ctx.fillStyle = `rgba(255, 204, 0, ${p.alpha})`;
@@ -715,7 +652,6 @@ class HoneySplash {
       ctx.fill();
     });
   }
-
   isFinished() {
     return this.particles.length === 0;
   }
@@ -729,15 +665,11 @@ class HoneySplash {
 function showPopup() {
   guidePopup.style.display = "flex";
 }
-
 function hidePopup() {
   guidePopup.style.display = "none";
 }
-
 howToPlayBtn.addEventListener("click", showPopup);
 closeGuideBtn.addEventListener("click", hidePopup);
-
-// Auto open popup on page load
 window.addEventListener("load", showPopup);
 
 
@@ -756,7 +688,6 @@ function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
   const param = len_sq !== 0 ? dot / len_sq : -1;
 
   let xx, yy;
-
   if (param < 0) {
     xx = x1;
     yy = y1;

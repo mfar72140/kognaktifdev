@@ -176,15 +176,15 @@ async function drawBuzzChart(type, level) {
            currentMainChart = initGameChart(labels, times, distances, stability);
     } else {
            if (type === "distance") {
-                  currentMainChart.data.datasets[0].label = "Norm Distance";
+                  currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
                   currentMainChart.data.datasets[0].data = distances;
                   currentMainChart.data.datasets[0].borderColor = "blue";
            } else if (type === "stability") {
-                  currentMainChart.data.datasets[0].label = "Movement Stability (%)";
+                  currentMainChart.data.datasets[0].label = "Movement Stability per Game (%)";
                   currentMainChart.data.datasets[0].data = stability;
                   currentMainChart.data.datasets[0].borderColor = "orange";
            } else {
-                  currentMainChart.data.datasets[0].label = "Time Taken (s)";
+                  currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
                   currentMainChart.data.datasets[0].data = times;
                   currentMainChart.data.datasets[0].borderColor = "green";
            }
@@ -262,11 +262,11 @@ async function drawShapeChart(type, level) {
 
            // make sure initial dataset reflects the requested type
            if (type === "attempts") {
-                  currentMainChart.data.datasets[0].label = "Attempts";
+                  currentMainChart.data.datasets[0].label = "Attempts per Game";
                   currentMainChart.data.datasets[0].data = attempts;
                   currentMainChart.data.datasets[0].borderColor = "purple";
            } else {
-                  currentMainChart.data.datasets[0].label = "Time Taken (s)";
+                  currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
                   currentMainChart.data.datasets[0].data = times;
                   currentMainChart.data.datasets[0].borderColor = "green";
            }
@@ -300,56 +300,64 @@ function switchTab(type) {
 }
 
 /* ==========================================================
-           UTILITIES
+                 UTILITIES
 ==========================================================*/
 
 function getSelectedLevel() {
-    const el = document.getElementById("levelSelect");
-    if (!el) return "BEGINNER";
-    return (el.value || "").toUpperCase();
+       const el = document.getElementById("levelSelect");
+       if (!el) return "BEGINNER";
+       return (el.value || "").toUpperCase();
 }
 
 function clearStatsCards() {
-    document.getElementById("lastScore").textContent = "";
-    document.getElementById("lastDate").textContent = "";
-    document.getElementById("totalGames").textContent = "";
-    document.getElementById("bestTime").textContent = "";
-    // hide no-data message area if present
-    const nd = document.getElementById("noDataMessage");
-    if (nd) nd.style.display = "none";
-    // hide gauge section
-    const gaugeSection = document.getElementById("gaugeSection");
-    if (gaugeSection) gaugeSection.style.display = "none";
-    // keep tabs visible as appropriate will be set by showBuzzTapUI/showShapeSenseUI
-    // destroy existing chart/gauge handled by caller
+       document.getElementById("lastScore").textContent = "";
+       document.getElementById("lastDate").textContent = "";
+       document.getElementById("totalGames").textContent = "";
+       document.getElementById("bestTime").textContent = "";
+       // hide no-data message area if present
+       const nd = document.getElementById("noDataMessage");
+       if (nd) nd.style.display = "none";
+       // keep tabs visible as appropriate will be set by showBuzzTapUI/showShapeSenseUI
+       // destroy existing chart/gauge handled by caller
 }
 
 function showNoData() {
-    // Leave UI empty (no text in cards, no chart, no gauge)
-    clearStatsCards();
-    if (currentMainChart) {
-           currentMainChart.destroy();
-           currentMainChart = null;
-    }
-    if (currentGauge) {
-           currentGauge.destroy?.();
-           currentGauge = null;
-    }
+       // Leave UI empty (no text in cards, no chart)
+       clearStatsCards();
+       if (currentMainChart) {
+                 currentMainChart.destroy();
+                 currentMainChart = null;
+       }
+       // Show empty gauge (0%) for Buzz Tap when no data
+       const game = document.getElementById("gameSelect").value;
+       if (game === "buzz") {
+                 const gaugeSection = document.getElementById("gaugeSection");
+                 if (gaugeSection) gaugeSection.style.display = "block";
+                 if (currentGauge) {
+                              currentGauge.destroy?.();
+                 }
+                 currentGauge = initConsistencyGauge(0);
+       } else {
+                 if (currentGauge) {
+                              currentGauge.destroy?.();
+                              currentGauge = null;
+                 }
+       }
 }
 
 function waitForCanvas(selector) {
-    return new Promise(resolve => {
-           let attempts = 0;
-           function check() {
-                  const el = document.querySelector(selector);
-                  if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                         return resolve();
-                  }
-                  attempts++;
-                  if (attempts < 20) requestAnimationFrame(check);
-                  else resolve();
-           }
-           check();
-    });
+       return new Promise(resolve => {
+                 let attempts = 0;
+                 function check() {
+                              const el = document.querySelector(selector);
+                              if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+                                           return resolve();
+                              }
+                              attempts++;
+                              if (attempts < 20) requestAnimationFrame(check);
+                              else resolve();
+                 }
+                 check();
+       });
 }
 

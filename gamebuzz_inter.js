@@ -1,3 +1,4 @@
+
 // ============================================
 // GLOBAL VARIABLES
 // ============================================
@@ -23,6 +24,8 @@ let previousHandType = "Left"; // default
 let startPos = null; // starting hand position for path deviation
 let deviationRatios = []; // store ratio per frame for current path
 let pathDeviations = []; // store avg deviation % per bee
+let handVelocities = []; // store hand movement velocities for stability
+
 
 // Distance Tracking
 let totalDistance = 0;
@@ -78,7 +81,7 @@ window.onload = () => {
 
     // Load sound
     touchSound = new Audio("sounds/touch.wav");
-    endGameSound = new Audio("sounds/endgame1.wav");
+    endGameSound = new Audio("sounds/endapplause.wav");
     countdownSound = new Audio("sounds/countdown.wav");
 
     // Background Music
@@ -370,124 +373,29 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-
 // ============================================
-// Draw Scene
+// Draw Hand
 // ============================================
 
-function drawScene(results) {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+function drawHand(x, y, img) {
+    // 🧱 Safety: skip drawing if image not ready
+    if (!img || !img.complete || img.naturalWidth === 0) return;
 
-    // Update bee movement before drawing
-    updateBallMovement();
+    const baseSize = 90;
+    const size = baseSize * handScale; // scaled size
 
-    // Animate bee flap
-    flap += flapDirection * 0.8;
-    if (flap > 10 || flap < -10) flapDirection *= -1;
+    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 
-    ctx.drawImage(
-        beeImg,
-        ball.x - ball.r,
-        ball.y - ball.r + flap,
-        ball.r * 2,
-        ball.r * 2
-    );
-
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-            const landmarks = results.multiHandLandmarks[i];
-            const handType = results.multiHandedness?.[i]?.label || "Unknown"; // NEW
-            const palmIndices = [0, 1, 5, 9, 13, 17];
-            let sumX = 0, sumY = 0;
-
-            palmIndices.forEach((j) => {
-                sumX += canvas.width - landmarks[j].x * canvas.width;
-                sumY += landmarks[j].y * canvas.height;
-            });
-
-            arrowX = sumX / palmIndices.length;
-            arrowY = sumY / palmIndices.length;
-
-            // Smooth hand position slightly
-            if (previousArrowX !== null) {
-                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
-            }
-
-            // Prevent sudden flip when hand jumps
-            let currentHandType = handType;
-            if (previousArrowX !== null) {
-                const dx = Math.abs(arrowX - previousArrowX);
-                if (dx > 250) {
-                    currentHandType = previousHandType; // keep previous hand type
-                }
-            }
-
-            // Draw hand
-            if (currentHandType === "Right" && rhandImg) {
-                drawHand(arrowX, arrowY, rhandImg);
-            } else {
-                drawHand(arrowX, arrowY, LhandImg);
-            }
-
-            // Update previous for next frame
-            previousArrowX = arrowX;
-            previousHandType = currentHandType;
-
-
-        // ✅ Initialize startPos when movement starts
-        if (!startPos) {
-            const dx = arrowX - ball.x;
-            const dy = arrowY - ball.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist > HAND_MOVE_THRESHOLD) {
-                startPos = { x: arrowX, y: arrowY };
-                lastX = arrowX;
-                lastY = arrowY;
-                deviationRatios = []; // reset for new path
-            }
+    // ✨ Bounce animation
+    if (handBounceActive) {
+        handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
+        if (handScale >= 1.55) {
+            handBounceActive = false;
         }
-
-        // ✅ Track total hand movement distance (ignore small jitter)
-        if (lastX !== null && lastY !== null) {
-            let dxMove = arrowX - lastX;
-            let dyMove = arrowY - lastY;
-            let moveDist = Math.sqrt(dxMove * dxMove + dyMove * dyMove);
-
-            if (moveDist > HAND_MOVE_THRESHOLD) {
-                totalDistance += moveDist;
-                lastX = arrowX;
-                lastY = arrowY;
-            }
-        }
-
-        // ✅ Update Path Deviation per frame
-        if (startPos) {
-            const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-            if (pathLength > 0) {
-                const perpDist = getPerpendicularDistance(
-                    arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-                );
-                const ratio = perpDist / pathLength; // 0 = perfect straight
-                deviationRatios.push(ratio);
-            }
-        }
-
-        drawHand(arrowX, arrowY);
-        handleGameLogic(arrowX, arrowY);
-
-        // Honey splashes
-        for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-            HoneySplashes[i].update();
-            HoneySplashes[i].draw(ctx);
-            if (HoneySplashes[i].isFinished()) {
-                HoneySplashes.splice(i, 1);
-            }
-        }
-    }}}
-
+    } else {
+        handScale += (1 - handScale) * 0.2; // return to normal
+    }
+}
 
 // ============================================
 // Handle Game Logic
@@ -544,30 +452,120 @@ function handleGameLogic(arrowX, arrowY) {
     }
 
 
+
 // ============================================
-// Draw Hand
+// Draw Scene
 // ============================================
 
-function drawHand(x, y, img) {
-    // 🧱 Safety: skip drawing if image not ready
-    if (!img || !img.complete || img.naturalWidth === 0) return;
+function drawScene(results) {
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    const baseSize = 90;
-    const size = baseSize * handScale; // scaled size
+    // Update bee movement before drawing
+    updateBallMovement();
 
-    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
+    // Animate bee flap
+    flap += flapDirection * 0.8;
+    if (flap > 10 || flap < -10) flapDirection *= -1;
 
-    // ✨ Bounce animation
-    if (handBounceActive) {
-        handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
-        if (handScale >= 1.55) {
-            handBounceActive = false;
+    ctx.drawImage(
+        beeImg,
+        ball.x - ball.r,
+        ball.y - ball.r + flap,
+        ball.r * 2,
+        ball.r * 2
+    );
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+            const landmarks = results.multiHandLandmarks[i];
+            const handType = results.multiHandedness?.[i]?.label || "Unknown";
+            const palmIndices = [0, 1, 5, 9, 13, 17];
+            let sumX = 0, sumY = 0;
+
+            palmIndices.forEach((j) => {
+                sumX += canvas.width - landmarks[j].x * canvas.width;
+                sumY += landmarks[j].y * canvas.height;
+            });
+
+            arrowX = sumX / palmIndices.length;
+            arrowY = sumY / palmIndices.length;
+
+            // Smooth hand position slightly
+            if (previousArrowX !== null) {
+                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
+            }
+
+            // Prevent sudden flip
+            let currentHandType = handType;
+            if (previousArrowX !== null) {
+                const dx = Math.abs(arrowX - previousArrowX);
+                if (dx > 250) currentHandType = previousHandType;
+            }
+
+            // Draw hand
+            if (currentHandType === "Right" && rhandImg) {
+                drawHand(arrowX, arrowY, rhandImg);
+            } else {
+                drawHand(arrowX, arrowY, LhandImg);
+            }
+
+            previousArrowX = arrowX;
+            previousHandType = currentHandType;
+
+            // Initialize startPos when movement starts
+            if (!startPos) {
+                const dx = arrowX - ball.x;
+                const dy = arrowY - ball.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > HAND_MOVE_THRESHOLD) {
+                    startPos = { x: arrowX, y: arrowY };
+                    lastX = arrowX;
+                    lastY = arrowY;
+                    deviationRatios = [];
+                }
+            }
+
+            // Track hand velocity and total distance
+            if (lastX !== null && lastY !== null) {
+                const dx = arrowX - lastX;
+                const dy = arrowY - lastY;
+                const moveDist = Math.sqrt(dx*dx + dy*dy);
+
+                handVelocities.push(moveDist); // for jitter/stability
+
+                if (moveDist > HAND_MOVE_THRESHOLD) {
+                    totalDistance += moveDist;
+                }
+            }
+            lastX = arrowX;
+            lastY = arrowY;
+
+            // Update Path Deviation
+            if (startPos) {
+                const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
+                if (pathLength > 0) {
+                    const perpDist = getPerpendicularDistance(
+                        arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
+                    );
+                    const ratio = perpDist / pathLength;
+                    deviationRatios.push(ratio);
+                }
+            }
+
+            drawHand(arrowX, arrowY);
+            handleGameLogic(arrowX, arrowY);
+
+            // Honey splashes
+            for (let i = HoneySplashes.length - 1; i >= 0; i--) {
+                HoneySplashes[i].update();
+                HoneySplashes[i].draw(ctx);
+                if (HoneySplashes[i].isFinished()) HoneySplashes.splice(i, 1);
+            }
         }
-    } else {
-        handScale += (1 - handScale) * 0.2; // return to normal
     }
 }
-
 
 // ============================================
 // End Game
@@ -583,53 +581,53 @@ function endGame() {
     respawnTimeout = null;
 
     let elapsed = Math.floor((Date.now() - startTime) / 1000);
- // document.getElementById("timer").innerText = "Final Time: " + elapsed + "s";
 
-    // 🎯 Calculate average reaction time
+    // Average reaction time
     let avgReaction = 0;
     if (reactionTimes.length > 0) {
-        avgReaction = (
-            reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length / 1000
-        ).toFixed(2); // keep 2 decimal places
+        avgReaction = (reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length/1000).toFixed(2);
     }
 
- // ✅ Normalize distance = total movement / score
+    // Normalize distance
     let normDistance = score > 0 ? totalDistance / score : totalDistance;
 
     console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
 
-    // Calculate Movement Stability based on distance deviation
-    let movementStability = 0;
+    // ================= Movement Stability =================
+    // 1. Path-based stability
+    let pathStability = 0;
     if (pathDeviations.length > 0) {
-        // pathDeviations currently stores deviation %, lower = more stable
-        const avgDeviation = pathDeviations.reduce((a, b) => a + b, 0) / pathDeviations.length;
-
-        // Invert: higher value = higher stability
-        movementStability = (100 - avgDeviation).toFixed(2);
+        const avgDev = pathDeviations.reduce((a,b)=>a+b,0)/pathDeviations.length;
+        pathStability = Math.max(0, 100 - avgDev);
     }
 
-
-    // ✅ Stop background music here
-    if (bgMusic) {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
+    // 2. Velocity-based stability
+    let velStability = 0;
+    if (handVelocities.length > 5) {
+        const diffs = [];
+        for (let i=1;i<handVelocities.length;i++) {
+            diffs.push(Math.abs(handVelocities[i]-handVelocities[i-1]));
+        }
+        const avgJitter = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+        velStability = Math.max(0, 100 - avgJitter);
     }
-    
-    if (endGameSound) {
-        endGameSound.currentTime = 0;
-        endGameSound.play();
-    }
 
-    // 🎇 Start fireworks
+    // 3. Combine both (weighted average)
+    const movementStability = ((pathStability*0.7 + velStability*0.3)).toFixed(2);
+    console.log("Movement Stability (%):", movementStability);
+
+    // Stop music
+    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
+    if (endGameSound) { endGameSound.currentTime = 0; endGameSound.play(); }
+
+    // Fireworks
     startFireworks();
-
-    // Animate fireworks first, then show text
-    let fireworksDuration = 2500; // 2.5 seconds
-    let startTimeFireworks = Date.now();
+    const fireworksDuration = 2500;
+    const startTimeFireworks = Date.now();
 
     function fireworksAnimation() {
         if (!fireworksRunning) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
         drawFireworks(ctx);
 
         if (Date.now() - startTimeFireworks < fireworksDuration) {
@@ -647,8 +645,8 @@ function endGame() {
 // Save Game Result to Supabase
 // ============================================
 
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency) {
-    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency);
+async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance) {
+    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -670,6 +668,7 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
             av_devpath: parseFloat(movementStability), // Save path deviation %
             consistency: consistency,
             level: "INTERMEDIATE",
+            totaldistance: parseFloat(totalDistance)
             // leave player_id empty
         }]);
 
@@ -691,16 +690,16 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.fillStyle = "white";
-    ctx.font = "55px poppins";
+    ctx.font = "bold 65px poppins";
     ctx.textAlign = "center";
     ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
-
-    ctx.font = "20px poppins";
-    ctx.fillText(`Final Score: ${score}`, canvas.width / 2, canvas.height / 2 - 60);
-    ctx.fillText(`Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 - 30);
-    ctx.fillText(`Avg Reaction: ${avgReaction}s`, canvas.width / 2, canvas.height / 2);
-    ctx.fillText(`Normalized Distance: ${normDistance.toFixed(2)}`, canvas.width / 2, canvas.height / 2 + 30);
-    ctx.fillText(`Movement Stability: ${movementStability}%`, canvas.width / 2, canvas.height / 2 + 60);
+    
+    ctx.font = "40px poppins";
+    ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+    
+    ctx.font = "35px poppins";
+    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
+    ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
 
 
     // ✅ Reset Path Deviation variables for next game
@@ -721,11 +720,12 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return 0;
 
-        // Get last 4 games (we’ll add this new one = 5 total)
+        // Get last 4 games from INTERMEDIATE level only
         const { data, error } = await supabase
             .from("buzztap_results")
             .select("time_taken")
             .eq("player_email", user.email)
+            .eq("level", "INTERMEDIATE")
             .order("created_at", { ascending: false })
             .limit(4);
 
@@ -754,13 +754,14 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
 
     // ✅ Save score + time + reaction + distance + path + consistency
     calculateConsistency(elapsed).then(consistency => {
-        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency);
-    });
-
+        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, totalDistance);
+    
     reactionTimes = [];
     totalDistance = 0;
     lastX = null;
     lastY = null;
+    
+    });
 
     document.getElementById("playAgainBtn").onclick = () => {
         document.getElementById("playAgainBtn").style.display = "none";
@@ -772,7 +773,6 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
         window.location.href = "gamebuzzcover.html";
     };
 }
-
 
 // ============================================
 // HONEY SPLASH EFFECT
