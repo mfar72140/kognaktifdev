@@ -32,64 +32,39 @@
   </nav>
 
   <!-- Main Content -->
-<section class="settings-container">
-  <h2>Account Settings</h2>
-
-  <form class="settings-form" id="settingsForm">
-
-    <!-- Parent Info -->
+  <section class="settings-container">
+    <h2>Account Settings</h2>
     <h3>Parent / Guardian Information</h3>
+    <form class="settings-form" id="settingsForm">
+      <div class="form-group">
+        <label for="firstname">First Name <span class="required">*</span></label>
+        <input type="text" id="firstname" placeholder="Enter your first name" required>
+      </div>
 
-    <div class="form-group">
-      <label for="firstname">First Name <span class="required">*</span></label>
-      <input type="text" id="firstname" placeholder="Enter your first name" required>
-    </div>
+      <div class="form-group">
+        <label for="lastname">Last Name <span class="required">*</span></label>
+        <input type="text" id="lastname" placeholder="Enter your last name" required>
+      </div>
 
-    <div class="form-group">
-      <label for="lastname">Last Name <span class="required">*</span></label>
-      <input type="text" id="lastname" placeholder="Enter your last name" required>
-    </div>
+      <div class="form-group">
+        <label for="birthday">Birthday</label>
+        <input type="date" id="birthday">
+      </div>
 
-    <!-- Divider -->
-    <div class="section-divider"></div>
+      <button type="submit" class="save-btn">Save Changes</button>
+    </form>
 
-    <!-- Child Info -->
-    <h3>Child Information</h3>
+    <p id="statusMsg" style="margin-top:10px;"></p>
+  </section>
 
-    <div class="form-group">
-      <label for="cfirstname">Child First Name <span class="required">*</span></label>
-      <input type="text" id="cfirstname" placeholder="Enter child's first name" required>
-    </div>
-
-    <div class="form-group">
-      <label for="clastname">Child Last Name <span class="required">*</span></label>
-      <input type="text" id="clastname" placeholder="Enter child's last name" required>
-    </div>
-
-    <div class="form-group">
-      <label for="birthday">Birthday</label>
-      <input type="date" id="birthday">
-    </div>
-
-    <div class="form-group">
-      <label for="healthcategory">Health Category</label>
-      <select id="healthcategory">
-        <option value="">Select category</option>
-        <option value="Healthy">Normal</option>
-        <option value="Autism">Autism</option>
-        <option value="ADHD">ADHD</option>
-        <option value="Dyslexia">Dyslexia</option>
-        <option value="Down Syndrome">Down Syndrome</option>
-        <option value="Other">Other</option>
-      </select>
-    </div>
-
-    <button type="submit" class="save-btn">Save Changes</button>
-    <p id="statusMsg"></p>
-
-  </form>
+<!-- Footer -->
+<section id="footer" class="footer-section">
+  <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
+  <div class="footer-links">
+    <a href="#">Terms of Service</a>
+    <a href="#">Privacy Policy</a>
+  </div>
 </section>
-
 
 
 <!-- Supabase Auth Script -->
@@ -117,7 +92,7 @@
     // Load current profile data
     const { data, error } = await supabase
       .from('profiles')
-      .select('firstname, lastname, birthday, cfirstname, clastname, healthcategory')
+      .select('firstname, lastname, birthday')
       .eq('id', user.id)
       .maybeSingle(); 
 
@@ -128,9 +103,6 @@
       document.getElementById("firstname").value = data.firstname || "";
       document.getElementById("lastname").value = data.lastname || "";
       document.getElementById("birthday").value = data.birthday || "";
-      document.getElementById("cfirstname").value = data.cfirstname || "";
-      document.getElementById("clastname").value = data.clastname || "";
-      document.getElementById("healthcategory").value = data.healthcategory || "";
     }
   }
 
@@ -164,9 +136,6 @@
     const firstname = document.getElementById("firstname").value;
     const lastname = document.getElementById("lastname").value;
     const birthday = document.getElementById("birthday").value;
-    const cfirstname = document.getElementById("cfirstname").value;
-    const clastname = document.getElementById("clastname").value;
-    const healthcategory = document.getElementById("healthcategory").value;
 
     if (!currentUserId) {
       alert("User not authenticated.");
@@ -175,7 +144,7 @@
 
     const { error } = await supabase
       .from("profiles")
-      .upsert({ id: currentUserId, firstname, lastname, birthday, cfirstname, clastname, healthcategory }); 
+      .upsert({ id: currentUserId, firstname, lastname, birthday }); 
 
     const statusMsg = document.getElementById("statusMsg");
 
