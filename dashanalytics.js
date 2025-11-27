@@ -9,7 +9,7 @@ const buzzCache = {};   // { [level]: dataArray }
 const shapeCache = {};  // { [level]: dataArray }
 
 /* -----------------------------
-        SHOW / HIDE SPECIFIC TABS
+       SHOW / HIDE SPECIFIC TABS
 ------------------------------*/
 function showBuzzTapUI() {
     document.getElementById("tabDistance").style.display = "inline-block";
@@ -28,7 +28,7 @@ function showShapeSenseUI() {
 }
 
 /* -----------------------------
-           INITIALIZER
+          INITIALIZER
 ------------------------------*/
 export async function loadAnalytics() {
 
@@ -43,10 +43,10 @@ export async function loadAnalytics() {
 
     // Tab click events
     document.querySelectorAll(".tab-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-            activateTab(btn);
-            switchTab(btn.dataset.chart);
-        });
+       btn.addEventListener("click", () => {
+           activateTab(btn);
+           switchTab(btn.dataset.chart);
+       });
     });
 
     // Run initial analytics load with default values
@@ -54,7 +54,7 @@ export async function loadAnalytics() {
 }
 
 /* -----------------------------
-          SET ACTIVE TAB STYLE
+         SET ACTIVE TAB STYLE
 ------------------------------*/
 function activateTab(activeBtn) {
     document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
@@ -62,7 +62,7 @@ function activateTab(activeBtn) {
 }
 
 /* -----------------------------
-          MAIN HANDLER
+         MAIN HANDLER
 ------------------------------*/
 async function updateGameAnalytics() {
     const gameSelect = document.getElementById("gameSelect");
@@ -70,8 +70,8 @@ async function updateGameAnalytics() {
 
     // Reset default level when switching games
     if (gameSelect.dataset.lastGame !== gameSelect.value) {
-        levelSelect.value = "BEGINNER";  // default level for any game
-        gameSelect.dataset.lastGame = gameSelect.value; // store last selected game
+       levelSelect.value = "BEGINNER";  // default level for any game
+       gameSelect.dataset.lastGame = gameSelect.value; // store last selected game
     }
 
     const game = gameSelect.value;
@@ -79,65 +79,65 @@ async function updateGameAnalytics() {
 
     // Always destroy chart/gauge so new dataset/labels apply for different level
     if (currentMainChart) {
-        currentMainChart.destroy();
-        currentMainChart = null;
+       currentMainChart.destroy();
+       currentMainChart = null;
     }
     if (currentGauge) {
-        currentGauge.destroy?.();
-        currentGauge = null;
+       currentGauge.destroy?.();
+       currentGauge = null;
     }
 
     document.getElementById("gameTitle").textContent =
-        game === "buzz" ? "Buzz Tap!" : "Shape Sense";
+       game === "buzz" ? "Buzz Tap!" : "Shape Sense";
 
     // Clear no-data message and cards by default
     clearStatsCards();
 
     if (game === "buzz") {
-        showBuzzTapUI();
-        await loadBuzzTap(level);
+       showBuzzTapUI();
+       await loadBuzzTap(level);
     } else {
-        showShapeSenseUI();
-        await loadShapeSense(level);
+       showShapeSenseUI();
+       await loadShapeSense(level);
     }
 }
 
 
 /* ==========================================================
-                         BUZZ TAP ANALYTICS
+                      BUZZ TAP ANALYTICS
 ==========================================================*/
 async function loadBuzzTap(level) {
     const userEmail = (await supabase.auth.getUser()).data.user?.email;
     if (!userEmail) {
-           showNoData();
-           return;
+          showNoData();
+          return;
     }
 
     // Use cache per level
     if (!buzzCache[level]) {
-           const { data } = await supabase
-                  .from("buzztap_results")
-                  .select("norm_totaldistance, time_taken, av_devpath, created_at, score, consistency, level")
-                  .eq("player_email", userEmail)
-                  .eq("level", level) // assumes a "level" column exists
-                  .order("created_at", { ascending: true });
+          const { data } = await supabase
+                .from("buzztap_results")
+                .select("norm_totaldistance, time_taken, av_devpath, created_at, score, consistency, level")
+                .eq("player_email", userEmail)
+                .eq("level", level) // assumes a "level" column exists
+                .order("created_at", { ascending: true });
 
-           buzzCache[level] = data ?? [];
+          buzzCache[level] = data ?? [];
     }
 
     const data = buzzCache[level];
 
     if (!data || data.length === 0) {
-           // Leave UI empty as requested
-           showNoData();
-           return;
+          // Leave UI empty as requested
+          showNoData();
+          return;
     }
 
     const last = data[data.length - 1];
 
     document.getElementById("lastScore").textContent = last.score ?? "";
     document.getElementById("lastDate").textContent =
-           last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
+          last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
     document.getElementById("totalGames").textContent = data.length;
 
     const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
@@ -157,8 +157,8 @@ async function drawBuzzChart(type, level) {
     if (!data || data.length === 0) return;
 
     const labels = data.map((r, i) => {
-           const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
-           return `G${i + 1} (${date})`;
+          const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
+          return `G${i + 1} (${date})`;
     });
 
     const times = data.map(r => r.time_taken ?? null);
@@ -172,59 +172,59 @@ async function drawBuzzChart(type, level) {
     if (tabBtn) activateTab(tabBtn);
 
     if (!currentMainChart) {
-           // initGameChart signature: (labels, times, distances, stability)
-           currentMainChart = initGameChart(labels, times, distances, stability);
+          // initGameChart signature: (labels, times, distances, stability)
+          currentMainChart = initGameChart(labels, times, distances, stability);
     } else {
-           if (type === "distance") {
-                  currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
-                  currentMainChart.data.datasets[0].data = distances;
-                  currentMainChart.data.datasets[0].borderColor = "blue";
-           } else if (type === "stability") {
-                  currentMainChart.data.datasets[0].label = "Movement Stability per Game (%)";
-                  currentMainChart.data.datasets[0].data = stability;
-                  currentMainChart.data.datasets[0].borderColor = "orange";
-           } else {
-                  currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
-                  currentMainChart.data.datasets[0].data = times;
-                  currentMainChart.data.datasets[0].borderColor = "green";
-           }
-           currentMainChart.update();
+          if (type === "distance") {
+                currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                currentMainChart.data.datasets[0].data = distances;
+                currentMainChart.data.datasets[0].borderColor = "blue";
+          } else if (type === "stability") {
+                currentMainChart.data.datasets[0].label = "Movement Stability per Game (%)";
+                currentMainChart.data.datasets[0].data = stability;
+                currentMainChart.data.datasets[0].borderColor = "orange";
+          } else {
+                currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                currentMainChart.data.datasets[0].data = times;
+                currentMainChart.data.datasets[0].borderColor = "green";
+          }
+          currentMainChart.update();
     }
 }
 
 /* ==========================================================
-                         SHAPE SENSE ANALYTICS
+                      SHAPE SENSE ANALYTICS
 ==========================================================*/
 async function loadShapeSense(level) {
     const userEmail = (await supabase.auth.getUser()).data.user?.email;
     if (!userEmail) {
-           showNoData();
-           return;
+          showNoData();
+          return;
     }
 
     if (!shapeCache[level]) {
-           const { data } = await supabase
-                  .from("shapesense_results")
-                  .select("score, time_taken, attempts, created_at, level")
-                  .eq("player_email", userEmail)
-                  .eq("level", level) // assumes a "level" column exists
-                  .order("created_at", { ascending: true });
+          const { data } = await supabase
+                .from("shapesense_results")
+                .select("score, time_taken, attempts, created_at, level")
+                .eq("player_email", userEmail)
+                .eq("level", level) // assumes a "level" column exists
+                .order("created_at", { ascending: true });
 
-           shapeCache[level] = data ?? [];
+          shapeCache[level] = data ?? [];
     }
 
     const data = shapeCache[level];
 
     if (!data || data.length === 0) {
-           showNoData();
-           return;
+          showNoData();
+          return;
     }
 
     const last = data[data.length - 1];
 
     document.getElementById("lastScore").textContent = last.score ?? "";
     document.getElementById("lastDate").textContent =
-           last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
+          last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
     document.getElementById("totalGames").textContent = data.length;
 
     const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
@@ -243,8 +243,8 @@ async function drawShapeChart(type, level) {
     if (!data || data.length === 0) return;
 
     const labels = data.map((r, i) => {
-           const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
-           return `G${i + 1} (${date})`;
+          const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
+          return `G${i + 1} (${date})`;
     });
 
     const times = data.map(r => r.time_taken ?? null);
@@ -257,50 +257,50 @@ async function drawShapeChart(type, level) {
     if (tabBtn) activateTab(tabBtn);
 
     if (!currentMainChart) {
-           // initGameChart for shape: we pass labels and primary data (times)
-           currentMainChart = initGameChart(labels, times);
+          // initGameChart for shape: we pass labels and primary data (times)
+          currentMainChart = initGameChart(labels, times);
 
-           // make sure initial dataset reflects the requested type
-           if (type === "attempts") {
-                  currentMainChart.data.datasets[0].label = "Attempts per Game";
-                  currentMainChart.data.datasets[0].data = attempts;
-                  currentMainChart.data.datasets[0].borderColor = "purple";
-           } else {
-                  currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
-                  currentMainChart.data.datasets[0].data = times;
-                  currentMainChart.data.datasets[0].borderColor = "green";
-           }
-           currentMainChart.update();
+          // make sure initial dataset reflects the requested type
+          if (type === "attempts") {
+                currentMainChart.data.datasets[0].label = "Attempts per Game";
+                currentMainChart.data.datasets[0].data = attempts;
+                currentMainChart.data.datasets[0].borderColor = "purple";
+          } else {
+                currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                currentMainChart.data.datasets[0].data = times;
+                currentMainChart.data.datasets[0].borderColor = "green";
+          }
+          currentMainChart.update();
     } else {
-           if (type === "attempts") {
-                  currentMainChart.data.datasets[0].label = "Attempts";
-                  currentMainChart.data.datasets[0].data = attempts;
-                  currentMainChart.data.datasets[0].borderColor = "purple";
-           } else {
-                  currentMainChart.data.datasets[0].label = "Time Taken (s)";
-                  currentMainChart.data.datasets[0].data = times;
-                  currentMainChart.data.datasets[0].borderColor = "green";
-           }
-           currentMainChart.update();
+          if (type === "attempts") {
+                currentMainChart.data.datasets[0].label = "Attempts";
+                currentMainChart.data.datasets[0].data = attempts;
+                currentMainChart.data.datasets[0].borderColor = "purple";
+          } else {
+                currentMainChart.data.datasets[0].label = "Time Taken (s)";
+                currentMainChart.data.datasets[0].data = times;
+                currentMainChart.data.datasets[0].borderColor = "green";
+          }
+          currentMainChart.update();
     }
 }
 
 /* ==========================================================
-           TAB SWITCHING HANDLER
+          TAB SWITCHING HANDLER
 ==========================================================*/
 function switchTab(type) {
     const game = document.getElementById("gameSelect").value;
     const level = getSelectedLevel();
 
     if (game === "buzz") {
-           drawBuzzChart(type, level);
+          drawBuzzChart(type, level);
     } else {
-           drawShapeChart(type, level);
+          drawShapeChart(type, level);
     }
 }
 
 /* ==========================================================
-                 UTILITIES
+               UTILITIES
 ==========================================================*/
 
 function getSelectedLevel() {
@@ -324,40 +324,47 @@ function clearStatsCards() {
 function showNoData() {
        // Leave UI empty (no text in cards, no chart)
        clearStatsCards();
+       
+       // Show no data message
+       const nd = document.getElementById("noDataMessage");
+       if (nd) {
+          nd.textContent = "No data available yet. Please play first!";
+          nd.style.display = "block";
+       }
+       
        if (currentMainChart) {
-                 currentMainChart.destroy();
-                 currentMainChart = null;
+               currentMainChart.destroy();
+               currentMainChart = null;
        }
        // Show empty gauge (0%) for Buzz Tap when no data
        const game = document.getElementById("gameSelect").value;
        if (game === "buzz") {
-                 const gaugeSection = document.getElementById("gaugeSection");
-                 if (gaugeSection) gaugeSection.style.display = "block";
-                 if (currentGauge) {
-                              currentGauge.destroy?.();
-                 }
-                 currentGauge = initConsistencyGauge(0);
+               const gaugeSection = document.getElementById("gaugeSection");
+               if (gaugeSection) gaugeSection.style.display = "block";
+               if (currentGauge) {
+                           currentGauge.destroy?.();
+               }
+               currentGauge = initConsistencyGauge(0);
        } else {
-                 if (currentGauge) {
-                              currentGauge.destroy?.();
-                              currentGauge = null;
-                 }
+               if (currentGauge) {
+                           currentGauge.destroy?.();
+                           currentGauge = null;
+               }
        }
 }
 
 function waitForCanvas(selector) {
        return new Promise(resolve => {
-                 let attempts = 0;
-                 function check() {
-                              const el = document.querySelector(selector);
-                              if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
-                                           return resolve();
-                              }
-                              attempts++;
-                              if (attempts < 20) requestAnimationFrame(check);
-                              else resolve();
-                 }
-                 check();
+               let attempts = 0;
+               function check() {
+                           const el = document.querySelector(selector);
+                           if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+                                      return resolve();
+                           }
+                           attempts++;
+                           if (attempts < 20) requestAnimationFrame(check);
+                           else resolve();
+               }
+               check();
        });
 }
-

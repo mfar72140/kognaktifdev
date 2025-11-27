@@ -1,888 +1,365 @@
+// dashanalytics.js backup file
 
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
+import { supabase } from './supabaseClient.js';
+import { initGameChart, initConsistencyGauge } from './gamechart.js';
 
-let videoElement, hands, camera;
-let ctx, canvas;
-let beeImg, LhandImg, rhandImg, bgImg;
-let ball = { x: 0, y: 0, r: 30, vx: 0, vy: 0 };
-let score = 0;
-let gameRunning = false;
-let countdownRunning = false;
-let touchSound, endGameSound, countdownSound;
-let HoneySplashes = [];
-let bgMusic;
-let isMuted = false;
-let reactionTimes = [];
-let ballSpawnTime = null;
-let cameraReady = false;
-let previousArrowX = null;
-let previousHandType = "Left"; // default
+let currentMainChart = null;
+let currentGauge = null;
 
-// Path Deviation using Distance
-let startPos = null; // starting hand position for path deviation
-let deviationRatios = []; // store ratio per frame for current path
-let pathDeviations = []; // store avg deviation % per bee
-let handVelocities = []; // store hand movement velocities for stability
+// Cached results per level for tab switching
+const buzzCache = {};   // { [level]: dataArray }
+const shapeCache = {};  // { [level]: dataArray }
 
+/* -----------------------------
+        SHOW / HIDE SPECIFIC TABS
+------------------------------*/
+function showBuzzTapUI() {
+    document.getElementById("tabDistance").style.display = "inline-block";
+    document.getElementById("tabStability").style.display = "inline-block";
+    document.getElementById("gaugeSection").style.display = "block";
 
-// Distance Tracking
-let totalDistance = 0;
-let lastX = null, lastY = null;
+    document.getElementById("tabAttempts").style.display = "none";
+}
 
-// Hand bounce
-let handScale = 1;
-let handBounceActive = false;
+function showShapeSenseUI() {
+    document.getElementById("tabDistance").style.display = "none";
+    document.getElementById("tabStability").style.display = "none";
+    document.getElementById("gaugeSection").style.display = "none";
 
-// Timer variables
-let startTime;
-let timerInterval;
+    document.getElementById("tabAttempts").style.display = "inline-block";
+}
 
-// Countdown
-let countdownValue = 3;
-let countdownInterval;
+/* -----------------------------
+           INITIALIZER
+------------------------------*/
+export async function loadAnalytics() {
 
-// Hand position
-let arrowX = 0;
-let arrowY = 0;
+    // Set default values BEFORE attaching event listeners
+    document.getElementById("gameSelect").value = "buzz";
+    document.getElementById("levelSelect").value = "BEGINNER";
 
-// Store latest results
-let latestResults = null;
+    // Listen to both game and level changes
+    document.getElementById("gameSelect").addEventListener("change", updateGameAnalytics);
+    const levelEl = document.getElementById("levelSelect");
+    if (levelEl) levelEl.addEventListener("change", updateGameAnalytics);
 
-// Bee animation
-let flap = 0;
-let flapDirection = 1;
-
-// Track respawn timeout
-let respawnTimeout = null;
-
-
-// ============================================
-// WINDOW ONLOAD - INIT
-// ============================================
-
-window.onload = () => {
-    canvas = document.getElementById("output_canvas");
-    ctx = canvas.getContext("2d");
-
-    // Load images
-    beeImg = new Image();
-    beeImg.src = "images/bee2.png";
-
-    LhandImg = new Image();
-    LhandImg.src = "images/Lhand.png";
-
-    rhandImg = new Image();
-    rhandImg.src = "images/rhand.png";
-
-    bgImg = new Image();
-    bgImg.src = "images/backgr1.jpg";
-
-    // Load sound
-    touchSound = new Audio("sounds/touch.wav");
-    endGameSound = new Audio("sounds/endapplause.wav");
-    countdownSound = new Audio("sounds/countdown.wav");
-
-    // Background Music
-    bgMusic = new Audio("sounds/01Backmusic20s.mp3");
-    bgMusic.loop = true;  // keep looping
-    bgMusic.volume = 0.6; // softer than effects
-
-    const muteBtn = document.getElementById("muteBtn");
-    if (muteBtn)  {
-        muteBtn.addEventListener("click", () => {
-            isMuted = !isMuted;
-
-            if (isMuted) {
-                bgMusic.muted = true;
-                muteBtn.textContent = "🔇";
-            } else {
-                bgMusic.muted = false;
-                muteBtn.textContent = "🔊";
-            }
+    // Tab click events
+    document.querySelectorAll(".tab-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            activateTab(btn);
+            switchTab(btn.dataset.chart);
         });
+    });
+
+    // Run initial analytics load with default values
+    updateGameAnalytics();
+}
+
+/* -----------------------------
+          SET ACTIVE TAB STYLE
+------------------------------*/
+function activateTab(activeBtn) {
+    document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+    activeBtn.classList.add("active");
+}
+
+/* -----------------------------
+          MAIN HANDLER
+------------------------------*/
+async function updateGameAnalytics() {
+    const gameSelect = document.getElementById("gameSelect");
+    const levelSelect = document.getElementById("levelSelect");
+
+    // Reset default level when switching games
+    if (gameSelect.dataset.lastGame !== gameSelect.value) {
+        levelSelect.value = "BEGINNER";  // default level for any game
+        gameSelect.dataset.lastGame = gameSelect.value; // store last selected game
     }
 
-    // Buttons
-    document.getElementById("startBtnOverlay").addEventListener("click", () => {
-        document.getElementById("startBtnOverlay").style.display = "none";
-        document.getElementById("gameTitle").style.display = "none";
-        startCountdown();
-    });
+    const game = gameSelect.value;
+    const level = getSelectedLevel();
 
-    // MediaPipe Hands setup
-    hands = new Hands({
-        locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-    });
-    hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 0,
-        minDetectionConfidence: 0.6,
-        minTrackingConfidence: 0.6,
-    });
-    hands.onResults((r) => {
-        latestResults = r;
-
-        if (!cameraReady) {
-            cameraReady = true;
-            console.log("✅ Camera is ready!");
-        }
-    });
-
-    videoElement = document.createElement("video");
-    videoElement.style.display = "none";
-
-    requestAnimationFrame(gameLoop);
-};
-
-
-// ============================================
-// Countdown
-// ============================================
-
-function startCountdown() {
-    // Reset state
-    score = 0;
-    countdownValue = 3;
-    countdownRunning = false; // don’t start until camera is ready
-    gameRunning = false;
-    HoneySplashes = [];
-    if (respawnTimeout) clearTimeout(respawnTimeout);
-    respawnTimeout = null;
-
-    document.getElementById("score").innerText = "Score: 0";
-    document.getElementById("startBtnOverlay").disabled = true;
-    document.getElementById("gameTitle").style.display = "none";
-
-    // Show Loading Overlay
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.style.display = "flex";
-    loadingOverlay.innerText = "📷 Loading... Starting Camera";
-
-    // Camera ON
-    camera = new Camera(videoElement, {
-        onFrame: async () => {
-            await hands.send({ image: videoElement });
-        },
-        width: 640,
-        height: 480,
-    });
-    camera.start();
-
-
-    // Wait until camera is ready
-    const waitForCamera = setInterval(() => {
-        if (cameraReady) {
-            clearInterval(waitForCamera);
-            console.log("🎥 Camera feed detected, starting countdown...");
-
-            // Hide Loading Overlay once camera ready
-            loadingOverlay.style.display = "none";
-            console.log("🎥 Camera feed detected, starting countdown...");
-
-            if (countdownSound) {
-                countdownSound.currentTime = 0;
-                countdownSound.play();
-            }
-
-            countdownRunning = true;
-            countdownInterval = setInterval(() => {
-                drawCountdown(countdownValue);
-                countdownValue--;
-
-                if (countdownValue < 0) {
-                    clearInterval(countdownInterval);
-                    countdownRunning = false;
-                    startGame();
-                }
-            }, 1000);
-        }
-    }, 200);
-}
-
-
-function drawCountdown(value) {
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "white";
-    ctx.font = "700 180px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(value > 0 ? value : "GO!", canvas.width / 2, canvas.height / 2);
-}
-
-
-// ============================================
-// Start Game
-// ============================================
-
-function startGame() {
-    gameRunning = true;
-
-    // ✅ Play background music here
-    if (bgMusic) {
-        bgMusic.currentTime = 0; 
-        bgMusic.play();
+    // Always destroy chart/gauge so new dataset/labels apply for different level
+    if (currentMainChart) {
+        currentMainChart.destroy();
+        currentMainChart = null;
+    }
+    if (currentGauge) {
+        currentGauge.destroy?.();
+        currentGauge = null;
     }
 
-    clearInterval(timerInterval);
-    startTime = Date.now();
-    document.getElementById("timer").innerText = "Time: 0s";
-    timerInterval = setInterval(() => {
-        let elapsed = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById("timer").innerText = "Time: " + elapsed + "s";
-    }, 1000);
+    document.getElementById("gameTitle").textContent =
+        game === "buzz" ? "Buzz Tap!" : "Shape Sense";
 
-    spawnBall();
-}
+    // Clear no-data message and cards by default
+    clearStatsCards();
 
-const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
-
-
-// ============================================
-// Spawn Bee (spawn just outside screen edge and steer inward)
-// ============================================
-function spawnBall() {
-    // remember last zone to avoid immediate respawn on same side
-    if (typeof spawnBall.lastZone === "undefined") spawnBall.lastZone = -1;
-
-    // pick a zone (0 = left, 1 = right, 2 = top, 3 = bottom)
-    let zone;
-    let attempts = 0;
-    do {
-        zone = Math.floor(Math.random() * 4);
-        attempts++;
-        // allow same zone rarely (in case of repeated attempts)
-    } while (zone === spawnBall.lastZone && attempts < 6);
-
-    spawnBall.lastZone = zone;
-
-    const off = 80; // how far off-screen to place the bee
-    const margin = 40; // keep spawn within vertical/horizontal margins
-    // place just outside the chosen boundary
-    if (zone === 0) {
-        // LEFT: x just left of canvas
-        ball.x = -off - Math.random() * 40;
-        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
-    } else if (zone === 1) {
-        // RIGHT: x just right of canvas
-        ball.x = canvas.width + off + Math.random() * 40;
-        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
-    } else if (zone === 2) {
-        // TOP: y just above canvas
-        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
-        ball.y = -off - Math.random() * 40;
+    if (game === "buzz") {
+        showBuzzTapUI();
+        await loadBuzzTap(level);
     } else {
-        // BOTTOM: y just below canvas
-        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
-        ball.y = canvas.height + off + Math.random() * 40;
-    }
-
-    // aim roughly toward screen center with some randomness
-    const targetX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.3;
-    const targetY = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.3;
-    const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
-    const speed = Math.random() * 1.6 + 0.8; // moderate inward speed
-    ball.vx = Math.cos(angle) * speed;
-    ball.vy = Math.sin(angle) * speed;
-
-    // Record spawn time for reaction calculation
-    ballSpawnTime = Date.now();
-
-    // Reset deviation tracking for this new bee
-    startPos = null;       // will initialize on first hand movement toward new bee
-    totalDeviation = 0;
-    sampleCount = 0;
-
-    // prevent huge distance jumps by resetting last hand pos
-    lastX = null;
-    lastY = null;
-}
-
- // ============================================
- // Bee Movement: wandering steering
- // ============================================
-
-function updateBallMovement() {
-    if (Math.random() < 0.04) {
-        let angle = Math.atan2(ball.vy, ball.vx);
-        angle += (Math.random() - 0.5) * Math.PI * 0.6; // random turn
-        let speed = Math.hypot(ball.vx, ball.vy);
-        speed += (Math.random() - 0.5) * 0.6;
-        speed = Math.max(0.6, Math.min(3.2, speed));
-        const targetVx = Math.cos(angle) * speed;
-        const targetVy = Math.sin(angle) * speed;
-        const blend = 0.25; // 0 = no change, 1 = immediate (original behavior)
-        ball.vx += (targetVx - ball.vx) * blend;
-        ball.vy += (targetVy - ball.vy) * blend;
-    }
-    // steer away from edges gently
-    const margin = 50;
-    const steerStrength = 0.45;
-    if (ball.x < margin) ball.vx += steerStrength;
-    if (ball.x > canvas.width - margin) ball.vx -= steerStrength;
-    if (ball.y < margin) ball.vy += steerStrength;
-    if (ball.y > canvas.height - margin) ball.vy -= steerStrength;
-
-    // limit speed
-    const maxSpeed = 3;
-    let sp = Math.hypot(ball.vx, ball.vy);
-    if (sp > maxSpeed) {
-        ball.vx = (ball.vx / sp) * maxSpeed;
-        ball.vy = (ball.vy / sp) * maxSpeed;
-    }
-
-    // update position
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-
-    // keep inside bounds (bounce minimally)
-    if (ball.x < ball.r) {
-        ball.x = ball.r;
-        ball.vx = Math.abs(ball.vx) * 0.8;
-    }
-    if (ball.x > canvas.width - ball.r) {
-        ball.x = canvas.width - ball.r;
-        ball.vx = -Math.abs(ball.vx) * 0.8;
-    }
-    if (ball.y < ball.r) {
-        ball.y = ball.r;
-        ball.vy = Math.abs(ball.vy) * 0.8;
-    }
-    if (ball.y > canvas.height - ball.r) {
-        ball.y = canvas.height - ball.r;
-        ball.vy = -Math.abs(ball.vy) * 0.8;
-    }
- }
-
-
-// ============================================
-// Main Game Loop
-// ============================================
-
-function gameLoop() {
-    if (countdownRunning) {
-        drawCountdown(countdownValue);
-    } 
-    else if (gameRunning && latestResults) {
-        drawScene(latestResults);
-    }
-    requestAnimationFrame(gameLoop);
-}
-
-
-// ============================================
-// Draw Scene
-// ============================================
-
-function drawScene(results) {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-    // Update bee movement before drawing
-    updateBallMovement();
-
-    // Animate bee flap
-    flap += flapDirection * 0.8;
-    if (flap > 10 || flap < -10) flapDirection *= -1;
-
-    ctx.drawImage(
-        beeImg,
-        ball.x - ball.r,
-        ball.y - ball.r + flap,
-        ball.r * 2,
-        ball.r * 2
-    );
-
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-            const landmarks = results.multiHandLandmarks[i];
-            const handType = results.multiHandedness?.[i]?.label || "Unknown"; // NEW
-            const palmIndices = [0, 1, 5, 9, 13, 17];
-            let sumX = 0, sumY = 0;
-
-            palmIndices.forEach((j) => {
-                sumX += canvas.width - landmarks[j].x * canvas.width;
-                sumY += landmarks[j].y * canvas.height;
-            });
-
-            arrowX = sumX / palmIndices.length;
-            arrowY = sumY / palmIndices.length;
-
-            // Smooth hand position slightly
-            if (previousArrowX !== null) {
-                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
-            }
-
-            // Prevent sudden flip when hand jumps
-            let currentHandType = handType;
-            if (previousArrowX !== null) {
-                const dx = Math.abs(arrowX - previousArrowX);
-                if (dx > 250) {
-                    currentHandType = previousHandType; // keep previous hand type
-                }
-            }
-
-            // Draw hand
-            if (currentHandType === "Right" && rhandImg) {
-                drawHand(arrowX, arrowY, rhandImg);
-            } else {
-                drawHand(arrowX, arrowY, LhandImg);
-            }
-
-            // Update previous for next frame
-            previousArrowX = arrowX;
-            previousHandType = currentHandType;
-
-
-        // ✅ Initialize startPos when movement starts
-        if (!startPos) {
-            const dx = arrowX - ball.x;
-            const dy = arrowY - ball.y;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-
-            if (dist > HAND_MOVE_THRESHOLD) {
-                startPos = { x: arrowX, y: arrowY };
-                lastX = arrowX;
-                lastY = arrowY;
-                deviationRatios = []; // reset for new path
-            }
-        }
-
-        // ✅ Track total hand movement distance (ignore small jitter)
-        if (lastX !== null && lastY !== null) {
-            const dx = arrowX - lastX;
-            const dy = arrowY - lastY;
-            const moveDist = Math.sqrt(dx * dx + dy * dy);  
-            handVelocities.push(moveDist);
-
-            if (moveDist > HAND_MOVE_THRESHOLD) {
-                totalDistance += moveDist;
-            }
-        }
-
-        lastX = arrowX;
-        lastY = arrowY;
-
-        // ✅ Update Path Deviation per frame
-        if (startPos) {
-            const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-            if (pathLength > 0) {
-                const perpDist = getPerpendicularDistance(
-                    arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-                );
-                const ratio = perpDist / pathLength; // 0 = perfect straight
-                deviationRatios.push(ratio);
-            }
-        }
-
-        drawHand(arrowX, arrowY);
-        handleGameLogic(arrowX, arrowY);
-
-        // Honey splashes
-        for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-            HoneySplashes[i].update();
-            HoneySplashes[i].draw(ctx);
-            if (HoneySplashes[i].isFinished()) {
-                HoneySplashes.splice(i, 1);
-            }
-        }
-    }}}
-
-
-// ============================================
-// Handle Game Logic
-// ============================================
-
-function handleGameLogic(arrowX, arrowY) {
-
-        // Collision check
-        const dx = arrowX - ball.x;
-        const dy = arrowY - ball.y;
-        if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
-            let reaction = Date.now() - ballSpawnTime; 
-            reactionTimes.push(reaction);  // ⏱ save reaction time  
-        
-            // ✅ Compute avg deviation for this bee
-            if (deviationRatios.length > 0) {
-                const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
-                pathDeviations.push(avgRatio * 100); // store as %
-            }
-
-            score++;
-            document.getElementById("score").innerText = "Score: " + score;
-
-            handBounceActive = true; // trigger hand bounce
-
-
-            if (touchSound) {
-                touchSound.currentTime = 0;
-                touchSound.play();
-            }
-
-            HoneySplashes.push(new HoneySplash(ball.x, ball.y));
-
-            // Reset for next bee
-            startPos = null;
-            deviationRatios = [];
-            lastX = null;
-            lastY = null;
-
-            // Hide current bee off-screen (so it doesn't get hit during respawn delay)
-            ball.x = -200;
-            ball.y = -200;
-            ball.vx = 0;
-            ball.vy = 0;
-
-
-            if (score >= 20) {
-                endGame();
-            } else {
-                if (respawnTimeout) clearTimeout(respawnTimeout);
-                respawnTimeout = setTimeout(spawnBall, 700);
-            }
-        }
-    }
-
-
-// ============================================
-// Draw Hand
-// ============================================
-
-function drawHand(x, y, img) {
-    // 🧱 Safety: skip drawing if image not ready
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-
-    const baseSize = 90;
-    const size = baseSize * handScale; // scaled size
-
-    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
-
-    // ✨ Bounce animation
-    if (handBounceActive) {
-        handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
-        if (handScale >= 1.55) {
-            handBounceActive = false;
-        }
-    } else {
-        handScale += (1 - handScale) * 0.2; // return to normal
+        showShapeSenseUI();
+        await loadShapeSense(level);
     }
 }
 
 
-// ============================================
-// End Game
-// ============================================
-
-function endGame() {
-    gameRunning = false;
-    if (camera) camera.stop();
-    document.getElementById("startBtnOverlay").disabled = false;
-
-    clearInterval(timerInterval);
-    if (respawnTimeout) clearTimeout(respawnTimeout);
-    respawnTimeout = null;
-
-    let elapsed = Math.floor((Date.now() - startTime) / 1000);
- // document.getElementById("timer").innerText = "Final Time: " + elapsed + "s";
-
-    // 🎯 Calculate average reaction time
-    let avgReaction = 0;
-    if (reactionTimes.length > 0) {
-        avgReaction = (
-            reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length / 1000
-        ).toFixed(2); // keep 2 decimal places
+/* ==========================================================
+                         BUZZ TAP ANALYTICS
+==========================================================*/
+async function loadBuzzTap(level) {
+    const userEmail = (await supabase.auth.getUser()).data.user?.email;
+    if (!userEmail) {
+           showNoData();
+           return;
     }
 
- // ✅ Normalize distance = total movement / score
-    let normDistance = score > 0 ? totalDistance / score : totalDistance;
+    // Use cache per level
+    if (!buzzCache[level]) {
+           const { data } = await supabase
+                  .from("buzztap_results")
+                  .select("norm_totaldistance, time_taken, av_devpath, created_at, score, consistency, level")
+                  .eq("player_email", userEmail)
+                  .eq("level", level) // assumes a "level" column exists
+                  .order("created_at", { ascending: true });
 
-    console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
-
-    // =============== Movement Stability from velocity smoothness ===============
-    let movementStability = 0;
-
-    if (handVelocities.length > 5) {
-        // Compute frame-to-frame velocity change
-        let diffs = [];
-        for (let i = 1; i < handVelocities.length; i++) {
-            diffs.push(Math.abs(handVelocities[i] - handVelocities[i-1]));
-        }
-
-        // Average jitter
-        const avgJitter = diffs.reduce((a,b)=>a+b,0) / diffs.length;
-
-        // Convert to % stability (lower jitter → higher stability)
-        movementStability = Math.max(0, 100 - avgJitter).toFixed(2);
-    }
-    console.log("Movement Stability (%):", movementStability);
-
-    // ✅ Stop background music here
-    if (bgMusic) {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
-    }
-    
-    if (endGameSound) {
-        endGameSound.currentTime = 0;
-        endGameSound.play();
+           buzzCache[level] = data ?? [];
     }
 
-    // 🎇 Start fireworks
-    startFireworks();
+    const data = buzzCache[level];
 
-    // Animate fireworks first, then show text
-    let fireworksDuration = 2500; // 2.5 seconds
-    let startTimeFireworks = Date.now();
-
-    function fireworksAnimation() {
-        if (!fireworksRunning) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        drawFireworks(ctx);
-
-        if (Date.now() - startTimeFireworks < fireworksDuration) {
-            requestAnimationFrame(fireworksAnimation);
-        } else {
-            stopFireworks();
-            showEndText(elapsed, avgReaction, normDistance, movementStability);
-        }
+    if (!data || data.length === 0) {
+           // Leave UI empty as requested
+           showNoData();
+           return;
     }
-    fireworksAnimation();
+
+    const last = data[data.length - 1];
+
+    document.getElementById("lastScore").textContent = last.score ?? "";
+    document.getElementById("lastDate").textContent =
+           last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
+    document.getElementById("totalGames").textContent = data.length;
+
+    const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
+    document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
+
+    // Gauge
+    const consistencyPercent = (last.consistency ?? 0) * 100;
+    currentGauge = initConsistencyGauge(consistencyPercent);
+
+    // Draw default main chart → time (also ensure the corresponding tab is activated)
+    await drawBuzzChart("time", level);
 }
 
+/* Draw chart depending on selected tab */
+async function drawBuzzChart(type, level) {
+    const data = buzzCache[level];
+    if (!data || data.length === 0) return;
 
-// ============================================
-// Save Game Result to Supabase
-// ============================================
-
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance) {
-    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance);
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-        console.error("No user logged in:", userError);
-        return;
-    }
-
-    console.log("User found:", user);
-
-    // Insert using email only (since player_id is int8 and not compatible with UUID)
-    const { error: insertError } = await supabase
-        .from("buzztap_results")
-        .insert([{
-            player_email: user.email,
-            score: score,
-            time_taken: timeTaken,
-            avg_reaction_time: avgReaction,
-            norm_totaldistance: normDistance,
-            av_devpath: parseFloat(movementStability), // Save path deviation %
-            consistency: consistency,
-            level: "INTERMEDIATE",
-            totaldistance: parseFloat(totalDistance)
-            // leave player_id empty
-        }]);
-
-    if (insertError) {
-        console.error("Insert error:", insertError);
-    } else {
-        console.log("Result saved successfully!");
-    }
-}
-
-
-// ============================================
-// Show End Text
-// ============================================
-
-function showEndText(elapsed, avgReaction, normDistance, movementStability) {
-
-    ctx.fillStyle = "rgba(0,0,0,0.1)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "white";
-    ctx.font = "bold 65px poppins";
-    ctx.textAlign = "center";
-    ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
-    
-    ctx.font = "40px poppins";
-    ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
-    
-    ctx.font = "35px poppins";
-    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
-    ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
-
-
-    // ✅ Reset Path Deviation variables for next game
-    startPos = null;
-    totalDeviation = 0;
-    sampleCount = 0;
-    pathDeviations = [];
-
-    document.getElementById("playAgainBtn").style.display = "block";
-    document.getElementById("nextBtn").style.display = "block";
-
-
-// ============================================
-// Calculate Consistency
-// ============================================
-
-    async function calculateConsistency(newTimeTaken) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return 0;
-
-        // Get last 4 games from INTERMEDIATE level only
-        const { data, error } = await supabase
-            .from("buzztap_results")
-            .select("time_taken")
-            .eq("player_email", user.email)
-            .eq("level", "INTERMEDIATE")
-            .order("created_at", { ascending: false })
-            .limit(4);
-
-        if (error) {
-            console.error("Fetch error:", error);
-            return 0;
-        }
-
-        let times = data.map(r => r.time_taken);
-        times.push(newTimeTaken);
-
-        if (times.length < 5) {
-            console.log("Not enough games for consistency");
-            return 0; // need minimum 5 games
-        }
-
-        // Coefficient of variation: std / mean
-        let mean = times.reduce((a, b) => a + b, 0) / times.length;
-        let variance = times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / times.length;
-        let std = Math.sqrt(variance);
-
-        let consistency = 1 - (std / mean); 
-        return Math.max(0, Math.min(1, consistency)).toFixed(3); // clamp 0–1
-    }
-
-
-    // ✅ Save score + time + reaction + distance + path + consistency
-    calculateConsistency(elapsed).then(consistency => {
-        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, totalDistance);
-    
-    reactionTimes = [];
-    totalDistance = 0;
-    lastX = null;
-    lastY = null;
-    
+    const labels = data.map((r, i) => {
+           const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
+           return `G${i + 1} (${date})`;
     });
 
-    document.getElementById("playAgainBtn").onclick = () => {
-        document.getElementById("playAgainBtn").style.display = "none";
-        document.getElementById("nextBtn").style.display = "none";
-        window.location.href = "gamebuzzplay.html";
-    };
+    const times = data.map(r => r.time_taken ?? null);
+    const distances = data.map(r => r.norm_totaldistance ?? null);
+    const stability = data.map(r => r.av_devpath ?? null);
 
-    document.getElementById("nextBtn").onclick = () => {
-        window.location.href = "gamebuzzcover.html";
-    };
-}
+    await waitForCanvas("#mainChart");
 
-// ============================================
-// HONEY SPLASH EFFECT
-// ============================================
+    // Ensure the UI's active tab matches the chart type being displayed
+    const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
+    if (tabBtn) activateTab(tabBtn);
 
-class HoneySplash {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.particles = [];
-        for (let i = 0; i < 8; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 3 + 2,
-                size: Math.random() * 8 + 6,
-                alpha: 1.0,
-            });
-        }
-    }
-
-    update() {
-        this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.04;
-        });
-        this.particles = this.particles.filter((p) => p.alpha > 0);
-    }
-
-    draw(ctx) {
-        this.particles.forEach((p) => {
-            ctx.fillStyle = `rgba(255, 204, 0, ${p.alpha})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    isFinished() {
-        return this.particles.length === 0;
-    }
-}
-
-
-// ========================
-// HOW TO PLAY POPUP SYSTEM
-// ========================
-
-function showPopup() {
-    guidePopup.style.display = "flex";
-}
-
-function hidePopup() {
-    guidePopup.style.display = "none";
-}
-
-howToPlayBtn.addEventListener("click", showPopup);
-closeGuideBtn.addEventListener("click", hidePopup);
-
-// Auto open popup on page load
-window.addEventListener("load", showPopup);
-
-//gamebuzz_inter.js 
-// =================================================
-// Helper: perpendicular distance from point to line
-// =================================================
-
-function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
-    const A = px - x1;
-    const B = py - y1;
-    const C = x2 - x1;
-    const D = y2 - y1;
-
-    const dot = A * C + B * D;
-    const len_sq = C * C + D * D;
-    const param = len_sq !== 0 ? dot / len_sq : -1;
-
-    let xx, yy;
-
-    if (param < 0) {
-        xx = x1;
-        yy = y1;
-    } else if (param > 1) {
-        xx = x2;
-        yy = y2;
+    if (!currentMainChart) {
+           // initGameChart signature: (labels, times, distances, stability)
+           currentMainChart = initGameChart(labels, times, distances, stability);
     } else {
-        xx = x1 + param * C;
-        yy = y1 + param * D;
+           if (type === "distance") {
+                  currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                  currentMainChart.data.datasets[0].data = distances;
+                  currentMainChart.data.datasets[0].borderColor = "blue";
+           } else if (type === "stability") {
+                  currentMainChart.data.datasets[0].label = "Movement Stability per Game (%)";
+                  currentMainChart.data.datasets[0].data = stability;
+                  currentMainChart.data.datasets[0].borderColor = "orange";
+           } else {
+                  currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                  currentMainChart.data.datasets[0].data = times;
+                  currentMainChart.data.datasets[0].borderColor = "green";
+           }
+           currentMainChart.update();
     }
-
-    const dx = px - xx;
-    const dy = py - yy;
-    return Math.sqrt(dx * dx + dy * dy);
 }
 
-// --- End of gamebuzz_inter.js ---
- 
+/* ==========================================================
+                         SHAPE SENSE ANALYTICS
+==========================================================*/
+async function loadShapeSense(level) {
+    const userEmail = (await supabase.auth.getUser()).data.user?.email;
+    if (!userEmail) {
+           showNoData();
+           return;
+    }
+
+    if (!shapeCache[level]) {
+           const { data } = await supabase
+                  .from("shapesense_results")
+                  .select("score, time_taken, attempts, created_at, level")
+                  .eq("player_email", userEmail)
+                  .eq("level", level) // assumes a "level" column exists
+                  .order("created_at", { ascending: true });
+
+           shapeCache[level] = data ?? [];
+    }
+
+    const data = shapeCache[level];
+
+    if (!data || data.length === 0) {
+           showNoData();
+           return;
+    }
+
+    const last = data[data.length - 1];
+
+    document.getElementById("lastScore").textContent = last.score ?? "";
+    document.getElementById("lastDate").textContent =
+           last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
+    document.getElementById("totalGames").textContent = data.length;
+
+    const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
+    document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
+
+    // Ensure the default tab for shape sense is "time" (reset active tab on level change)
+    const timeTabBtn = document.querySelector('.tab-btn[data-chart="time"]');
+    if (timeTabBtn) activateTab(timeTabBtn);
+
+    // Ensure the default tab for shape sense is "time"
+    await drawShapeChart("time", level);
+}
+
+async function drawShapeChart(type, level) {
+    const data = shapeCache[level];
+    if (!data || data.length === 0) return;
+
+    const labels = data.map((r, i) => {
+           const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
+           return `G${i + 1} (${date})`;
+    });
+
+    const times = data.map(r => r.time_taken ?? null);
+    const attempts = data.map(r => r.attempts ?? null);
+
+    await waitForCanvas("#mainChart");
+
+    // Ensure the UI's active tab matches the chart type being displayed
+    const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
+    if (tabBtn) activateTab(tabBtn);
+
+    if (!currentMainChart) {
+           // initGameChart for shape: we pass labels and primary data (times)
+           currentMainChart = initGameChart(labels, times);
+
+           // make sure initial dataset reflects the requested type
+           if (type === "attempts") {
+                  currentMainChart.data.datasets[0].label = "Attempts per Game";
+                  currentMainChart.data.datasets[0].data = attempts;
+                  currentMainChart.data.datasets[0].borderColor = "purple";
+           } else {
+                  currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                  currentMainChart.data.datasets[0].data = times;
+                  currentMainChart.data.datasets[0].borderColor = "green";
+           }
+           currentMainChart.update();
+    } else {
+           if (type === "attempts") {
+                  currentMainChart.data.datasets[0].label = "Attempts";
+                  currentMainChart.data.datasets[0].data = attempts;
+                  currentMainChart.data.datasets[0].borderColor = "purple";
+           } else {
+                  currentMainChart.data.datasets[0].label = "Time Taken (s)";
+                  currentMainChart.data.datasets[0].data = times;
+                  currentMainChart.data.datasets[0].borderColor = "green";
+           }
+           currentMainChart.update();
+    }
+}
+
+/* ==========================================================
+           TAB SWITCHING HANDLER
+==========================================================*/
+function switchTab(type) {
+    const game = document.getElementById("gameSelect").value;
+    const level = getSelectedLevel();
+
+    if (game === "buzz") {
+           drawBuzzChart(type, level);
+    } else {
+           drawShapeChart(type, level);
+    }
+}
+
+/* ==========================================================
+                 UTILITIES
+==========================================================*/
+
+function getSelectedLevel() {
+       const el = document.getElementById("levelSelect");
+       if (!el) return "BEGINNER";
+       return (el.value || "").toUpperCase();
+}
+
+function clearStatsCards() {
+       document.getElementById("lastScore").textContent = "";
+       document.getElementById("lastDate").textContent = "";
+       document.getElementById("totalGames").textContent = "";
+       document.getElementById("bestTime").textContent = "";
+       // hide no-data message area if present
+       const nd = document.getElementById("noDataMessage");
+       if (nd) nd.style.display = "none";
+       // keep tabs visible as appropriate will be set by showBuzzTapUI/showShapeSenseUI
+       // destroy existing chart/gauge handled by caller
+}
+
+function showNoData() {
+       // Leave UI empty (no text in cards, no chart)
+       clearStatsCards();
+       if (currentMainChart) {
+                 currentMainChart.destroy();
+                 currentMainChart = null;
+       }
+       // Show empty gauge (0%) for Buzz Tap when no data
+       const game = document.getElementById("gameSelect").value;
+       if (game === "buzz") {
+                 const gaugeSection = document.getElementById("gaugeSection");
+                 if (gaugeSection) gaugeSection.style.display = "block";
+                 if (currentGauge) {
+                              currentGauge.destroy?.();
+                 }
+                 currentGauge = initConsistencyGauge(0);
+       } else {
+                 if (currentGauge) {
+                              currentGauge.destroy?.();
+                              currentGauge = null;
+                 }
+       }
+}
+
+function waitForCanvas(selector) {
+       return new Promise(resolve => {
+                 let attempts = 0;
+                 function check() {
+                              const el = document.querySelector(selector);
+                              if (el && el.offsetWidth > 0 && el.offsetHeight > 0) {
+                                           return resolve();
+                              }
+                              attempts++;
+                              if (attempts < 20) requestAnimationFrame(check);
+                              else resolve();
+                 }
+                 check();
+       });
+}
+
