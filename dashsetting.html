@@ -72,15 +72,24 @@
     </div>
 
     <div class="form-group">
+      <label for="cgender">Gender</label>
+      <select id="cgender">
+      <option value="">Select gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      </select>
+    </div>
+
+    <div class="form-group">
       <label for="healthcategory">Health Category</label>
       <select id="healthcategory">
-        <option value="">Select category</option>
-        <option value="Healthy">Normal</option>
-        <option value="Autism">Autism</option>
-        <option value="ADHD">ADHD</option>
-        <option value="Dyslexia">Dyslexia</option>
-        <option value="Down Syndrome">Down Syndrome</option>
-        <option value="Other">Other</option>
+      <option value="">Select category</option>
+      <option value="Healthy">Normal</option>
+      <option value="Autism">Autism</option>
+      <option value="ADHD">ADHD</option>
+      <option value="Dyslexia">Dyslexia</option>
+      <option value="Down Syndrome">Down Syndrome</option>
+      <option value="Other">Other</option>
       </select>
     </div>
 
@@ -117,7 +126,7 @@
     // Load current profile data
     const { data, error } = await supabase
       .from('profiles')
-      .select('firstname, lastname, birthday, cfirstname, clastname, healthcategory')
+      .select('firstname, lastname, birthday, cfirstname, clastname, healthcategory, cgender')
       .eq('id', user.id)
       .maybeSingle(); 
 
@@ -130,6 +139,7 @@
       document.getElementById("birthday").value = data.birthday || "";
       document.getElementById("cfirstname").value = data.cfirstname || "";
       document.getElementById("clastname").value = data.clastname || "";
+      document.getElementById("cgender").value = data.cgender || "";
       document.getElementById("healthcategory").value = data.healthcategory || "";
     }
   }
@@ -166,6 +176,7 @@
     const birthday = document.getElementById("birthday").value;
     const cfirstname = document.getElementById("cfirstname").value;
     const clastname = document.getElementById("clastname").value;
+    const cgender = document.getElementById("cgender").value;
     const healthcategory = document.getElementById("healthcategory").value;
 
     if (!currentUserId) {
@@ -175,7 +186,7 @@
 
     const { error } = await supabase
       .from("profiles")
-      .upsert({ id: currentUserId, firstname, lastname, birthday, cfirstname, clastname, healthcategory }); 
+      .upsert({ id: currentUserId, firstname, lastname, birthday, cfirstname, clastname, healthcategory, cgender }); 
 
     const statusMsg = document.getElementById("statusMsg");
 

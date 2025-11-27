@@ -4,21 +4,20 @@
   <meta charset="UTF-8">
   <title>Dashboard</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/dashsetting.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
 <body>
-
+  
   <!-- Navbar -->
   <nav class="navbar">
     <div class="logo">
         <img src="images/Kog_logowhite.png" alt="KognAktif Logo">
     </div>
     <ul class="nav-links">
-      <li><a href="dashboard.html">Dashboard</a></li>
+      <li><a href="#" class="active">Dashboard</a></li>
       <li><a href="dashgames.html">Games</a></li>
       <li><a href="dashanalytics.html">Analytic</a></li>
-      <li><a href="#" class="active">Setting</a></li>
+      <li><a href="dashsetting.html">Setting</a></li>
     </ul>
     <div class="nav-right">
       <button class="notif-btn">🔔</button>
@@ -31,40 +30,25 @@
     </div>
   </nav>
 
-  <!-- Main Content -->
-  <section class="settings-container">
-    <h2>Account Settings</h2>
-    <h3>Parent / Guardian Information</h3>
-    <form class="settings-form" id="settingsForm">
-      <div class="form-group">
-        <label for="firstname">First Name <span class="required">*</span></label>
-        <input type="text" id="firstname" placeholder="Enter your first name" required>
+  <!-- Main Dashboard Content -->
+  <main class="dashboard">
+    <div class="profile-card">
+      <div class="avatar"></div>
+      <div class="welcome">
+        <h2>Hi <span id="welcomeName">User</span>!</h2>
+        <p>It’s good to have you back</p>
       </div>
+    </div>
+  </main>
 
-      <div class="form-group">
-        <label for="lastname">Last Name <span class="required">*</span></label>
-        <input type="text" id="lastname" placeholder="Enter your last name" required>
-      </div>
-
-      <div class="form-group">
-        <label for="birthday">Birthday</label>
-        <input type="date" id="birthday">
-      </div>
-
-      <button type="submit" class="save-btn">Save Changes</button>
-    </form>
-
-    <p id="statusMsg" style="margin-top:10px;"></p>
+  <!-- Footer -->
+  <section id="footer" class="footer-section">
+    <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
+    <div class="footer-links">
+      <a href="#">Terms of Service</a>
+      <a href="#">Privacy Policy</a>
+    </div>
   </section>
-
-<!-- Footer -->
-<section id="footer" class="footer-section">
-  <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
-  <div class="footer-links">
-    <a href="#">Terms of Service</a>
-    <a href="#">Privacy Policy</a>
-  </div>
-</section>
 
 
 <!-- Supabase Auth Script -->
@@ -75,9 +59,7 @@
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
   );
 
-  let currentUserId = null;
-
-  async function checkAuth() {
+   async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -86,24 +68,8 @@
     }
 
     const user = session.user;
-    currentUserId = user.id;
-    document.getElementById("userName").textContent = user.email; 
-
-    // Load current profile data
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('firstname, lastname, birthday')
-      .eq('id', user.id)
-      .maybeSingle(); 
-
-    if (error) {
-      console.error('Error fetching profile:', error);
-    } else if (data) {
-      console.log('Profile:', data);
-      document.getElementById("firstname").value = data.firstname || "";
-      document.getElementById("lastname").value = data.lastname || "";
-      document.getElementById("birthday").value = data.birthday || "";
-    }
+    document.getElementById("userName").textContent = user.email;
+    document.getElementById("welcomeName").textContent = user.email;
   }
 
   checkAuth();
@@ -123,38 +89,10 @@
     userMenu.classList.toggle("active");
   });
 
+  // ✅ Close dropdown when clicking outside
   document.addEventListener("click", (e) => {
     if (!userMenu.contains(e.target)) {
       userMenu.classList.remove("active");
-    }
-  });
-
-  // ✅ Save profile updates
-  document.getElementById("settingsForm").addEventListener("submit", async (e) => {
-    e.preventDefault();
-
-    const firstname = document.getElementById("firstname").value;
-    const lastname = document.getElementById("lastname").value;
-    const birthday = document.getElementById("birthday").value;
-
-    if (!currentUserId) {
-      alert("User not authenticated.");
-      return;
-    }
-
-    const { error } = await supabase
-      .from("profiles")
-      .upsert({ id: currentUserId, firstname, lastname, birthday }); 
-
-    const statusMsg = document.getElementById("statusMsg");
-
-    if (error) {
-      console.error(error);
-      statusMsg.textContent = "❌ Error saving changes.";
-      statusMsg.style.color = "red";
-    } else {
-      statusMsg.textContent = "✅ Changes saved successfully!";
-      statusMsg.style.color = "green";
     }
   });
 </script>

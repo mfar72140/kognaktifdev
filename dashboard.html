@@ -36,7 +36,7 @@
       <div class="avatar"></div>
       <div class="welcome">
         <h2>Hi <span id="welcomeName">User</span>!</h2>
-        <p>It’s good to have you back</p>
+        <p>It's good to have you back</p>
       </div>
     </div>
   </main>
@@ -68,8 +68,19 @@
     }
 
     const user = session.user;
-    document.getElementById("userName").textContent = user.email;
-    document.getElementById("welcomeName").textContent = user.email;
+    
+    // Fetch user profile data from Supabase
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('firstname')
+      .eq('id', user.id)
+      .single();
+
+    // Use firstname if available, otherwise use email
+    const displayName = (profile && profile.firstname) ? profile.firstname : user.email;
+    
+    document.getElementById("userName").textContent = displayName;
+    document.getElementById("welcomeName").textContent = displayName;
   }
 
   checkAuth();
