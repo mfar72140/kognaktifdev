@@ -8,7 +8,16 @@ export async function loadUser() {
     return;
   }
 
-  document.getElementById("userName").textContent = user.email;
+  // Fetch user profile data
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('firstname')
+    .eq('id', user.id)
+    .single();
+
+  // Display firstname if available, otherwise use email
+  const displayName = profile?.firstname || user.email;
+  document.getElementById("userName").textContent = displayName;
 
   const userMenu = document.querySelector(".user-menu");
   const userName = document.getElementById("userName");
@@ -22,6 +31,7 @@ export async function loadUser() {
       userMenu.classList.remove("active");
     }
   });
+
 
   document.getElementById("logout-btn").addEventListener("click", async () => {
     await supabase.auth.signOut();

@@ -121,7 +121,6 @@
 
     const user = session.user;
     currentUserId = user.id;
-    document.getElementById("userName").textContent = user.email; 
 
     // Load current profile data
     const { data, error } = await supabase
@@ -132,7 +131,9 @@
 
     if (error) {
       console.error('Error fetching profile:', error);
-    } else if (data) {
+      document.getElementById("userName").textContent = user.email;
+    } else if (data && data.firstname) {
+      document.getElementById("userName").textContent = data.firstname;
       console.log('Profile:', data);
       document.getElementById("firstname").value = data.firstname || "";
       document.getElementById("lastname").value = data.lastname || "";
@@ -141,6 +142,8 @@
       document.getElementById("clastname").value = data.clastname || "";
       document.getElementById("cgender").value = data.cgender || "";
       document.getElementById("healthcategory").value = data.healthcategory || "";
+    } else {
+      document.getElementById("userName").textContent = user.email;
     }
   }
 
@@ -197,6 +200,11 @@
     } else {
       statusMsg.textContent = "✅ Changes saved successfully!";
       statusMsg.style.color = "green";
+      
+      // Refresh the page after a short delay
+      setTimeout(() => {
+        location.reload();
+      }, 1000);
     }
   });
 </script>
