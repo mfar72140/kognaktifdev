@@ -128,44 +128,43 @@ body {
   
 }
 
-/* =======================
-   MAIN DASHBOARD CONTENT
-======================= */
+/* ======================= MAIN DASHBOARD CONTENT ======================= */ 
 
-.dashboard {
-  max-width: 960px;
-  margin: 40px auto;
-  padding: 20px;
+.dashboard { 
+  max-width: 800px; 
+  margin: 40px auto; 
+  padding: 20px; 
+} 
+
+.profile-card { 
+  display: flex; 
+  align-items: center; 
+  gap: 20px; 
+  background: white; 
+  padding: 25px; 
+  border-radius: 12px; 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1); 
+} 
+
+.avatar { 
+  width: 80px; 
+  height: 80px; 
+  border-radius: 50%; 
+  background: #ddd url('https://cdn-icons-png.flaticon.com/512/3135/3135715.png') center/cover no-repeat; 
+} 
+
+.welcome h2 { 
+  margin: 0; 
+  font-size: 22px; 
+  font-weight: 600; 
+} 
+
+.welcome p { 
+  margin: 5px 0 0; 
+  font-size: 15px; 
+  color: #666; 
 }
 
-.profile-card {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  background: white;
-  padding: 25px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.avatar {
-  width: 80px;
-  height: 80px;
-  border-radius: 50%;
-  background: #ddd url('https://cdn-icons-png.flaticon.com/512/3135/3135715.png') center/cover no-repeat;
-}
-
-.welcome h2 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-}
-
-.welcome p {
-  margin: 5px 0 0;
-  font-size: 15px;
-  color: #666;
-}
 
 /* =======================
    FOOTER
