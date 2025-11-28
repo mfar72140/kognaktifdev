@@ -16,15 +16,15 @@ function showBuzzTapUI() {
     document.getElementById("tabStability").style.display = "inline-block";
     document.getElementById("gaugeSection").style.display = "block";
 
-    document.getElementById("tabAttempts").style.display = "none";
+    document.getElementById("tabPrecision").style.display = "none";
 }
 
 function showShapeSenseUI() {
-    document.getElementById("tabDistance").style.display = "none";
+    document.getElementById("tabDistance").style.display = "inline-block";
     document.getElementById("tabStability").style.display = "none";
-    document.getElementById("gaugeSection").style.display = "none";
+    document.getElementById("gaugeSection").style.display = "block";
 
-    document.getElementById("tabAttempts").style.display = "inline-block";
+    document.getElementById("tabPrecision").style.display = "inline-block";
 }
 
 /* -----------------------------
@@ -192,97 +192,110 @@ async function drawBuzzChart(type, level) {
     }
 }
 
-/* ==========================================================
-                      SHAPE SENSE ANALYTICS
-==========================================================*/
+/* =============================================
+             SHAPE SENSE ANALYTICS
+================================================*/
 async function loadShapeSense(level) {
-    const userEmail = (await supabase.auth.getUser()).data.user?.email;
-    if (!userEmail) {
-          showNoData();
-          return;
-    }
+        const userEmail = (await supabase.auth.getUser()).data.user?.email;
+        if (!userEmail) {
+                    showNoData();
+                    return;
+        }
 
-    if (!shapeCache[level]) {
-          const { data } = await supabase
-                .from("shapesense_results")
-                .select("score, time_taken, attempts, created_at, level")
-                .eq("player_email", userEmail)
-                .eq("level", level) // assumes a "level" column exists
-                .order("created_at", { ascending: true });
+        if (!shapeCache[level]) {
+                    const { data } = await supabase
+                                    .from("shapesense_results")
+                                    .select("score, time_taken, precision, av_distance, consistency, created_at, level")
+                                    .eq("player_email", userEmail)
+                                    .eq("level", level)
+                                    .order("created_at", { ascending: true });
 
-          shapeCache[level] = data ?? [];
-    }
+                    shapeCache[level] = data ?? [];
+        }
 
-    const data = shapeCache[level];
+        const data = shapeCache[level];
 
-    if (!data || data.length === 0) {
-          showNoData();
-          return;
-    }
+        if (!data || data.length === 0) {
+                    showNoData();
+                    return;
+        }
 
-    const last = data[data.length - 1];
+        const last = data[data.length - 1];
 
-    document.getElementById("lastScore").textContent = last.score ?? "";
-    document.getElementById("lastDate").textContent =
-          last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
-    document.getElementById("totalGames").textContent = data.length;
+        document.getElementById("lastScore").textContent = last.score ?? "";
+        document.getElementById("lastDate").textContent =
+                    last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
+        document.getElementById("totalGames").textContent = data.length;
 
-    const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
-    document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
+        const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
+        document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
 
-    // Ensure the default tab for shape sense is "time" (reset active tab on level change)
-    const timeTabBtn = document.querySelector('.tab-btn[data-chart="time"]');
-    if (timeTabBtn) activateTab(timeTabBtn);
+        // Gauge for consistency
+        const consistencyPercent = (last.consistency ?? 0);
+        currentGauge = initConsistencyGauge(consistencyPercent);
 
-    // Ensure the default tab for shape sense is "time"
-    await drawShapeChart("time", level);
+        // Ensure the default tab for shape sense is "time" (reset active tab on level change)
+        const timeTabBtn = document.querySelector('.tab-btn[data-chart="time"]');
+        if (timeTabBtn) activateTab(timeTabBtn);
+
+        // Ensure the default tab for shape sense is "time"
+        await drawShapeChart("time", level);
 }
 
 async function drawShapeChart(type, level) {
-    const data = shapeCache[level];
-    if (!data || data.length === 0) return;
+        const data = shapeCache[level];
+        if (!data || data.length === 0) return;
 
-    const labels = data.map((r, i) => {
-          const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
-          return `G${i + 1} (${date})`;
-    });
+        const labels = data.map((r, i) => {
+                    const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
+                    return `G${i + 1} (${date})`;
+        });
 
-    const times = data.map(r => r.time_taken ?? null);
-    const attempts = data.map(r => r.attempts ?? null);
+        const times = data.map(r => r.time_taken ?? null);
+        const precision = data.map(r => r.precision ?? null);
+        const distances = data.map(r => r.av_distance ?? null);
 
-    await waitForCanvas("#mainChart");
+        await waitForCanvas("#mainChart");
 
-    // Ensure the UI's active tab matches the chart type being displayed
-    const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
-    if (tabBtn) activateTab(tabBtn);
+        // Ensure the UI's active tab matches the chart type being displayed
+        const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
+        if (tabBtn) activateTab(tabBtn);
 
-    if (!currentMainChart) {
-          // initGameChart for shape: we pass labels and primary data (times)
-          currentMainChart = initGameChart(labels, times);
+        if (!currentMainChart) {
+                    // initGameChart for shape: we pass labels and primary data (times)
+                    currentMainChart = initGameChart(labels, times);
 
-          // make sure initial dataset reflects the requested type
-          if (type === "attempts") {
-                currentMainChart.data.datasets[0].label = "Attempts per Game";
-                currentMainChart.data.datasets[0].data = attempts;
-                currentMainChart.data.datasets[0].borderColor = "purple";
-          } else {
-                currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
-                currentMainChart.data.datasets[0].data = times;
-                currentMainChart.data.datasets[0].borderColor = "green";
-          }
-          currentMainChart.update();
-    } else {
-          if (type === "attempts") {
-                currentMainChart.data.datasets[0].label = "Attempts";
-                currentMainChart.data.datasets[0].data = attempts;
-                currentMainChart.data.datasets[0].borderColor = "purple";
-          } else {
-                currentMainChart.data.datasets[0].label = "Time Taken (s)";
-                currentMainChart.data.datasets[0].data = times;
-                currentMainChart.data.datasets[0].borderColor = "green";
-          }
-          currentMainChart.update();
-    }
+                    // make sure initial dataset reflects the requested type
+                    if (type === "precision") {
+                                    currentMainChart.data.datasets[0].label = "Precision per Game (%)";
+                                    currentMainChart.data.datasets[0].data = precision;
+                                    currentMainChart.data.datasets[0].borderColor = "purple";
+                    } else if (type === "distance") {
+                                    currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                                    currentMainChart.data.datasets[0].data = distances;
+                                    currentMainChart.data.datasets[0].borderColor = "blue";
+                    } else {
+                                    currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                                    currentMainChart.data.datasets[0].data = times;
+                                    currentMainChart.data.datasets[0].borderColor = "green";
+                    }
+                    currentMainChart.update();
+        } else {
+                    if (type === "precision") {
+                                    currentMainChart.data.datasets[0].label = "Precision per Game (%)";
+                                    currentMainChart.data.datasets[0].data = precision;
+                                    currentMainChart.data.datasets[0].borderColor = "purple";
+                    } else if (type === "distance") {
+                                    currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                                    currentMainChart.data.datasets[0].data = distances;
+                                    currentMainChart.data.datasets[0].borderColor = "blue";
+                    } else {
+                                    currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                                    currentMainChart.data.datasets[0].data = times;
+                                    currentMainChart.data.datasets[0].borderColor = "green";
+                    }
+                    currentMainChart.update();
+        }
 }
 
 /* ==========================================================
@@ -322,35 +335,32 @@ function clearStatsCards() {
 }
 
 function showNoData() {
-       // Leave UI empty (no text in cards, no chart)
-       clearStatsCards();
-       
-       // Show no data message
-       const nd = document.getElementById("noDataMessage");
-       if (nd) {
-          nd.textContent = "No data available yet. Please play first!";
-          nd.style.display = "block";
-       }
-       
-       if (currentMainChart) {
-               currentMainChart.destroy();
-               currentMainChart = null;
-       }
-       // Show empty gauge (0%) for Buzz Tap when no data
-       const game = document.getElementById("gameSelect").value;
-       if (game === "buzz") {
-               const gaugeSection = document.getElementById("gaugeSection");
-               if (gaugeSection) gaugeSection.style.display = "block";
-               if (currentGauge) {
-                           currentGauge.destroy?.();
-               }
-               currentGauge = initConsistencyGauge(0);
-       } else {
-               if (currentGauge) {
-                           currentGauge.destroy?.();
-                           currentGauge = null;
-               }
-       }
+      // Leave UI empty (no text in cards, no chart)
+      clearStatsCards();
+      
+      // Show no data message
+      const nd = document.getElementById("noDataMessage");
+      if (nd) {
+         nd.textContent = "No data available yet. Please play first!";
+         nd.style.display = "block";
+      }
+      
+      if (currentMainChart) {
+             currentMainChart.destroy();
+             currentMainChart = null;
+      }
+      
+      // Show empty gauge (0%) for both games when no data
+      const game = document.getElementById("gameSelect").value;
+      const gaugeSection = document.getElementById("gaugeSection");
+      
+      if (gaugeSection) gaugeSection.style.display = "block";
+      
+      if (currentGauge) {
+             currentGauge.destroy?.();
+      }
+      
+      currentGauge = initConsistencyGauge(0);
 }
 
 function waitForCanvas(selector) {
