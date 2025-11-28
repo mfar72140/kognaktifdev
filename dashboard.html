@@ -53,6 +53,10 @@
         <span id="childAge">-</span>
       </div>
       <div class="info-item">
+        <label>Gender:</label>
+        <span id="childGender">-</span>
+      </div>
+      <div class="info-item">
         <label>Health Category:</label>
         <span id="childHealthCategory">-</span>
       </div>
@@ -91,7 +95,7 @@
     // Fetch user profile data from Supabase
     const { data: profile } = await supabase
       .from('profiles')
-      .select('firstname, cfirstname, clastname, birthday, healthcategory')
+      .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
       .eq('id', user.id)
       .single();
 
@@ -114,7 +118,7 @@
       } else {
       document.getElementById("childAge").textContent = 'Not available';
       }
-      
+      document.getElementById("childGender").textContent = profile.cgender || 'Not available';
       document.getElementById("childHealthCategory").textContent = profile.healthcategory || 'Not available';
     }
     }
