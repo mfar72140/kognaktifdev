@@ -267,7 +267,7 @@ async function drawShapeChart(type, level) {
 
                     // make sure initial dataset reflects the requested type
                     if (type === "precision") {
-                                    currentMainChart.data.datasets[0].label = "Precision per Game (%)";
+                                    currentMainChart.data.datasets[0].label = "Pinch Accuracy per Game (%)";
                                     currentMainChart.data.datasets[0].data = precision;
                                     currentMainChart.data.datasets[0].borderColor = "purple";
                     } else if (type === "distance") {
@@ -282,7 +282,7 @@ async function drawShapeChart(type, level) {
                     currentMainChart.update();
         } else {
                     if (type === "precision") {
-                                    currentMainChart.data.datasets[0].label = "Precision per Game (%)";
+                                    currentMainChart.data.datasets[0].label = "Pinch Accuracy per Game (%)";
                                     currentMainChart.data.datasets[0].data = precision;
                                     currentMainChart.data.datasets[0].borderColor = "purple";
                     } else if (type === "distance") {
