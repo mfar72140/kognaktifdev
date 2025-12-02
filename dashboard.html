@@ -201,36 +201,36 @@
       } else {
         lastSession = shapeDate;
         gameModule = 'Shape Sense';
-      }
-    } else if (buzzTap) {
-      lastSession = new Date(buzzTap.created_at);
-      gameModule = 'Buzz Tap!';
-    } else if (shapeSense) {
-      lastSession = new Date(shapeSense.created_at);
-      gameModule = 'Shape Sense';
-    }
+            }
+          } else if (buzzTap) {
+            lastSession = new Date(buzzTap.created_at);
+            gameModule = 'Buzz Tap!';
+          } else if (shapeSense) {
+            lastSession = new Date(shapeSense.created_at);
+            gameModule = 'Shape Sense';
+          }
 
-    // Update UI
-    if (lastSession) {
-      const dateStr = lastSession.toLocaleDateString('en-GB');
-      const timeStr = lastSession.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      
-      document.getElementById("lastSessionDate").textContent = dateStr;
-      document.getElementById("lastSessionTime").textContent = timeStr;
-      document.getElementById("lastSessionGameModule").textContent = gameModule;
-    } else {
-      document.getElementById("lastSessionDate").textContent = 'No session yet';
-      document.getElementById("lastSessionTime").textContent = '-';
-      document.getElementById("lastSessionGameModule").textContent = '-';
-    }
-  }
+          // Update UI
+          if (lastSession) {
+            const dateStr = lastSession.toLocaleDateString('en-GB');
+            const timeStr = lastSession.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+            
+            document.getElementById("lastSessionDate").textContent = dateStr;
+            document.getElementById("lastSessionTime").textContent = timeStr;
+            document.getElementById("lastSessionGameModule").textContent = gameModule;
+          } else {
+            document.getElementById("lastSessionDate").textContent = 'No session yet';
+            document.getElementById("lastSessionTime").textContent = '-';
+            document.getElementById("lastSessionGameModule").textContent = '-';
+          }
+        }
 
-  checkAuth();
+        checkAuth();
 
-  async function logout() {
-  await supabase.auth.signOut();
-  window.location.href = "index.html";
-  }
+        async function logout() {
+        await supabase.auth.signOut();
+        window.location.href = "index.html";
+        }
 
 document.getElementById("logout-btn").addEventListener("click", logout);
 
