@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Dashboard</title>
+  <title>KognAktif | Dashboard</title>
+  <link rel="icon" type="image/png" href="images/favicon.png">
   <link rel="stylesheet" href="css/dashboard.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
 </head>
@@ -40,112 +41,213 @@
       </div>
     </div>
 
-    <!-- Child Information Card -->
-    <div class="profile-card child-info-card">
-      <h3>Your Child Information</h3>
-      <div class="child-details">
-      <div class="info-item">
-        <label>Name:</label>
-        <span id="childName">-</span>
+    <!-- Dashboard Cards Container -->
+    <div class="dashboard-cards">
+      <!-- Child Information Card -->
+      <div class="profile-card child-info-card">
+        <h3>Your Child Information</h3> 
+        <div class="child-details">
+          <div class="info-item">
+            <label>Name:</label>
+            <span id="childName">-</span>
+          </div>
+          <div class="info-item">
+            <label>Age:</label>
+            <span id="childAge">-</span>
+          </div>
+          <div class="info-item">
+            <label>Gender:</label>
+            <span id="childGender">-</span>
+          </div>
+          <div class="info-item">
+            <label>Health Category:</label>
+            <span id="childHealthCategory">-</span>
+          </div>
+        </div>
       </div>
-      <div class="info-item">
-        <label>Age:</label>
-        <span id="childAge">-</span>
+
+      <!-- Last Session Card -->
+      <div class="profile-card session-card">
+        <h3>Last Session Dated</h3>
+        <div class="session-details">
+          <div class="info-item">
+        <img src="images/date.png" alt="Date icon" class="info-icon">
+        <label>Date:</label>
+        <span id="lastSessionDate">-</span>
+          </div>
+          <div class="info-item">
+        <img src="images/time2.png" alt="Time icon" class="info-icon">
+        <label>Time:</label>
+        <span id="lastSessionTime">-</span>
+          </div>
+          <div class="info-item">
+        <img src="images/module2.png" alt="Module icon" class="info-icon">
+        <label>Module:</label>
+        <span id="lastSessionGameModule">-</span>
+          </div>
+        </div>
       </div>
-      <div class="info-item">
-        <label>Gender:</label>
-        <span id="childGender">-</span>
-      </div>
-      <div class="info-item">
-        <label>Health Category:</label>
-        <span id="childHealthCategory">-</span>
-      </div>
+
+      <!-- Status Card -->
+      <div class="profile-card status-card">
+        <h3>Status</h3>
+        <div class="status-details">
+          <div class="info-item">
+            <label>Activity Level:</label>
+            <span id="activityLevel">-</span>
+          </div>
+          <div class="info-item">
+            <label>Progress:</label>
+            <span id="progressStatus">-</span>
+          </div>
+        </div>
       </div>
     </div>
-    </main>
+  </main>
 
-    <!-- Footer -->
-    <section id="footer" class="footer-section">
+  <!-- Footer -->
+  <section id="footer" class="footer-section">
     <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
     <div class="footer-links">
       <a href="#">Terms of Service</a>
       <a href="#">Privacy Policy</a>
     </div>
-    </section>
+  </section>
 
 
   <!-- Supabase Auth Script -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const supabase = window.supabase.createClient(
-    "https://ijugaqvsszticpzrznnb.supabase.co",
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
-    );
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabase = window.supabase.createClient(
+  "https://ijugaqvsszticpzrznnb.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
+  );
 
-    async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
+  async function checkAuth() {
+  const { data: { session } } = await supabase.auth.getSession();
 
-    if (!session) {
-      window.location.href = "index.html";
-      return;
-    }
+  if (!session) {
+    window.location.href = "index.html";
+    return;
+  }
 
-    const user = session.user;
+  const user = session.user;
+  const userEmail = user.email;
+  
+  // Fetch user profile data from Supabase
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
+    .eq('id', user.id)
+    .single();
+
+  // Use firstname if available, otherwise use email
+  const displayName = (profile && profile.firstname) ? profile.firstname : userEmail;
+  
+  document.getElementById("userName").textContent = displayName;
+  document.getElementById("welcomeName").textContent = displayName;
+
+  // Update child information
+  if (profile) {
+    const childFullName = `${profile.cfirstname || ''} ${profile.clastname || ''}`.trim();
+    document.getElementById("childName").textContent = childFullName || 'Not available';
     
-    // Fetch user profile data from Supabase
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
-      .eq('id', user.id)
+    // Calculate age from birthday
+    if (profile.birthday) {
+    const birthDate = new Date(profile.birthday);
+    const age = Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+    document.getElementById("childAge").textContent = age + ' years old';
+    } else {
+    document.getElementById("childAge").textContent = 'Not available';
+    }
+    document.getElementById("childGender").textContent = profile.cgender || 'Not available';
+    document.getElementById("childHealthCategory").textContent = profile.healthcategory || 'Not available';
+  }
+
+  // Fetch last session information
+  await fetchLastSession(userEmail);
+  }
+
+  async function fetchLastSession(userEmail) {
+    // Fetch latest Buzz Tap game
+    const { data: buzzTap } = await supabase
+      .from('buzztap_results')
+      .select('created_at')
+      .eq("player_email", userEmail)
+      .order('created_at', { ascending: false })
+      .limit(1)
       .single();
 
-    // Use firstname if available, otherwise use email
-    const displayName = (profile && profile.firstname) ? profile.firstname : user.email;
-    
-    document.getElementById("userName").textContent = displayName;
-    document.getElementById("welcomeName").textContent = displayName;
+    // Fetch latest Shape Sense game
+    const { data: shapeSense } = await supabase
+      .from('shapesense_results')
+      .select('created_at')
+      .eq("player_email", userEmail)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
 
-    // Update child information
-    if (profile) {
-      const childFullName = `${profile.cfirstname || ''} ${profile.clastname || ''}`.trim();
-      document.getElementById("childName").textContent = childFullName || 'Not available';
+    // Determine which game was played last
+    let lastSession = null;
+    let gameModule = '';
+
+    if (buzzTap && shapeSense) {
+      const buzzDate = new Date(buzzTap.created_at);
+      const shapeDate = new Date(shapeSense.created_at);
       
-      // Calculate age from birthday
-      if (profile.birthday) {
-      const birthDate = new Date(profile.birthday);
-      const age = Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
-      document.getElementById("childAge").textContent = age + ' years old';
+      if (buzzDate > shapeDate) {
+        lastSession = buzzDate;
+        gameModule = 'Buzz Tap!';
       } else {
-      document.getElementById("childAge").textContent = 'Not available';
+        lastSession = shapeDate;
+        gameModule = 'Shape Sense';
       }
-      document.getElementById("childGender").textContent = profile.cgender || 'Not available';
-      document.getElementById("childHealthCategory").textContent = profile.healthcategory || 'Not available';
-    }
-    }
-
-    checkAuth();
-
-    async function logout() {
-    await supabase.auth.signOut();
-    window.location.href = "index.html";
+    } else if (buzzTap) {
+      lastSession = new Date(buzzTap.created_at);
+      gameModule = 'Buzz Tap!';
+    } else if (shapeSense) {
+      lastSession = new Date(shapeSense.created_at);
+      gameModule = 'Shape Sense';
     }
 
-  document.getElementById("logout-btn").addEventListener("click", logout);
-
-  // ✅ Dropdown toggle for user menu
-  const userMenu = document.querySelector(".user-menu");
-  const userName = document.getElementById("userName");
-
-  userName.addEventListener("click", () => {
-    userMenu.classList.toggle("active");
-  });
-
-  // ✅ Close dropdown when clicking outside
-  document.addEventListener("click", (e) => {
-    if (!userMenu.contains(e.target)) {
-      userMenu.classList.remove("active");
+    // Update UI
+    if (lastSession) {
+      const dateStr = lastSession.toLocaleDateString('en-GB');
+      const timeStr = lastSession.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      
+      document.getElementById("lastSessionDate").textContent = dateStr;
+      document.getElementById("lastSessionTime").textContent = timeStr;
+      document.getElementById("lastSessionGameModule").textContent = gameModule;
+    } else {
+      document.getElementById("lastSessionDate").textContent = 'No session yet';
+      document.getElementById("lastSessionTime").textContent = '-';
+      document.getElementById("lastSessionGameModule").textContent = '-';
     }
-  });
+  }
+
+  checkAuth();
+
+  async function logout() {
+  await supabase.auth.signOut();
+  window.location.href = "index.html";
+  }
+
+document.getElementById("logout-btn").addEventListener("click", logout);
+
+// ✅ Dropdown toggle for user menu
+const userMenu = document.querySelector(".user-menu");
+const userName = document.getElementById("userName");
+
+userName.addEventListener("click", () => {
+  userMenu.classList.toggle("active");
+});
+
+// ✅ Close dropdown when clicking outside
+document.addEventListener("click", (e) => {
+  if (!userMenu.contains(e.target)) {
+    userMenu.classList.remove("active");
+  }
+});
 </script>
 
 </body>

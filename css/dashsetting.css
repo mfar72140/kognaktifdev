@@ -104,3 +104,47 @@ select:focus {
   font-size: 14px;
   margin-top: 12px;
 }
+
+/* =======================
+   FOOTER
+======================= */
+
+.footer-section {
+  background: #1a1a1a;
+  color: #ddd;
+
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+
+  padding: 16px 0;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 25px;
+
+  font-size: 0.7rem;
+  border-top: 1px solid #333;
+}
+
+.footer-links {
+  display: flex;
+  gap: 15px;
+}
+
+.footer-links a {
+  color: #bbb;
+  text-decoration: none;
+  transition: 0.2s;
+}
+
+.footer-links a:hover {
+  color: #fff;
+}
+
+/* Prevent overlapping */
+body {
+  padding-bottom: 70px;
+}
