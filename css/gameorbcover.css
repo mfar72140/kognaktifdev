@@ -56,6 +56,18 @@
 }
 
 .cover-right h2 {
+  text-shadow: 
+    -1px -1px 0 #fff,
+     1px -1px 0 #fff,
+    -1px  1px 0 #fff,
+     1px  1px 0 #fff,
+    -2px -2px 0 #fff,
+     2px -2px 0 #fff,
+    -2px  2px 0 #fff,
+     2px  2px 0 #fff;
+}
+
+.cover-right h2 {
   font-size: 28px;
   margin-bottom: 20px;
 }
