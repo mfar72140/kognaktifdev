@@ -11,7 +11,7 @@ let score = 0;
 let bflyTouch = 0; // red bee touch counter
 let gameRunning = false;
 let countdownRunning = false;
-let touchSound, endGameSound, countdownSound;
+let touchSound, endGameSound, countdownSound, touchRedSound;
 let HoneySplashes = [];
 let RedSplashes = [];
 let bgMusic;
@@ -91,6 +91,7 @@ window.onload = () => {
 
     // Load sound
     touchSound = new Audio("sounds/touch.wav");
+    touchRedSound = new Audio("sounds/touch2.mp3");
     endGameSound = new Audio("sounds/endapplause.wav");
     countdownSound = new Audio("sounds/countdown.wav");
 
@@ -556,9 +557,9 @@ function handleGameLogic(arrowX, arrowY) {
 
             handBounceActive = true;
 
-            if (touchSound) {
-                touchSound.currentTime = 0;
-                touchSound.play();
+            if (touchRedSound) {
+                touchRedSound.currentTime = 0;
+                touchRedSound.play();
             }
 
             RedSplashes.push(new RedSplash(redBee.x, redBee.y));

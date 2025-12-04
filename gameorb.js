@@ -115,7 +115,7 @@ const breakSound = new Audio("sounds/break.mp3");
 
 const bgMusic = new Audio("sounds/03Backmusic30s.mp3");
 bgMusic.loop = true;
-bgMusic.volume = 0.8;
+bgMusic.volume = 0.9;
 
 /* =========================
     ======= Initialization ==
