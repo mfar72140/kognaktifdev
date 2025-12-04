@@ -369,7 +369,7 @@ body {
 
 
 /* =====================
-   Consistency Gauge
+  Consistency Gauge
 ===================== */
 #consistencyGauge {
   width: 100%;       /* full width of container */
@@ -394,7 +394,7 @@ body {
 }
 
 .gauge-legend {
-  flex: 0 0 120px; /* fixed width so it doesn’t overflow */
+  flex: 0 0 120px; /* fixed width so it doesn't overflow */
   font-family: 'Poppins', sans-serif;
   font-size: 14px;
   color: #333;
@@ -427,6 +427,47 @@ body {
 
 .gauge-card:hover {
   transform: translateY(-3px);
+}
+
+/* =====================
+  Info Card (Progress Guide) - Compact Design
+===================== */
+.info-card {
+  background: white;
+  border-radius: 10px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  width: 950px;
+  margin: 20px auto; 
+}
+
+.info-card h3 {
+  font-size: 16px;
+  color: #8e24aa;
+  margin-bottom: 12px;
+  font-weight: 600;
+}
+
+.info-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.info-item {
+  background: #f9f9fb;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #555;
+  text-align: left;
+}
+
+.info-item strong {
+  color: #8e24aa;
+  font-weight: 600;
+  font-size: 12px;
 }
 
 /* =======================
