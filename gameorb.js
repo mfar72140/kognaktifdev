@@ -107,9 +107,11 @@ graspImg.src = "images/rgrab.png";
 
 // sound assets
 const dingSound = new Audio("sounds/dingeffect.wav");
-const countdownSound = new Audio("sounds/countdown.wav");
+const countdownSound = new Audio("sounds/countdown2.wav");
 const endApplause = new Audio("sounds/endapplause.wav");
 endApplause.volume = 0.7;
+
+const breakSound = new Audio("sounds/break.mp3");
 
 const bgMusic = new Audio("sounds/03Backmusic30s.mp3");
 bgMusic.loop = true;
@@ -281,7 +283,7 @@ function runCountdownAndStart() {
                 gameLoop();
             }, 1000);
         } else {
-            try { countdownSound.currentTime = 2; countdownSound.play(); } catch (e) { }
+            try { countdownSound.currentTime = 6; countdownSound.play(); } catch (e) { }
         }
 
         state.countdown--;
@@ -353,6 +355,12 @@ function updateOrbs() {
             if (orb.y > canvas.height - 50) {
                 orb.broken = true;
                 state.orbLose++;
+                
+                // Play break sound
+                try {
+                    breakSound.currentTime = 0;
+                    breakSound.play();
+                } catch (e) { }
                 
                 // Remove after break animation
                 setTimeout(() => {
