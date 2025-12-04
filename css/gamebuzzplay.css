@@ -155,8 +155,8 @@ canvas {
   background: black;
   color: white;
   display: flex;
-  justify-content: flex-start; /* align items to the left */
-  align-items: left;
+  justify-content: space-between; /* push items to edges */
+  align-items: center;
   gap: 25px;  /* space between Score and Time */
   font-size: 14px;
   font-weight: 600;
@@ -261,8 +261,9 @@ canvas {
 /* Right Buttons in status bar */
 .right-buttons {
   display: flex;
-  align-items: left;
+  align-items: center;
   gap: 10px;
+  margin-left: auto; /* push to the right */
 }
 
 /* How to play button inside status bar */
