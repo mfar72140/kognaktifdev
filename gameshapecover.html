@@ -58,6 +58,7 @@
         const lvl = btn.dataset.level;
         localStorage.setItem("shapeSenseLevel", lvl);
 
+        if (lvl === "trial") window.location.href = "gameshapeplay.html";
         if (lvl === "beginner") window.location.href = "gameshapeplay.html";
         if (lvl === "intermediate") window.location.href = "gameshapeplay.html"; 
         if (lvl === "advanced") window.location.href = "gameshapeplay.html";     

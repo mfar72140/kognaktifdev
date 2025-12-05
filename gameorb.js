@@ -35,6 +35,10 @@ const state = {
     currentOrbStartPos: null,
     lastDragPos: null,
 
+    // Grasp tracking
+    successfulGrasps: 0,
+    lostGrasps: 0,
+
     // timer
     startTime: null,
     timerIntervalId: null,
@@ -157,6 +161,8 @@ function drawCover() {
 function initGame() {
     state.score = 0;
     state.orbLose = 0;
+    state.successfulGrasps = 0;
+    state.lostGrasps = 0;
     updateScore();
 
     state.totalDistance = 0;
@@ -355,6 +361,7 @@ function updateOrbs() {
             if (orb.y > canvas.height - 50) {
                 orb.broken = true;
                 state.orbLose++;
+                state.lostGrasps++;
                 
                 // Play break sound
                 try {
@@ -490,6 +497,7 @@ function checkBasketPlacement(orb) {
     if (Math.hypot(dx, dy) < BASKET_SNAP_DISTANCE) {
         // Success!
         state.score++;
+        state.successfulGrasps++;
         updateScore();
 
         // Remove orb
@@ -733,6 +741,8 @@ function fadeInWinOverlay() {
     const startTime = performance.now();
 
     const finalTime = state.finalElapsed ?? 0;
+    const totalAttempts = state.successfulGrasps + state.lostGrasps;
+    const graspStability = totalAttempts > 0 ? ((state.successfulGrasps / totalAttempts) * 100).toFixed(2) : 0;
 
     function drawOverlay(now) {
         const elapsed = now - startTime;
@@ -757,9 +767,6 @@ function fadeInWinOverlay() {
 
         ctx.font = "20px Poppins";
         ctx.fillText(`Time: ${finalTime}s`, canvas.width / 2, canvas.height / 2 + 30);
-
-        ctx.font = "20px Poppins";
-        ctx.fillText(`Orbs Lost: ${state.orbLose}`, canvas.width / 2, canvas.height / 2 + 70);
 
         if (opacity < 1) {
             requestAnimationFrame(drawOverlay);
@@ -839,6 +846,10 @@ async function saveGameResult() {
     const orbCount = Object.keys(state.orbDistances).length;
     const averageDistance = orbCount > 0 ? Math.round(totalDistance / orbCount) : 0;
 
+    const totalAttempts = state.successfulGrasps + state.lostGrasps;
+    const graspStability = totalAttempts > 0 ? 
+        parseFloat(((state.successfulGrasps / totalAttempts) * 100).toFixed(2)) : 0;
+
     const consistency = await calculateConsistency(user.email);
     console.log("Calculated consistency:", consistency);
 
@@ -852,7 +863,9 @@ async function saveGameResult() {
             totaldistance: totalDistance,
             av_distance: averageDistance,
             consistency: consistency,
-            orblose: orbLose
+            orblose: orbLose,
+            attempts: totalAttempts,
+            graspstability: graspStability
         }])
         .select();
 
@@ -864,6 +877,8 @@ async function saveGameResult() {
         console.log(`Average distance: ${averageDistance}px`);
         console.log(`Consistency: ${consistency}`);
         console.log(`Orbs lost: ${orbLose}`);
+        console.log(`Attempts: ${totalAttempts}`);
+        console.log(`Grasp Stability: ${graspStability}%`);
     }
 }
 

@@ -62,6 +62,7 @@
         const lvl = btn.dataset.level;
         localStorage.setItem("buzzTapLevel", lvl);
 
+        if (lvl === "trial") window.location.href = "gamebuzzplay.html";
         if (lvl === "beginner") window.location.href = "gamebuzzplay.html";
         if (lvl === "intermediate") window.location.href = "gamebuzzplay.html";
         if (lvl === "advanced") window.location.href = "gamebuzzplay.html";
