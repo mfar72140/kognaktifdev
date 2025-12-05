@@ -1,4 +1,3 @@
-
 // ============================================
 // GLOBAL VARIABLES
 // ============================================
@@ -56,6 +55,12 @@ let flapDirection = 1;
 
 // Track respawn timeout
 let respawnTimeout = null;
+
+// ============================================
+// DELTA TIME TRACKING
+// ============================================
+let lastFrameTime = performance.now();
+let deltaTime = 0;
 
 
 // ============================================
@@ -146,7 +151,7 @@ function startCountdown() {
     // Reset state
     score = 0;
     countdownValue = 3;
-    countdownRunning = false; // don’t start until camera is ready
+    countdownRunning = false; // don't start until camera is ready
     gameRunning = false;
     HoneySplashes = [];
     if (respawnTimeout) clearTimeout(respawnTimeout);
@@ -236,6 +241,9 @@ function startGame() {
         document.getElementById("timer").innerText = "Time: " + elapsed + "s";
     }, 1000);
 
+    // Reset delta time tracking
+    lastFrameTime = performance.now();
+
     spawnBall();
 }
 
@@ -303,11 +311,14 @@ function spawnBall() {
 }
 
  // ============================================
- // Bee Movement: wandering steering
+ // Bee Movement: wandering steering (DELTA TIME BASED)
  // ============================================
 
-function updateBallMovement() {
-    if (Math.random() < 0.04) {
+function updateBallMovement(dt) {
+    // Convert dt from seconds to a reasonable scale (60fps baseline)
+    const timeScale = dt * 60;
+
+    if (Math.random() < 0.04 * timeScale) {
         let angle = Math.atan2(ball.vy, ball.vx);
         angle += (Math.random() - 0.5) * Math.PI * 0.6; // random turn
         let speed = Math.hypot(ball.vx, ball.vy);
@@ -321,7 +332,7 @@ function updateBallMovement() {
     }
     // steer away from edges gently
     const margin = 50;
-    const steerStrength = 0.45;
+    const steerStrength = 0.45 * timeScale;
     if (ball.x < margin) ball.vx += steerStrength;
     if (ball.x > canvas.width - margin) ball.vx -= steerStrength;
     if (ball.y < margin) ball.vy += steerStrength;
@@ -335,9 +346,9 @@ function updateBallMovement() {
         ball.vy = (ball.vy / sp) * maxSpeed;
     }
 
-    // update position
-    ball.x += ball.vx;
-    ball.y += ball.vy;
+    // update position with delta time
+    ball.x += ball.vx * timeScale;
+    ball.y += ball.vy * timeScale;
 
     // keep inside bounds (bounce minimally)
     if (ball.x < ball.r) {
@@ -360,10 +371,20 @@ function updateBallMovement() {
 
 
 // ============================================
-// Main Game Loop
+// Main Game Loop (WITH DELTA TIME)
 // ============================================
 
 function gameLoop() {
+    // Calculate delta time
+    const currentTime = performance.now();
+    deltaTime = (currentTime - lastFrameTime) / 1000; // convert to seconds
+    lastFrameTime = currentTime;
+
+    // Cap delta time to prevent huge jumps
+    if (deltaTime > 0.1) {
+        deltaTime = 0.1;
+    }
+
     if (countdownRunning) {
         drawCountdown(countdownValue);
     } 
@@ -454,7 +475,7 @@ function handleGameLogic(arrowX, arrowY) {
 
 
 // ============================================
-// Draw Scene
+// Draw Scene (WITH DELTA TIME)
 // ============================================
 
 function drawScene(results) {
@@ -462,11 +483,12 @@ function drawScene(results) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    // Update bee movement before drawing
-    updateBallMovement();
+    // Update bee movement with delta time
+    updateBallMovement(deltaTime);
 
-    // Animate bee flap
-    flap += flapDirection * 0.8;
+    // Animate bee flap with delta time
+    const flapSpeed = 0.8 * deltaTime * 60; // normalize to 60fps baseline
+    flap += flapDirection * flapSpeed;
     if (flap > 10 || flap < -10) flapDirection *= -1;
 
     ctx.drawImage(
@@ -695,7 +717,7 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
     ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
     
     ctx.font = "40px poppins";
-    ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+    ctx.fillText("You've finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
     
     ctx.font = "35px poppins";
     ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
@@ -871,4 +893,3 @@ function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
 }
 
 // --- End of gamebuzz_inter.js ---
- 
