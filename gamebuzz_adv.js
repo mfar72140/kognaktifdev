@@ -41,6 +41,7 @@ let lastX = null, lastY = null;
 // Hand bounce
 let handScale = 1;
 let handBounceActive = false;
+let handBounceTimer = 0;
 
 // Timer variables
 let startTime;
@@ -492,10 +493,10 @@ function gameLoop(currentTime) {
 
 
 // ============================================
-// Draw Hand
+// Draw Hand (Delta Time Based)
 // ============================================
 
-function drawHand(x, y, img) {
+function drawHand(x, y, img, dt) {
     if (!img || !img.complete || img.naturalWidth === 0) return;
 
     const baseSize = 90;
@@ -504,12 +505,17 @@ function drawHand(x, y, img) {
     ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
 
     if (handBounceActive) {
-        handScale += (1.6 - handScale) * 0.25;
-        if (handScale >= 1.55) {
+        handBounceTimer += dt;
+        const bounceSpeed = 15; // scale units per second
+        handScale += (1.6 - handScale) * bounceSpeed * dt;
+        
+        if (handScale >= 1.55 || handBounceTimer >= 0.15) {
             handBounceActive = false;
+            handBounceTimer = 0;
         }
     } else {
-        handScale += (1 - handScale) * 0.2;
+        const returnSpeed = 5; // scale units per second
+        handScale += (1 - handScale) * returnSpeed * dt;
     }
 }
 
@@ -535,6 +541,7 @@ function handleGameLogic(arrowX, arrowY) {
         document.getElementById("score").innerText = "Score: " + score;
 
         handBounceActive = true;
+        handBounceTimer = 0;
 
         if (touchSound) {
             touchSound.currentTime = 0;
@@ -574,6 +581,7 @@ function handleGameLogic(arrowX, arrowY) {
             document.getElementById("score").innerText = "Score: " + score;
 
             handBounceActive = true;
+            handBounceTimer = 0;
 
             if (touchRedSound) {
                 touchRedSound.currentTime = 0;
@@ -654,9 +662,9 @@ function drawScene(results, dt) {
             }
 
             if (currentHandType === "Right" && rhandImg) {
-                drawHand(arrowX, arrowY, rhandImg);
+                drawHand(arrowX, arrowY, rhandImg, dt);
             } else {
-                drawHand(arrowX, arrowY, LhandImg);
+                drawHand(arrowX, arrowY, LhandImg, dt);
             }
 
             previousArrowX = arrowX;
@@ -701,16 +709,16 @@ function drawScene(results, dt) {
 
             handleGameLogic(arrowX, arrowY);
 
-            // Honey splashes (yellow)
+            // Honey splashes (yellow) - delta time based
             for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-                HoneySplashes[i].update();
+                HoneySplashes[i].update(dt);
                 HoneySplashes[i].draw(ctx);
                 if (HoneySplashes[i].isFinished()) HoneySplashes.splice(i, 1);
             }
 
-            // Red splashes
+            // Red splashes - delta time based
             for (let i = RedSplashes.length - 1; i >= 0; i--) {
-                RedSplashes[i].update();
+                RedSplashes[i].update(dt);
                 RedSplashes[i].draw(ctx);
                 if (RedSplashes[i].isFinished()) RedSplashes.splice(i, 1);
             }
@@ -908,7 +916,7 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
 
 
 // ============================================
-// HONEY SPLASH EFFECT (Yellow)
+// HONEY SPLASH EFFECT (Yellow) - Delta Time Based
 // ============================================
 
 class HoneySplash {
@@ -921,18 +929,19 @@ class HoneySplash {
                 x: x,
                 y: y,
                 angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 3 + 2,
+                speed: Math.random() * 150 + 100, // pixels per second
                 size: Math.random() * 8 + 6,
                 alpha: 1.0,
             });
         }
     }
 
-    update() {
+    update(dt) {
+        const fadeSpeed = 2.5; // alpha units per second
         this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.04;
+            p.x += Math.cos(p.angle) * p.speed * dt;
+            p.y += Math.sin(p.angle) * p.speed * dt;
+            p.alpha -= fadeSpeed * dt;
         });
         this.particles = this.particles.filter((p) => p.alpha > 0);
     }
@@ -953,7 +962,7 @@ class HoneySplash {
 
 
 // ============================================
-// RED SPLASH EFFECT (Red Bee)
+// RED SPLASH EFFECT (Red Bee) - Delta Time Based
 // ============================================
 
 class RedSplash {
@@ -966,18 +975,19 @@ class RedSplash {
                 x: x,
                 y: y,
                 angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 3 + 2,
+                speed: Math.random() * 150 + 100, // pixels per second
                 size: Math.random() * 8 + 6,
                 alpha: 1.0,
             });
         }
     }
 
-    update() {
+    update(dt) {
+        const fadeSpeed = 2.5; // alpha units per second
         this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.04;
+            p.x += Math.cos(p.angle) * p.speed * dt;
+            p.y += Math.sin(p.angle) * p.speed * dt;
+            p.alpha -= fadeSpeed * dt;
         });
         this.particles = this.particles.filter((p) => p.alpha > 0);
     }
