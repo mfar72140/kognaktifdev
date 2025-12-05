@@ -1,779 +1,836 @@
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
+/*gameorb.js backup*/
 
-let videoElement, hands, camera;
-let ctx, canvas;
-let beeImg, LhandImg, rhandImg, bgImg, redBeeImg;
-let ball = { x: 0, y: 0, r: 30, vx: 0, vy: 0 };
-let redBee = { x: -200, y: -200, r: 30, vx: 0, vy: 0, active: false };
-let score = 0;
-let bflyTouch = 0; // red bee touch counter
-let gameRunning = false;
-let countdownRunning = false;
-let touchSound, endGameSound, countdownSound, touchRedSound;
-let HoneySplashes = [];
-let RedSplashes = [];
-let bgMusic;
-let isMuted = false;
-let reactionTimes = [];
-let ballSpawnTime = null;
-let cameraReady = false;
-let previousArrowX = null;
-let previousHandType = "Left";
+/* =========================
+    ========== CONSTS =======
+    ========================= */
+const CANVAS_ID = "output_canvas";
+const TIMER_ID = "timer";
 
-// Red bee timing
-let redBeeTimer = 0;
-let redBeeState = "hidden"; // hidden, visible
-let redBeeVisibleStart = 0;
-let redBeeHiddenStart = 0;
+const COUNTDOWN_START = 3;
+const DETECTION_INTERVAL_MS = 100; // 10 FPS equivalent
+const GRASP_THRESHOLD = 0.2; // hand grasp sensitivity
+const BASKET_SNAP_DISTANCE = 60; // px to snap to basket
 
-// Path Deviation using Distance
-let startPos = null;
-let deviationRatios = [];
-let pathDeviations = [];
-let handVelocities = [];
+const TARGET_SCORE = 10; // Win condition
 
-// Distance Tracking
-let totalDistance = 0;
-let lastX = null, lastY = null;
+/* =========================
+    ========== STATE ========
+    ========================= */
+const state = {
+    gameStarted: false,
+    countdown: COUNTDOWN_START,
+    countdownRunning: false,
 
-// Hand bounce
-let handScale = 1;
-let handBounceActive = false;
+    cloud: null,
+    orbs: [],
+    baskets: [],
+    
+    draggingOrb: null,
+    dragOffset: { x: 0, y: 0 },
+    
+    score: 0,
+    orbLose: 0,
+    
+    // Distance tracking
+    totalDistance: 0,
+    orbDistances: {},
+    currentOrbStartPos: null,
+    lastDragPos: null,
 
-// Timer variables
-let startTime;
-let timerInterval;
+    // Grasp tracking
+    successfulGrasps: 0,
+    lostGrasps: 0,
 
-// Countdown
-let countdownValue = 3;
-let countdownInterval;
+    // timer
+    startTime: null,
+    timerIntervalId: null,
 
-// Hand position
-let arrowX = 0;
-let arrowY = 0;
+    // hand tracking
+    videoElement: null,
+    handDetector: null,
+    lastHandPos: null,
+    isGrasping: false,
+    handPointer: null,
+    lastDetectionTime: 0,
+    detectionInterval: DETECTION_INTERVAL_MS,
 
-// Store latest results
-let latestResults = null;
-
-// Bee animation
-let flap = 0;
-let flapDirection = 1;
-
-// Track respawn timeout
-let respawnTimeout = null;
-
-
-// ============================================
-// WINDOW ONLOAD - INIT
-// ============================================
-
-window.onload = () => {
-    canvas = document.getElementById("output_canvas");
-    ctx = canvas.getContext("2d");
-
-    // Load images
-    beeImg = new Image();
-    beeImg.src = "images/bee2.png";
-
-    redBeeImg = new Image();
-    redBeeImg.src = "images/bee3.png";
-
-    LhandImg = new Image();
-    LhandImg.src = "images/Lhand.png";
-
-    rhandImg = new Image();
-    rhandImg.src = "images/rhand.png";
-
-    bgImg = new Image();
-    bgImg.src = "images/backgr1.jpg";
-
-    // Load sound
-    touchSound = new Audio("sounds/touch.wav");
-    touchRedSound = new Audio("sounds/touch2.mp3");
-    endGameSound = new Audio("sounds/endapplause.wav");
-    countdownSound = new Audio("sounds/countdown.wav");
-
-    // Background Music
-    bgMusic = new Audio("sounds/01Backmusic20s.mp3");
-    bgMusic.loop = true;
-    bgMusic.volume = 0.6;
-
-    const muteBtn = document.getElementById("muteBtn");
-    if (muteBtn)  {
-        muteBtn.addEventListener("click", () => {
-            isMuted = !isMuted;
-
-            if (isMuted) {
-                bgMusic.muted = true;
-                muteBtn.textContent = "🔇";
-            } else {
-                bgMusic.muted = false;
-                muteBtn.textContent = "🔊";
-            }
-        });
-    }
-
-    // Buttons
-    document.getElementById("startBtnOverlay").addEventListener("click", () => {
-        document.getElementById("startBtnOverlay").style.display = "none";
-        document.getElementById("gameTitle").style.display = "none";
-        startCountdown();
-    });
-
-    // MediaPipe Hands setup
-    hands = new Hands({
-        locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-    });
-    hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 0,
-        minDetectionConfidence: 0.6,
-        minTrackingConfidence: 0.6,
-    });
-    hands.onResults((r) => {
-        latestResults = r;
-
-        if (!cameraReady) {
-            cameraReady = true;
-            console.log("✅ Camera is ready!");
-        }
-    });
-
-    videoElement = document.createElement("video");
-    videoElement.style.display = "none";
-
-    requestAnimationFrame(gameLoop);
+    // loop
+    rafId: null,
+    showWinOverlay: false,
 };
 
+let isMuted = false;
 
-// ============================================
-// Countdown
-// ============================================
+/* =========================
+    ====== DOM & UI ELTS ====
+    ========================= */
+const canvas = document.getElementById(CANVAS_ID);
+const ctx = canvas.getContext("2d");
 
-function startCountdown() {
-    // Reset state
-    score = 0;
-    bflyTouch = 0;
-    countdownValue = 3;
-    countdownRunning = false;
-    gameRunning = false;
-    HoneySplashes = [];
-    RedSplashes = [];
-    redBeeState = "hidden";
-    redBeeTimer = 0;
-    if (respawnTimeout) clearTimeout(respawnTimeout);
-    respawnTimeout = null;
+const titleEl = document.getElementById("gameTitle");
+const startBtn = document.getElementById("startBtnOverlay");
+const playAgainBtn = document.getElementById("playAgainBtn");
+const nextBtn = document.getElementById("nextBtn");
+const loadingOverlay = document.getElementById("loadingOverlay");
+const timerDisplay = document.getElementById(TIMER_ID);
+const muteBtn = document.getElementById("muteBtn");
+const scoreDisplay = document.getElementById("score");
 
-    document.getElementById("score").innerText = "Score: 0";
-    document.getElementById("startBtnOverlay").disabled = true;
-    document.getElementById("gameTitle").style.display = "none";
-
-    // Show Loading Overlay
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.style.display = "flex";
-    loadingOverlay.innerText = "📷 Loading... Starting Camera";
-
-    // Camera ON
-    camera = new Camera(videoElement, {
-        onFrame: async () => {
-            await hands.send({ image: videoElement });
-        },
-        width: 640,
-        height: 480,
+if (muteBtn) {
+    muteBtn.addEventListener("click", () => {
+        isMuted = !isMuted;
+        bgMusic.muted = isMuted;
+        muteBtn.textContent = isMuted ? "🔇" : "🔊";
     });
-    camera.start();
-
-    // Wait until camera is ready
-    const waitForCamera = setInterval(() => {
-        if (cameraReady) {
-            clearInterval(waitForCamera);
-            console.log("🎥 Camera feed detected, starting countdown...");
-
-            loadingOverlay.style.display = "none";
-
-            if (countdownSound) {
-                countdownSound.currentTime = 0;
-                countdownSound.play();
-            }
-
-            countdownRunning = true;
-            countdownInterval = setInterval(() => {
-                drawCountdown(countdownValue);
-                countdownValue--;
-
-                if (countdownValue < 0) {
-                    clearInterval(countdownInterval);
-                    countdownRunning = false;
-                    startGame();
-                }
-            }, 1000);
-        }
-    }, 200);
 }
 
+/* =========================
+    ======== Assets =========
+    ========================= */
+const backgroundImg = new Image();
+backgroundImg.src = "images/orbback2.png";
 
-function drawCountdown(value) {
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
+const cloudImg = new Image();
+cloudImg.src = "images/cloudsmile.png";
+
+const orbGreenImg = new Image();
+orbGreenImg.src = "images/orbgreen.png";
+
+const orbPurpleImg = new Image();
+orbPurpleImg.src = "images/orbpurple.png";
+
+const basketGreenImg = new Image();
+basketGreenImg.src = "images/basketgreen.png";
+
+const basketPurpleImg = new Image();
+basketPurpleImg.src = "images/basketpurple.png";
+
+const handImg = new Image();
+handImg.src = "images/rhand_shape.png";
+
+const graspImg = new Image();
+graspImg.src = "images/rgrab.png";
+
+// sound assets
+const dingSound = new Audio("sounds/dingeffect.wav");
+const countdownSound = new Audio("sounds/countdown2.wav");
+const endApplause = new Audio("sounds/endapplause.wav");
+endApplause.volume = 0.7;
+
+const breakSound = new Audio("sounds/break.mp3");
+
+const bgMusic = new Audio("sounds/03Backmusic30s.mp3");
+bgMusic.loop = true;
+bgMusic.volume = 0.9;
+
+/* =========================
+    ======= Initialization ==
+    ========================= */
+
+function preloadAssets() {
+    const promises = [];
+    const images = [
+        backgroundImg, cloudImg, orbGreenImg, orbPurpleImg,
+        basketGreenImg, basketPurpleImg, handImg, graspImg
+    ];
+
+    images.forEach(img => {
+        promises.push(new Promise((resolve) => {
+            if (img.complete) return resolve();
+            img.onload = () => resolve();
+            img.onerror = () => resolve();
+        }));
+    });
+
+    return Promise.all(promises);
+}
+
+function drawCover() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (backgroundImg.complete) {
+        ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    }
+
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "white";
-    ctx.font = "700 180px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(value > 0 ? value : "GO!", canvas.width / 2, canvas.height / 2);
 }
 
+/* =========================
+    ==== GAME SETUP ====
+    ========================= */
 
-// ============================================
-// Start Game
-// ============================================
+function initGame() {
+    state.score = 0;
+    state.orbLose = 0;
+    state.successfulGrasps = 0;
+    state.lostGrasps = 0;
+    updateScore();
 
-function startGame() {
-    gameRunning = true;
-    redBeeState = "hidden";
-    redBeeTimer = 0;
-    redBeeHiddenStart = Date.now();
+    state.totalDistance = 0;
+    state.orbDistances = {};
+    state.currentOrbStartPos = null;
+    state.lastDragPos = null;
 
-    if (bgMusic) {
-        bgMusic.currentTime = 0; 
-        bgMusic.play();
-    }
+    state.orbs = [];
 
-    clearInterval(timerInterval);
-    startTime = Date.now();
-    document.getElementById("timer").innerText = "Time: 0s";
-    timerInterval = setInterval(() => {
-        let elapsed = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById("timer").innerText = "Time: " + elapsed + "s";
-    }, 1000);
+    // Initialize cloud
+    state.cloud = {
+        x: 100,
+        y: 50,
+        width: 180,
+        height: 130,
+        speed: 0.6,
+        direction: 1, // 1 = right, -1 = left
+        canRelease: true,
+        releaseTimer: 0
+    };
 
-    spawnBall();
-}
-
-const HAND_MOVE_THRESHOLD = 10;
-
-
-// ============================================
-// Spawn Yellow Bee
-// ============================================
-function spawnBall() {
-    if (typeof spawnBall.lastZone === "undefined") spawnBall.lastZone = -1;
-
-    let zone;
-    let attempts = 0;
-    do {
-        zone = Math.floor(Math.random() * 4);
-        attempts++;
-    } while (zone === spawnBall.lastZone && attempts < 6);
-
-    spawnBall.lastZone = zone;
-
-    const off = 80;
-    const margin = 40;
-    
-    if (zone === 0) {
-        ball.x = -off - Math.random() * 40;
-        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
-    } else if (zone === 1) {
-        ball.x = canvas.width + off + Math.random() * 40;
-        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
-    } else if (zone === 2) {
-        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
-        ball.y = -off - Math.random() * 40;
-    } else {
-        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
-        ball.y = canvas.height + off + Math.random() * 40;
-    }
-
-    const targetX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.3;
-    const targetY = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.3;
-    const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
-    const speed = Math.random() * 1.6 + 0.8;
-    ball.vx = Math.cos(angle) * speed;
-    ball.vy = Math.sin(angle) * speed;
-
-    ballSpawnTime = Date.now();
-
-    startPos = null;
-    totalDeviation = 0;
-    sampleCount = 0;
-
-    lastX = null;
-    lastY = null;
-}
-
-
-// ============================================
-// Spawn Red Bee (Distraction)
-// ============================================
-function spawnRedBee() {
-    const margin = 60;
-    redBee.x = Math.random() * (canvas.width - margin * 2) + margin;
-    redBee.y = Math.random() * (canvas.height - margin * 2) + margin;
-    
-    // Slower random movement
-    const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 0.4 + 0.5; // much slower
-    redBee.vx = Math.cos(angle) * speed;
-    redBee.vy = Math.sin(angle) * speed;
-    
-    redBee.active = true;
-}
-
-
-// ============================================
-// Update Red Bee Movement
-// ============================================
-function updateRedBeeMovement() {
-    if (!redBee.active) return;
-
-    // Slow wandering
-    if (Math.random() < 0.03) {
-        let angle = Math.atan2(redBee.vy, redBee.vx);
-        angle += (Math.random() - 0.5) * Math.PI * 0.4;
-        let speed = Math.hypot(redBee.vx, redBee.vy);
-        speed += (Math.random() - 0.5) * 0.3;
-        speed = Math.max(0.2, Math.min(0.8, speed)); // slower max speed
-        const targetVx = Math.cos(angle) * speed;
-        const targetVy = Math.sin(angle) * speed;
-        const blend = 0.2;
-        redBee.vx += (targetVx - redBee.vx) * blend;
-        redBee.vy += (targetVy - redBee.vy) * blend;
-    }
-
-    // Edge avoidance
-    const margin = 50;
-    const steerStrength = 0.3;
-    if (redBee.x < margin) redBee.vx += steerStrength;
-    if (redBee.x > canvas.width - margin) redBee.vx -= steerStrength;
-    if (redBee.y < margin) redBee.vy += steerStrength;
-    if (redBee.y > canvas.height - margin) redBee.vy -= steerStrength;
-
-    const maxSpeed = 0.8;
-    let sp = Math.hypot(redBee.vx, redBee.vy);
-    if (sp > maxSpeed) {
-        redBee.vx = (redBee.vx / sp) * maxSpeed;
-        redBee.vy = (redBee.vy / sp) * maxSpeed;
-    }
-
-    redBee.x += redBee.vx;
-    redBee.y += redBee.vy;
-
-    // Boundary bounce
-    if (redBee.x < redBee.r) {
-        redBee.x = redBee.r;
-        redBee.vx = Math.abs(redBee.vx) * 0.7;
-    }
-    if (redBee.x > canvas.width - redBee.r) {
-        redBee.x = canvas.width - redBee.r;
-        redBee.vx = -Math.abs(redBee.vx) * 0.7;
-    }
-    if (redBee.y < redBee.r) {
-        redBee.y = redBee.r;
-        redBee.vy = Math.abs(redBee.vy) * 0.7;
-    }
-    if (redBee.y > canvas.height - redBee.r) {
-        redBee.y = canvas.height - redBee.r;
-        redBee.vy = -Math.abs(redBee.vy) * 0.7;
-    }
-}
-
-
-// ============================================
-// Red Bee State Manager (3s cycle)
-// ============================================
-function updateRedBeeState() {
-    if (!gameRunning) return;
-
-    const now = Date.now();
-
-    if (redBeeState === "hidden") {
-        if (now - redBeeHiddenStart >= 3000) {
-            redBeeState = "visible";
-            redBeeVisibleStart = now;
-            spawnRedBee();
+    // Initialize baskets at bottom
+    state.baskets = [
+        {
+            type: "green",
+            x: 260,
+            y: canvas.height - 70,
+            width: 120,
+            height: 120,
+            img: basketGreenImg
+        },
+        {
+            type: "purple",
+            x: canvas.width - 260,
+            y: canvas.height - 70,
+            width: 120,
+            height: 120,
+            img: basketPurpleImg
         }
-    } else if (redBeeState === "visible") {
-        if (now - redBeeVisibleStart >= 4000) {
-            redBeeState = "hidden";
-            redBeeHiddenStart = now;
-            redBee.active = false;
-            redBee.x = -200;
-            redBee.y = -200;
-        }
-    }
+    ];
 }
 
+/* =========================
+    ====== CAMERA & MODEL ===
+    ========================= */
 
-// ============================================
-// Yellow Bee Movement
-// ============================================
-function updateBallMovement() {
-    if (Math.random() < 0.04) {
-        let angle = Math.atan2(ball.vy, ball.vx);
-        angle += (Math.random() - 0.5) * Math.PI * 0.6;
-        let speed = Math.hypot(ball.vx, ball.vy);
-        speed += (Math.random() - 0.5) * 0.6;
-        speed = Math.max(0.6, Math.min(3.2, speed));
-        const targetVx = Math.cos(angle) * speed;
-        const targetVy = Math.sin(angle) * speed;
-        const blend = 0.25;
-        ball.vx += (targetVx - ball.vx) * blend;
-        ball.vy += (targetVy - ball.vy) * blend;
-    }
+async function setupCameraAndModel() {
+    try {
+        loadingOverlay.style.display = "flex";
 
-    const margin = 50;
-    const steerStrength = 0.45;
-    if (ball.x < margin) ball.vx += steerStrength;
-    if (ball.x > canvas.width - margin) ball.vx -= steerStrength;
-    if (ball.y < margin) ball.vy += steerStrength;
-    if (ball.y > canvas.height - margin) ball.vy -= steerStrength;
-
-    const maxSpeed = 3;
-    let sp = Math.hypot(ball.vx, ball.vy);
-    if (sp > maxSpeed) {
-        ball.vx = (ball.vx / sp) * maxSpeed;
-        ball.vy = (ball.vy / sp) * maxSpeed;
-    }
-
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-
-    if (ball.x < ball.r) {
-        ball.x = ball.r;
-        ball.vx = Math.abs(ball.vx) * 0.8;
-    }
-    if (ball.x > canvas.width - ball.r) {
-        ball.x = canvas.width - ball.r;
-        ball.vx = -Math.abs(ball.vx) * 0.8;
-    }
-    if (ball.y < ball.r) {
-        ball.y = ball.r;
-        ball.vy = Math.abs(ball.vy) * 0.8;
-    }
-    if (ball.y > canvas.height - ball.r) {
-        ball.y = canvas.height - ball.r;
-        ball.vy = -Math.abs(ball.vy) * 0.8;
-    }
-}
-
-
-// ============================================
-// Main Game Loop
-// ============================================
-
-function gameLoop() {
-    if (countdownRunning) {
-        drawCountdown(countdownValue);
-    } 
-    else if (gameRunning && latestResults) {
-        updateRedBeeState();
-        drawScene(latestResults);
-    }
-    requestAnimationFrame(gameLoop);
-}
-
-
-// ============================================
-// Draw Hand
-// ============================================
-
-function drawHand(x, y, img) {
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-
-    const baseSize = 90;
-    const size = baseSize * handScale;
-
-    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
-
-    if (handBounceActive) {
-        handScale += (1.6 - handScale) * 0.25;
-        if (handScale >= 1.55) {
-            handBounceActive = false;
-        }
-    } else {
-        handScale += (1 - handScale) * 0.2;
-    }
-}
-
-
-// ============================================
-// Handle Game Logic
-// ============================================
-
-function handleGameLogic(arrowX, arrowY) {
-    // Yellow bee collision
-    const dx = arrowX - ball.x;
-    const dy = arrowY - ball.y;
-    if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
-        let reaction = Date.now() - ballSpawnTime; 
-        reactionTimes.push(reaction);
-    
-        if (deviationRatios.length > 0) {
-            const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
-            pathDeviations.push(avgRatio * 100);
+        if (!state.videoElement) {
+            state.videoElement = document.createElement("video");
+            state.videoElement.autoplay = true;
+            state.videoElement.playsInline = true;
+            state.videoElement.style.display = "none";
+            document.body.appendChild(state.videoElement);
         }
 
-        score++;
-        document.getElementById("score").innerText = "Score: " + score;
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        state.videoElement.srcObject = stream;
 
-        handBounceActive = true;
+        await new Promise((resolve) => {
+            state.videoElement.onloadeddata = () => resolve();
+            if (state.videoElement.readyState >= 2) resolve();
+        });
 
-        if (touchSound) {
-            touchSound.currentTime = 0;
-            touchSound.play();
-        }
-
-        HoneySplashes.push(new HoneySplash(ball.x, ball.y));
-
-        startPos = null;
-        deviationRatios = [];
-        lastX = null;
-        lastY = null;
-
-        ball.x = -200;
-        ball.y = -200;
-        ball.vx = 0;
-        ball.vy = 0;
-
-        if (score >= 20) {
-            endGame();
-        } else {
-            if (respawnTimeout) clearTimeout(respawnTimeout);
-            respawnTimeout = setTimeout(spawnBall, 700);
-        }
-    }
-
-    // Red bee collision
-    if (redBee.active) {
-        const rdx = arrowX - redBee.x;
-        const rdy = arrowY - redBee.y;
-        if (Math.sqrt(rdx * rdx + rdy * rdy) < redBee.r + 10) {
-            bflyTouch++;
-            console.log("Red bee touched! Count:", bflyTouch);
-
-            handBounceActive = true;
-
-            if (touchRedSound) {
-                touchRedSound.currentTime = 0;
-                touchRedSound.play();
-            }
-
-            RedSplashes.push(new RedSplash(redBee.x, redBee.y));
-
-            // Hide red bee and restart cycle
-            redBee.active = false;
-            redBee.x = -200;
-            redBee.y = -200;
-            redBeeState = "hidden";
-            redBeeHiddenStart = Date.now();
-        }
-    }
-}
-
-
-// ============================================
-// Draw Scene
-// ============================================
-
-function drawScene(results) {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-    updateBallMovement();
-    updateRedBeeMovement();
-
-    flap += flapDirection * 0.8;
-    if (flap > 10 || flap < -10) flapDirection *= -1;
-
-    // Draw yellow bee
-    ctx.drawImage(
-        beeImg,
-        ball.x - ball.r,
-        ball.y - ball.r + flap,
-        ball.r * 2,
-        ball.r * 2
-    );
-
-    // Draw red bee if active
-    if (redBee.active) {
-        ctx.drawImage(
-            redBeeImg,
-            redBee.x - redBee.r,
-            redBee.y - redBee.r + flap,
-            redBee.r * 2,
-            redBee.r * 2
+        const vision = await FilesetResolver.forVisionTasks(
+            "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
         );
-    }
 
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-            const landmarks = results.multiHandLandmarks[i];
-            const handType = results.multiHandedness?.[i]?.label || "Unknown";
-            const palmIndices = [0, 1, 5, 9, 13, 17];
-            let sumX = 0, sumY = 0;
+        state.handDetector = await HandLandmarker.createFromOptions(vision, {
+            baseOptions: {
+                modelAssetPath:
+                    "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task",
+                delegate: "GPU",
+            },
+            numHands: 1,
+            runningMode: "VIDEO",
+        });
 
-            palmIndices.forEach((j) => {
-                sumX += canvas.width - landmarks[j].x * canvas.width;
-                sumY += landmarks[j].y * canvas.height;
-            });
-
-            arrowX = sumX / palmIndices.length;
-            arrowY = sumY / palmIndices.length;
-
-            if (previousArrowX !== null) {
-                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
-            }
-
-            let currentHandType = handType;
-            if (previousArrowX !== null) {
-                const dx = Math.abs(arrowX - previousArrowX);
-                if (dx > 250) currentHandType = previousHandType;
-            }
-
-            if (currentHandType === "Right" && rhandImg) {
-                drawHand(arrowX, arrowY, rhandImg);
-            } else {
-                drawHand(arrowX, arrowY, LhandImg);
-            }
-
-            previousArrowX = arrowX;
-            previousHandType = currentHandType;
-
-            if (!startPos) {
-                const dx = arrowX - ball.x;
-                const dy = arrowY - ball.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > HAND_MOVE_THRESHOLD) {
-                    startPos = { x: arrowX, y: arrowY };
-                    lastX = arrowX;
-                    lastY = arrowY;
-                    deviationRatios = [];
-                }
-            }
-
-            if (lastX !== null && lastY !== null) {
-                const dx = arrowX - lastX;
-                const dy = arrowY - lastY;
-                const moveDist = Math.sqrt(dx*dx + dy*dy);
-
-                handVelocities.push(moveDist);
-
-                if (moveDist > HAND_MOVE_THRESHOLD) {
-                    totalDistance += moveDist;
-                }
-            }
-            lastX = arrowX;
-            lastY = arrowY;
-
-            if (startPos) {
-                const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-                if (pathLength > 0) {
-                    const perpDist = getPerpendicularDistance(
-                        arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-                    );
-                    const ratio = perpDist / pathLength;
-                    deviationRatios.push(ratio);
-                }
-            }
-
-            handleGameLogic(arrowX, arrowY);
-
-            // Honey splashes (yellow)
-            for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-                HoneySplashes[i].update();
-                HoneySplashes[i].draw(ctx);
-                if (HoneySplashes[i].isFinished()) HoneySplashes.splice(i, 1);
-            }
-
-            // Red splashes
-            for (let i = RedSplashes.length - 1; i >= 0; i--) {
-                RedSplashes[i].update();
-                RedSplashes[i].draw(ctx);
-                if (RedSplashes[i].isFinished()) RedSplashes.splice(i, 1);
-            }
-        }
+        console.log("🖐️ HandLandmarker initialized.");
+    } catch (err) {
+        console.error("Camera/model setup failed:", err);
+        alert("Could not start camera or model. Check permissions and model path.");
+    } finally {
+        loadingOverlay.style.display = "none";
     }
 }
 
+/* =========================
+    ====== COUNTDOWN & START
+    ========================= */
 
-// ============================================
-// End Game
-// ============================================
+function runCountdownAndStart() {
+    state.countdown = COUNTDOWN_START;
+    state.countdownRunning = true;
 
-function endGame() {
-    gameRunning = false;
-    if (camera) camera.stop();
-    document.getElementById("startBtnOverlay").disabled = false;
-
-    clearInterval(timerInterval);
-    if (respawnTimeout) clearTimeout(respawnTimeout);
-    respawnTimeout = null;
-
-    let elapsed = Math.floor((Date.now() - startTime) / 1000);
-
-    let avgReaction = 0;
-    if (reactionTimes.length > 0) {
-        avgReaction = (reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length/1000).toFixed(2);
-    }
-
-    let normDistance = score > 0 ? totalDistance / score : totalDistance;
-
-    console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
-
-    let pathStability = 0;
-    if (pathDeviations.length > 0) {
-        const avgDev = pathDeviations.reduce((a,b)=>a+b,0)/pathDeviations.length;
-        pathStability = Math.max(0, 100 - avgDev);
-    }
-
-    let velStability = 0;
-    if (handVelocities.length > 5) {
-        const diffs = [];
-        for (let i=1;i<handVelocities.length;i++) {
-            diffs.push(Math.abs(handVelocities[i]-handVelocities[i-1]));
+    const intervalId = setInterval(() => {
+        if (backgroundImg.complete) {
+            ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
         }
-        const avgJitter = diffs.reduce((a,b)=>a+b,0)/diffs.length;
-        velStability = Math.max(0, 100 - avgJitter);
-    }
 
-    const movementStability = ((pathStability*0.7 + velStability*0.3)).toFixed(2);
-    console.log("Movement Stability (%):", movementStability);
-    console.log("Red Bee Touches (bfly_touch):", bflyTouch);
+        ctx.fillStyle = "rgba(0,0,0,0.7)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
-    if (endGameSound) { endGameSound.currentTime = 0; endGameSound.play(); }
+        ctx.fillStyle = "white";
+        ctx.font = "bold 180px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(state.countdown > 0 ? state.countdown : "GO!", canvas.width / 2, canvas.height / 2);
 
-    startFireworks();
-    const fireworksDuration = 2500;
-    const startTimeFireworks = Date.now();
+        if (state.countdown === 0) {
+            clearInterval(intervalId);
+            setTimeout(() => {
+                state.countdownRunning = false;
+                try {
+                    bgMusic.currentTime = 0;
+                    bgMusic.play();
+                } catch (e) { }
 
-    function fireworksAnimation() {
-        if (!fireworksRunning) return;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        drawFireworks(ctx);
-
-        if (Date.now() - startTimeFireworks < fireworksDuration) {
-            requestAnimationFrame(fireworksAnimation);
+                state.gameStarted = true;
+                startTimer();
+                initGame();
+                gameLoop();
+            }, 1000);
         } else {
-            stopFireworks();
-            showEndText(elapsed, avgReaction, normDistance, movementStability);
+            try { countdownSound.currentTime = 6; countdownSound.play(); } catch (e) { }
         }
-    }
-    fireworksAnimation();
+
+        state.countdown--;
+    }, 1000);
 }
 
+/* =========================
+    ====== CLOUD & ORB LOGIC ===
+    ========================= */
 
-// ============================================
-// Save Game Result to Supabase
-// ============================================
+function updateCloud() {
+    if (!state.cloud) return;
 
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance, bflyTouch) {
-    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance, bflyTouch);
+    // Move cloud
+    state.cloud.x += state.cloud.speed * state.cloud.direction;
+
+    // Bounce at edges
+    if (state.cloud.x > canvas.width - state.cloud.width / 2) {
+        state.cloud.direction = -1;
+    } else if (state.cloud.x < state.cloud.width / 2) {
+        state.cloud.direction = 1;
+    }
+
+    // Release orb logic
+    state.cloud.releaseTimer++;
+    
+    if (state.cloud.canRelease && state.cloud.releaseTimer > 180) { // ~3 seconds at 60fps
+        releaseOrb();
+        state.cloud.canRelease = false;
+        state.cloud.releaseTimer = 0;
+    }
+
+    // Check if we can release again (after last orb is captured or lost)
+    if (!state.cloud.canRelease && state.orbs.length === 0) {
+        state.cloud.canRelease = true;
+    }
+}
+
+function releaseOrb() {
+    const colors = ["green", "purple"];
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    const orb = {
+        id: Date.now(),
+        type: randomColor,
+        x: state.cloud.x,
+        y: state.cloud.y + state.cloud.height / 2,
+        width: 55,
+        height: 55,
+        speed: 0.35, // very slow fall
+        img: randomColor === "green" ? orbGreenImg : orbPurpleImg,
+        grabbed: false,
+        broken: false
+    };
+
+    state.orbs.push(orb);
+    state.orbDistances[orb.id] = 0;
+}
+
+function updateOrbs() {
+    state.orbs.forEach((orb, index) => {
+        if (orb.broken) return;
+        
+        // If not grabbed, fall slowly
+        if (!orb.grabbed && orb !== state.draggingOrb) {
+            orb.y += orb.speed;
+
+            // Check if hit bottom
+            if (orb.y > canvas.height - 50) {
+                orb.broken = true;
+                state.orbLose++;
+                state.lostGrasps++;
+                
+                // Play break sound
+                try {
+                    breakSound.currentTime = 0;
+                    breakSound.play();
+                } catch (e) { }
+                
+                // Remove after break animation
+                setTimeout(() => {
+                    state.orbs.splice(index, 1);
+                }, 500);
+            }
+        }
+    });
+}
+
+/* =========================
+    ====== HAND INPUT =======
+    ========================= */
+
+async function updateHandDetection() {
+    if (!state.handDetector || !state.gameStarted || !state.videoElement) return;
+
+    const now = performance.now();
+    if (now - state.lastDetectionTime < state.detectionInterval) return;
+    state.lastDetectionTime = now;
+
+    try {
+        const results = await state.handDetector.detectForVideo(state.videoElement, now);
+        if (results.landmarks && results.landmarks.length > 0) {
+            const hand = results.landmarks[0];
+            
+            // Use wrist as base
+            const wrist = hand[0];
+            const handCenter = { x: wrist.x, y: wrist.y };
+
+            if (state.lastHandPos) {
+                handCenter.x = (handCenter.x + state.lastHandPos.x) / 2;
+                handCenter.y = (handCenter.y + state.lastHandPos.y) / 2;
+            }
+            state.lastHandPos = handCenter;
+
+            const canvasX = (1 - handCenter.x) * canvas.width;
+            const canvasY = handCenter.y * canvas.height;
+            state.handPointer = { x: canvasX, y: canvasY };
+
+            // Grasp detection - check if all fingers are closed
+            const thumb = hand[4], index = hand[8], middle = hand[12], ring = hand[16], pinky = hand[20];
+            const palm = hand[0];
+            
+            // Calculate average distance of fingertips to palm
+            const distances = [thumb, index, middle, ring, pinky].map(tip => 
+                Math.hypot(tip.x - palm.x, tip.y - palm.y)
+            );
+            const avgDistance = distances.reduce((a, b) => a + b, 0) / distances.length;
+
+            if (avgDistance < GRASP_THRESHOLD && !state.isGrasping) {
+                state.isGrasping = true;
+                handleGraspStart(canvasX, canvasY);
+            } else if (state.isGrasping && avgDistance >= GRASP_THRESHOLD) {
+                state.isGrasping = false;
+                if (state.draggingOrb) {
+                    checkBasketPlacement(state.draggingOrb);
+                    state.draggingOrb = null;
+                    state.lastDragPos = null;
+                }
+            }
+
+            // Update dragging position with distance tracking
+            if (state.isGrasping && state.draggingOrb) {
+                const newX = canvasX;
+                const newY = canvasY;
+
+                if (state.lastDragPos) {
+                    const dx = newX - state.lastDragPos.x;
+                    const dy = newY - state.lastDragPos.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    state.totalDistance += distance;
+                    state.orbDistances[state.draggingOrb.id] = 
+                        (state.orbDistances[state.draggingOrb.id] || 0) + distance;
+                }
+
+                state.draggingOrb.x = newX;
+                state.draggingOrb.y = newY;
+                state.lastDragPos = { x: newX, y: newY };
+            }
+        } else {
+            // Lost hand tracking
+            if (state.isGrasping && state.draggingOrb) {
+                // Release orb back to falling
+                state.draggingOrb.grabbed = false;
+                state.draggingOrb = null;
+            }
+            state.handPointer = null;
+            state.isGrasping = false;
+        }
+    } catch (err) {
+        console.warn("Hand detection failed:", err);
+    }
+}
+
+function handleGraspStart(x, y) {
+    state.draggingOrb = null;
+
+    for (let i = state.orbs.length - 1; i >= 0; i--) {
+        const orb = state.orbs[i];
+        if (!orb.broken && !orb.grabbed && isPointInOrb(x, y, orb)) {
+            state.draggingOrb = orb;
+            orb.grabbed = true;
+            state.lastDragPos = { x: orb.x, y: orb.y };
+            break;
+        }
+    }
+}
+
+function isPointInOrb(mx, my, orb) {
+    return mx > orb.x - orb.width / 2 && 
+                 mx < orb.x + orb.width / 2 && 
+                 my > orb.y - orb.height / 2 && 
+                 my < orb.y + orb.height / 2;
+}
+
+function checkBasketPlacement(orb) {
+    if (!orb) return;
+
+    const matchingBasket = state.baskets.find(b => b.type === orb.type);
+    if (!matchingBasket) return;
+
+    const dx = matchingBasket.x - orb.x;
+    const dy = matchingBasket.y - orb.y;
+
+    if (Math.hypot(dx, dy) < BASKET_SNAP_DISTANCE) {
+        // Success!
+        state.score++;
+        state.successfulGrasps++;
+        updateScore();
+
+        // Remove orb
+        const index = state.orbs.indexOf(orb);
+        if (index > -1) state.orbs.splice(index, 1);
+
+        // Play sound
+        try { dingSound.currentTime = 0; dingSound.play(); } catch (e) { }
+
+        // Effect
+        drawBasketEffect(matchingBasket);
+
+        checkWinCondition();
+    } else {
+        // Release back to falling
+        orb.grabbed = false;
+    }
+}
+
+function drawBasketEffect(basket) {
+    // Simple glow effect (drawn in next frame)
+    basket.glowTime = Date.now();
+}
+
+function updateScore() {
+    scoreDisplay.textContent = `Score: ${state.score}`;
+}
+
+function checkWinCondition() {
+    if (state.score >= TARGET_SCORE) {
+        if (state.rafId) cancelAnimationFrame(state.rafId);
+
+        setTimeout(() => {
+            stopGameCleanup();
+            fadeInWinOverlay();
+            state.showWinOverlay = true;
+        }, 1000);
+    }
+}
+
+/* =========================
+    ======= RENDERING =======
+    ========================= */
+
+function drawScene() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    if (!state.gameStarted || state.showWinOverlay) return;
+
+    // Background
+    if (backgroundImg.complete) {
+        ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+    }
+
+    // Draw baskets
+    state.baskets.forEach(basket => {
+        if (basket.img && basket.img.complete) {
+            ctx.drawImage(basket.img, 
+                basket.x - basket.width / 2, 
+                basket.y - basket.height / 2, 
+                basket.width, 
+                basket.height);
+        }
+
+        // Star burst effect
+        if (basket.glowTime) {
+            const elapsed = Date.now() - basket.glowTime;
+            if (elapsed < 500) {
+                const progress = elapsed / 500;
+                const alpha = 1 - progress;
+                const numStars = 12;
+                const radius = 140 * progress;
+                
+                for (let i = 0; i < numStars; i++) {
+                    const angle = (Math.PI * 2 * i) / numStars + progress * Math.PI;
+                    const x = basket.x + Math.cos(angle) * radius;
+                    const y = basket.y + Math.sin(angle) * radius;
+                    const size = 15 * (1 - progress);
+                    
+                    ctx.fillStyle = `rgba(255, 215, 0, ${alpha})`;
+                    ctx.beginPath();
+                    ctx.moveTo(x, y - size);
+                    for (let j = 0; j < 5; j++) {
+                        ctx.lineTo(x + Math.cos((j * 4 * Math.PI) / 5 - Math.PI / 2) * size,
+                                   y + Math.sin((j * 4 * Math.PI) / 5 - Math.PI / 2) * size);
+                    }
+                    ctx.closePath();
+                    ctx.fill();
+                }
+            } else {
+                basket.glowTime = null;
+            }
+        }
+    });
+
+    // Draw cloud
+    if (state.cloud && cloudImg.complete) {
+        ctx.drawImage(cloudImg, 
+            state.cloud.x - state.cloud.width / 2, 
+            state.cloud.y - state.cloud.height / 2, 
+            state.cloud.width, 
+            state.cloud.height);
+    }
+
+    // Draw orbs
+    state.orbs.forEach(orb => {
+        if (orb.broken) {
+            // Particle explosion effect
+            const particles = 10;
+            const maxRadius = 60;
+            const progress = Math.min((Date.now() - (orb.breakTime || Date.now())) / 500, 1);
+            
+            for (let i = 0; i < particles; i++) {
+                const angle = (Math.PI * 2 * i) / particles;
+                const distance = maxRadius * progress;
+                const x = orb.x + Math.cos(angle) * distance;
+                const y = orb.y + Math.sin(angle) * distance;
+                const alpha = 1 - progress;
+                
+                ctx.fillStyle = orb.type === "green" ? `rgba(0, 255, 0, ${alpha})` : `rgba(138, 43, 226, ${alpha})`;
+                ctx.beginPath();
+                const radius = Math.max(0, 5 * (1 - progress));
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+            
+            if (!orb.breakTime) orb.breakTime = Date.now();
+        } else if (orb.img && orb.img.complete) {
+            // Draw glow effect
+            const glowColor = orb.type === "green" ? "rgba(0, 255, 0, 0.5)" : "rgba(138, 43, 226, 0.5)";
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = glowColor;
+            
+            ctx.drawImage(orb.img, 
+                orb.x - orb.width / 2, 
+                orb.y - orb.height / 2, 
+                orb.width, 
+                orb.height);
+            
+            // Reset shadow
+            ctx.shadowBlur = 0;
+        }
+    });
+
+
+    // Draw hand pointer
+    if (state.handPointer && handImg.complete) {
+        const handSize = Math.min(canvas.width, canvas.height) * 0.2;
+        const imgToUse = state.isGrasping ? graspImg : handImg;
+        const size = state.isGrasping ? handSize * 0.8 : handSize;
+        ctx.drawImage(imgToUse, 
+            state.handPointer.x - size / 2, 
+            state.handPointer.y - size / 2, 
+            size, 
+            size);
+    }
+}
+
+/* =========================
+    ====== GAME LOOP ========
+    ========================= */
+
+async function gameLoop() {
+    if (!state.gameStarted) return;
+
+    updateCloud();
+    updateOrbs();
+    await updateHandDetection();
+    drawScene();
+
+    state.rafId = requestAnimationFrame(gameLoop);
+}
+
+/* =========================
+    ======== TIMERS =========
+    ========================= */
+
+function startTimer() {
+    state.startTime = Date.now();
+    timerDisplay && (timerDisplay.textContent = `Time: 0s`);
+    if (state.timerIntervalId) clearInterval(state.timerIntervalId);
+
+    state.timerIntervalId = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+        timerDisplay && (timerDisplay.textContent = `Time: ${elapsed}s`);
+    }, 1000);
+}
+
+function stopTimer() {
+    if (state.timerIntervalId) {
+        clearInterval(state.timerIntervalId);
+        state.timerIntervalId = null;
+    }
+    state.finalElapsed = Math.floor((Date.now() - state.startTime) / 1000);
+    saveGameResult();
+}
+
+/* =========================
+    ======= CLEANUP =========
+    ========================= */
+
+function stopGameCleanup() {
+    state.gameStarted = false;
+    stopTimer();
+    stopCamera();
+
+    try {
+        bgMusic.pause();
+        bgMusic.currentTime = 0;
+    } catch (e) { }
+
+    try {
+        endApplause.currentTime = 0;
+        endApplause.play();
+    } catch (e) { }
+}
+
+function stopCamera() {
+    try {
+        if (state.videoElement && state.videoElement.srcObject) {
+            const tracks = state.videoElement.srcObject.getTracks();
+            tracks.forEach(track => track.stop());
+            state.videoElement.srcObject = null;
+        }
+        if (state.videoElement) {
+            state.videoElement.remove();
+            state.videoElement = null;
+        }
+    } catch (e) {
+        console.warn("Error stopping camera:", e);
+    }
+}
+
+/* =========================
+    ======= WIN OVERLAY =====
+    ========================= */
+
+function fadeInWinOverlay() {
+    let opacity = 0;
+    const fadeDuration = 3000;
+    const startTime = performance.now();
+
+    const finalTime = state.finalElapsed ?? 0;
+    const totalAttempts = state.successfulGrasps + state.lostGrasps;
+    const graspStability = totalAttempts > 0 ? ((state.successfulGrasps / totalAttempts) * 100).toFixed(2) : 0;
+
+    function drawOverlay(now) {
+        const elapsed = now - startTime;
+        opacity = Math.min(elapsed / fadeDuration, 1);
+
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        if (backgroundImg.complete) {
+            ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.fillStyle = `rgba(0,0,0,${0.5 * opacity})`;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = `rgba(255,255,255,${opacity})`;
+        ctx.font = "70px Poppins";
+        ctx.textAlign = "center";
+        ctx.fillText("🎉 Well done! 🎉", canvas.width / 2, canvas.height / 2 - 80);
+
+        ctx.font = "35px Poppins";
+        ctx.fillText("You've completed the game!", canvas.width / 2, canvas.height / 2 - 10);
+
+        ctx.font = "20px Poppins";
+        ctx.fillText(`Time: ${finalTime}s`, canvas.width / 2, canvas.height / 2 + 30);
+
+        if (opacity < 1) {
+            requestAnimationFrame(drawOverlay);
+        } else {
+            playAgainBtn.style.display = "block";
+            nextBtn.style.display = "block";
+        }
+    }
+
+    requestAnimationFrame(drawOverlay);
+}
+
+/* =========================
+    ===== CONSISTENCY =======
+    ========================= */
+
+function calculateStandardDeviation(values) {
+    if (values.length === 0) return 0;
+    const mean = values.reduce((a, b) => a + b, 0) / values.length;
+    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    return Math.sqrt(variance);
+}
+
+async function calculateConsistency(userEmail) {
+    try {
+        const { data, error } = await supabase
+            .from("orbcatcher_results")
+            .select("time_taken")
+            .eq("player_email", userEmail)
+            .eq("level", "BEGINNER")
+            .order("created_at", { ascending: false })
+            .limit(5);
+
+        if (error) {
+            console.error("Error fetching consistency data:", error);
+            return null;
+        }
+
+        if (!data || data.length < 5) {
+            console.log("Not enough games for consistency calculation (need 5)");
+            return null;
+        }
+
+        const times = data.map(row => row.time_taken);
+        const stdDev = calculateStandardDeviation(times);
+        const mean = times.reduce((a, b) => a + b, 0) / times.length;
+        const cv = mean > 0 ? (stdDev / mean) * 100 : 0;
+        const consistencyScore = Math.max(0, Math.min(100, 100 - cv));
+
+        return Math.round(consistencyScore * 100) / 100;
+    } catch (err) {
+        console.error("Consistency calculation error:", err);
+        return null;
+    }
+}
+
+/* =========================
+    ======= SAVE RESULT =====
+    ========================= */
+
+async function saveGameResult() {
+    console.log("Saving game result...");
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -781,252 +838,105 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
         return;
     }
 
-    console.log("User found:", user);
+    console.log("User found:", user.email);
 
-    const { error: insertError } = await supabase
-        .from("buzztap_results")
+    const finalTime = state.finalElapsed ?? 0;
+    const score = state.score ?? 0;
+    const orbLose = state.orbLose ?? 0;
+    const totalDistance = Math.round(state.totalDistance);
+    
+    const orbCount = Object.keys(state.orbDistances).length;
+    const averageDistance = orbCount > 0 ? Math.round(totalDistance / orbCount) : 0;
+
+    const totalAttempts = state.successfulGrasps + state.lostGrasps;
+    const graspStability = totalAttempts > 0 ? 
+        parseFloat(((state.successfulGrasps / totalAttempts) * 100).toFixed(2)) : 0;
+
+    const consistency = await calculateConsistency(user.email);
+    console.log("Calculated consistency:", consistency);
+
+    const { data: insertData, error: insertError } = await supabase
+        .from("orbcatcher_results")
         .insert([{
             player_email: user.email,
             score: score,
-            time_taken: timeTaken,
-            avg_reaction_time: avgReaction,
-            norm_totaldistance: normDistance,
-            av_devpath: parseFloat(movementStability),
+            level: "BEGINNER",
+            time_taken: finalTime,
+            totaldistance: totalDistance,
+            av_distance: averageDistance,
             consistency: consistency,
-            level: "ADVANCED",
-            totaldistance: parseFloat(totalDistance),
-            bfly_touch: bflyTouch
-        }]);
+            orblose: orbLose,
+            attempts: totalAttempts,
+            graspstability: graspStability
+        }])
+        .select();
 
     if (insertError) {
         console.error("Insert error:", insertError);
     } else {
         console.log("Result saved successfully!");
+        console.log(`Total distance: ${totalDistance}px`);
+        console.log(`Average distance: ${averageDistance}px`);
+        console.log(`Consistency: ${consistency}`);
+        console.log(`Orbs lost: ${orbLose}`);
+        console.log(`Attempts: ${totalAttempts}`);
+        console.log(`Grasp Stability: ${graspStability}%`);
     }
 }
 
+/* =========================
+    ======= EVENTS ==========
+    ========================= */
 
-// ============================================
-// Show End Text
-// ============================================
+startBtn.addEventListener("click", async () => {
+    startBtn.style.display = "none";
+    titleEl.style.display = "none";
+    playAgainBtn.style.display = "none";
+    nextBtn.style.display = "none";
 
-function showEndText(elapsed, avgReaction, normDistance, movementStability) {
+    await preloadAssets();
+    drawCover();
 
-    ctx.fillStyle = "rgba(0,0,0,0.1)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await setupCameraAndModel();
+    runCountdownAndStart();
+});
 
-    ctx.fillStyle = "white";
-    ctx.font = "bold 65px poppins";
-    ctx.textAlign = "center";
-    ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
-    
-    ctx.font = "40px poppins";
-    ctx.fillText("You've finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
-    
-    ctx.font = "35px poppins";
-    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
-    ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
+playAgainBtn.addEventListener("click", () => {
+    window.location.href = "gameorbplay.html";
+});
 
-    startPos = null;
-    totalDeviation = 0;
-    sampleCount = 0;
-    pathDeviations = [];
+nextBtn.addEventListener("click", () => {
+    window.location.href = "gameorbcover.html";
+});
 
-    document.getElementById("playAgainBtn").style.display = "block";
-    document.getElementById("nextBtn").style.display = "block";
+/* =========================
+    ======= STARTUP =========
+    ========================= */
 
-    async function calculateConsistency(newTimeTaken) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return 0;
-
-        const { data, error } = await supabase
-            .from("buzztap_results")
-            .select("time_taken")
-            .eq("player_email", user.email)
-            .eq("level", "ADVANCED")
-            .order("created_at", { ascending: false })
-            .limit(4);
-
-        if (error) {
-            console.error("Fetch error:", error);
-            return 0;
-        }
-
-        let times = data.map(r => r.time_taken);
-        times.push(newTimeTaken);
-
-        if (times.length < 5) {
-            console.log("Not enough games for consistency");
-            return 0;
-        }
-
-        let mean = times.reduce((a, b) => a + b, 0) / times.length;
-        let variance = times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / times.length;
-        let std = Math.sqrt(variance);
-
-        let consistency = 1 - (std / mean); 
-        return Math.max(0, Math.min(1, consistency)).toFixed(3);
-    }
-
-    calculateConsistency(elapsed).then(consistency => {
-        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, totalDistance, bflyTouch);
-    
-        reactionTimes = [];
-        totalDistance = 0;
-        lastX = null;
-        lastY = null;
-    });
-
-    document.getElementById("playAgainBtn").onclick = () => {
-        document.getElementById("playAgainBtn").style.display = "none";
-        document.getElementById("nextBtn").style.display = "none";
-        window.location.href = "gamebuzzplay.html";
-    };
-
-    document.getElementById("nextBtn").onclick = () => {
-        window.location.href = "gamebuzzcover.html";
-    };
+if (backgroundImg.complete) {
+    drawCover();
+} else {
+    backgroundImg.onload = () => drawCover();
 }
 
-
-// ============================================
-// HONEY SPLASH EFFECT (Yellow)
-// ============================================
-
-class HoneySplash {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.particles = [];
-        for (let i = 0; i < 8; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 3 + 2,
-                size: Math.random() * 8 + 6,
-                alpha: 1.0,
-            });
-        }
-    }
-
-    update() {
-        this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.04;
-        });
-        this.particles = this.particles.filter((p) => p.alpha > 0);
-    }
-
-    draw(ctx) {
-        this.particles.forEach((p) => {
-            ctx.fillStyle = `rgba(255, 204, 0, ${p.alpha})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    isFinished() {
-        return this.particles.length === 0;
-    }
-}
-
-
-// ============================================
-// RED SPLASH EFFECT (Red Bee)
-// ============================================
-
-class RedSplash {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.particles = [];
-        for (let i = 0; i < 8; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 3 + 2,
-                size: Math.random() * 8 + 6,
-                alpha: 1.0,
-            });
-        }
-    }
-
-    update() {
-        this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.04;
-        });
-        this.particles = this.particles.filter((p) => p.alpha > 0);
-    }
-
-    draw(ctx) {
-        this.particles.forEach((p) => {
-            ctx.fillStyle = `rgba(255, 50, 50, ${p.alpha})`; // Red color
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    isFinished() {
-        return this.particles.length === 0;
-    }
-}
-
-
-// ========================
-// HOW TO PLAY POPUP SYSTEM
-// ========================
+/* =========================
+    ====== POPUP SYSTEM =====
+    ========================= */
 
 function showPopup() {
-    guidePopup.style.display = "flex";
+    const guidePopup = document.getElementById("guidePopup");
+    if (guidePopup) guidePopup.style.display = "flex";
 }
 
 function hidePopup() {
-    guidePopup.style.display = "none";
+    const guidePopup = document.getElementById("guidePopup");
+    if (guidePopup) guidePopup.style.display = "none";
 }
 
-howToPlayBtn.addEventListener("click", showPopup);
-closeGuideBtn.addEventListener("click", hidePopup);
+const howToPlayBtn = document.getElementById("howToPlayBtn");
+const closeGuideBtn = document.getElementById("closeGuideBtn");
+
+if (howToPlayBtn) howToPlayBtn.addEventListener("click", showPopup);
+if (closeGuideBtn) closeGuideBtn.addEventListener("click", hidePopup);
 
 window.addEventListener("load", showPopup);
-
-
-// =================================================
-// Helper: perpendicular distance from point to line
-// =================================================
-
-function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
-    const A = px - x1;
-    const B = py - y1;
-    const C = x2 - x1;
-    const D = y2 - y1;
-
-    const dot = A * C + B * D;
-    const len_sq = C * C + D * D;
-    const param = len_sq !== 0 ? dot / len_sq : -1;
-
-    let xx, yy;
-
-    if (param < 0) {
-        xx = x1;
-        yy = y1;
-    } else if (param > 1) {
-        xx = x2;
-        yy = y2;
-    } else {
-        xx = x1 + param * C;
-        yy = y1 + param * D;
-    }
-
-    const dx = px - xx;
-    const dy = py - yy;
-    return Math.sqrt(dx * dx + dy * dy);
-}
-
-// --- End of gamebuzz_adv.js ---

@@ -11,6 +11,10 @@ const BASKET_SNAP_DISTANCE = 60; // px to snap to basket
 
 const TARGET_SCORE = 10; // Win condition
 
+// Delta time settings
+const TARGET_FPS = 60;
+const DELTA_TIME_SCALE = 0.6; // Scale factor to slow down movement (adjust 0.1-1.0)
+
 /* =========================
     ========== STATE ========
     ========================= */
@@ -55,6 +59,10 @@ const state = {
     // loop
     rafId: null,
     showWinOverlay: false,
+    
+    // delta time
+    lastFrameTime: 0,
+    deltaTime: 0,
 };
 
 let isMuted = false;
@@ -171,6 +179,8 @@ function initGame() {
     state.lastDragPos = null;
 
     state.orbs = [];
+    state.lastFrameTime = 0;
+    state.deltaTime = 0;
 
     // Initialize cloud
     state.cloud = {
@@ -178,7 +188,7 @@ function initGame() {
         y: 50,
         width: 180,
         height: 130,
-        speed: 0.6,
+        speed: 0.8,
         direction: 1, // 1 = right, -1 = left
         canRelease: true,
         releaseTimer: 0
@@ -303,8 +313,8 @@ function runCountdownAndStart() {
 function updateCloud() {
     if (!state.cloud) return;
 
-    // Move cloud
-    state.cloud.x += state.cloud.speed * state.cloud.direction;
+    // Move cloud with delta time
+    state.cloud.x += state.cloud.speed * state.cloud.direction * state.deltaTime * TARGET_FPS * DELTA_TIME_SCALE;
 
     // Bounce at edges
     if (state.cloud.x > canvas.width - state.cloud.width / 2) {
@@ -314,7 +324,7 @@ function updateCloud() {
     }
 
     // Release orb logic
-    state.cloud.releaseTimer++;
+    state.cloud.releaseTimer += state.deltaTime * TARGET_FPS;
     
     if (state.cloud.canRelease && state.cloud.releaseTimer > 180) { // ~3 seconds at 60fps
         releaseOrb();
@@ -339,7 +349,7 @@ function releaseOrb() {
         y: state.cloud.y + state.cloud.height / 2,
         width: 55,
         height: 55,
-        speed: 0.35, // very slow fall
+        speed: 0.4, // very slow fall
         img: randomColor === "green" ? orbGreenImg : orbPurpleImg,
         grabbed: false,
         broken: false
@@ -353,9 +363,9 @@ function updateOrbs() {
     state.orbs.forEach((orb, index) => {
         if (orb.broken) return;
         
-        // If not grabbed, fall slowly
+        // If not grabbed, fall slowly with delta time
         if (!orb.grabbed && orb !== state.draggingOrb) {
-            orb.y += orb.speed;
+            orb.y += orb.speed * state.deltaTime * TARGET_FPS * DELTA_TIME_SCALE;
 
             // Check if hit bottom
             if (orb.y > canvas.height - 50) {
@@ -660,8 +670,20 @@ function drawScene() {
     ====== GAME LOOP ========
     ========================= */
 
-async function gameLoop() {
+async function gameLoop(currentTime = 0) {
     if (!state.gameStarted) return;
+
+    // Calculate delta time
+    if (state.lastFrameTime === 0) {
+        state.lastFrameTime = currentTime;
+    }
+    state.deltaTime = (currentTime - state.lastFrameTime) / 1000; // Convert to seconds
+    state.lastFrameTime = currentTime;
+
+    // Cap delta time to prevent huge jumps
+    if (state.deltaTime > 0.1) {
+        state.deltaTime = 0.1;
+    }
 
     updateCloud();
     updateOrbs();
