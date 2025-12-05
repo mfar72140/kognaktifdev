@@ -323,10 +323,10 @@ function updateBallMovement(dt) {
         angle += (Math.random() - 0.5) * Math.PI * 0.6; // random turn
         let speed = Math.hypot(ball.vx, ball.vy);
         speed += (Math.random() - 0.5) * 0.6;
-        speed = Math.max(0.6, Math.min(3.2, speed));
+        speed = Math.max(0.4, Math.min(2.0, speed)); // ← Reduced from (0.6, 3.2) to (0.4, 2.0)
         const targetVx = Math.cos(angle) * speed;
         const targetVy = Math.sin(angle) * speed;
-        const blend = 0.25; // 0 = no change, 1 = immediate (original behavior)
+        const blend = 0.25;
         ball.vx += (targetVx - ball.vx) * blend;
         ball.vy += (targetVy - ball.vy) * blend;
     }
@@ -339,7 +339,7 @@ function updateBallMovement(dt) {
     if (ball.y > canvas.height - margin) ball.vy -= steerStrength;
 
     // limit speed
-    const maxSpeed = 3;
+    const maxSpeed = 2.0; // ← Reduced from 3 to 2.0
     let sp = Math.hypot(ball.vx, ball.vy);
     if (sp > maxSpeed) {
         ball.vx = (ball.vx / sp) * maxSpeed;
