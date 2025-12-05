@@ -1,3 +1,4 @@
+//gamebuzz_adv.js backup
 // ============================================
 // GLOBAL VARIABLES
 // ============================================
@@ -63,10 +64,6 @@ let flapDirection = 1;
 
 // Track respawn timeout
 let respawnTimeout = null;
-
-// Delta time tracking
-let lastFrameTime = performance.now();
-let deltaTime = 0;
 
 
 // ============================================
@@ -240,7 +237,6 @@ function startGame() {
     redBeeState = "hidden";
     redBeeTimer = 0;
     redBeeHiddenStart = Date.now();
-    lastFrameTime = performance.now();
 
     if (bgMusic) {
         bgMusic.currentTime = 0; 
@@ -296,7 +292,7 @@ function spawnBall() {
     const targetX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.3;
     const targetY = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.3;
     const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
-    const speed = Math.random() * 80 + 40; // pixels per second
+    const speed = Math.random() * 1.6 + 0.8;
     ball.vx = Math.cos(angle) * speed;
     ball.vy = Math.sin(angle) * speed;
 
@@ -319,9 +315,9 @@ function spawnRedBee() {
     redBee.x = Math.random() * (canvas.width - margin * 2) + margin;
     redBee.y = Math.random() * (canvas.height - margin * 2) + margin;
     
-    // Slower random movement (pixels per second)
+    // Slower random movement
     const angle = Math.random() * Math.PI * 2;
-    const speed = Math.random() * 20 + 25; // slower speed in px/s
+    const speed = Math.random() * 0.4 + 0.5; // much slower
     redBee.vx = Math.cos(angle) * speed;
     redBee.vy = Math.sin(angle) * speed;
     
@@ -330,9 +326,9 @@ function spawnRedBee() {
 
 
 // ============================================
-// Update Red Bee Movement (Delta Time Based)
+// Update Red Bee Movement
 // ============================================
-function updateRedBeeMovement(dt) {
+function updateRedBeeMovement() {
     if (!redBee.active) return;
 
     // Slow wandering
@@ -340,8 +336,8 @@ function updateRedBeeMovement(dt) {
         let angle = Math.atan2(redBee.vy, redBee.vx);
         angle += (Math.random() - 0.5) * Math.PI * 0.4;
         let speed = Math.hypot(redBee.vx, redBee.vy);
-        speed += (Math.random() - 0.5) * 15;
-        speed = Math.max(10, Math.min(40, speed)); // slower max speed (px/s)
+        speed += (Math.random() - 0.5) * 0.3;
+        speed = Math.max(0.2, Math.min(0.8, speed)); // slower max speed
         const targetVx = Math.cos(angle) * speed;
         const targetVy = Math.sin(angle) * speed;
         const blend = 0.2;
@@ -351,21 +347,21 @@ function updateRedBeeMovement(dt) {
 
     // Edge avoidance
     const margin = 50;
-    const steerStrength = 15; // acceleration in px/s²
-    if (redBee.x < margin) redBee.vx += steerStrength * dt * 60;
-    if (redBee.x > canvas.width - margin) redBee.vx -= steerStrength * dt * 60;
-    if (redBee.y < margin) redBee.vy += steerStrength * dt * 60;
-    if (redBee.y > canvas.height - margin) redBee.vy -= steerStrength * dt * 60;
+    const steerStrength = 0.3;
+    if (redBee.x < margin) redBee.vx += steerStrength;
+    if (redBee.x > canvas.width - margin) redBee.vx -= steerStrength;
+    if (redBee.y < margin) redBee.vy += steerStrength;
+    if (redBee.y > canvas.height - margin) redBee.vy -= steerStrength;
 
-    const maxSpeed = 40; // px/s
+    const maxSpeed = 0.8;
     let sp = Math.hypot(redBee.vx, redBee.vy);
     if (sp > maxSpeed) {
         redBee.vx = (redBee.vx / sp) * maxSpeed;
         redBee.vy = (redBee.vy / sp) * maxSpeed;
     }
 
-    redBee.x += redBee.vx * dt;
-    redBee.y += redBee.vy * dt;
+    redBee.x += redBee.vx;
+    redBee.y += redBee.vy;
 
     // Boundary bounce
     if (redBee.x < redBee.r) {
@@ -414,15 +410,15 @@ function updateRedBeeState() {
 
 
 // ============================================
-// Yellow Bee Movement (Delta Time Based)
+// Yellow Bee Movement
 // ============================================
-function updateBallMovement(dt) {
+function updateBallMovement() {
     if (Math.random() < 0.04) {
         let angle = Math.atan2(ball.vy, ball.vx);
         angle += (Math.random() - 0.5) * Math.PI * 0.6;
         let speed = Math.hypot(ball.vx, ball.vy);
-        speed += (Math.random() - 0.5) * 30;
-        speed = Math.max(30, Math.min(160, speed)); // pixels per second
+        speed += (Math.random() - 0.5) * 0.6;
+        speed = Math.max(0.6, Math.min(3.2, speed));
         const targetVx = Math.cos(angle) * speed;
         const targetVy = Math.sin(angle) * speed;
         const blend = 0.25;
@@ -431,21 +427,21 @@ function updateBallMovement(dt) {
     }
 
     const margin = 50;
-    const steerStrength = 22.5; // acceleration in px/s²
-    if (ball.x < margin) ball.vx += steerStrength * dt * 60;
-    if (ball.x > canvas.width - margin) ball.vx -= steerStrength * dt * 60;
-    if (ball.y < margin) ball.vy += steerStrength * dt * 60;
-    if (ball.y > canvas.height - margin) ball.vy -= steerStrength * dt * 60;
+    const steerStrength = 0.45;
+    if (ball.x < margin) ball.vx += steerStrength;
+    if (ball.x > canvas.width - margin) ball.vx -= steerStrength;
+    if (ball.y < margin) ball.vy += steerStrength;
+    if (ball.y > canvas.height - margin) ball.vy -= steerStrength;
 
-    const maxSpeed = 150; // px/s
+    const maxSpeed = 3;
     let sp = Math.hypot(ball.vx, ball.vy);
     if (sp > maxSpeed) {
         ball.vx = (ball.vx / sp) * maxSpeed;
         ball.vy = (ball.vy / sp) * maxSpeed;
     }
 
-    ball.x += ball.vx * dt;
-    ball.y += ball.vy * dt;
+    ball.x += ball.vx;
+    ball.y += ball.vy;
 
     if (ball.x < ball.r) {
         ball.x = ball.r;
@@ -470,22 +466,13 @@ function updateBallMovement(dt) {
 // Main Game Loop
 // ============================================
 
-function gameLoop(currentTime) {
-    // Calculate delta time in seconds
-    deltaTime = (currentTime - lastFrameTime) / 1000;
-    lastFrameTime = currentTime;
-
-    // Cap delta time to prevent huge jumps
-    if (deltaTime > 0.1) {
-        deltaTime = 0.1;
-    }
-
+function gameLoop() {
     if (countdownRunning) {
         drawCountdown(countdownValue);
     } 
     else if (gameRunning && latestResults) {
         updateRedBeeState();
-        drawScene(latestResults, deltaTime);
+        drawScene(latestResults);
     }
     requestAnimationFrame(gameLoop);
 }
@@ -597,13 +584,13 @@ function handleGameLogic(arrowX, arrowY) {
 // Draw Scene
 // ============================================
 
-function drawScene(results, dt) {
+function drawScene(results) {
     ctx.fillStyle = "white";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
 
-    updateBallMovement(dt);
-    updateRedBeeMovement(dt);
+    updateBallMovement();
+    updateRedBeeMovement();
 
     flap += flapDirection * 0.8;
     if (flap > 10 || flap < -10) flapDirection *= -1;
@@ -1046,3 +1033,5 @@ function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
     const dy = py - yy;
     return Math.sqrt(dx * dx + dy * dy);
 }
+
+// --- End of gamebuzz_adv.js ---
