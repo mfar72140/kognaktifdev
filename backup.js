@@ -1,20 +1,19 @@
-// gamebuzz_adv.js backup
-
 // ============================================
 // GLOBAL VARIABLES
 // ============================================
 
 let videoElement, hands, camera;
 let ctx, canvas;
-let beeImg, LhandImg, rhandImg, bgImg, bflyImg;
+let beeImg, LhandImg, rhandImg, bgImg, redBeeImg;
 let ball = { x: 0, y: 0, r: 30, vx: 0, vy: 0 };
-let butterfly = { x: 0, y: 0, r: 25, baseY: 0, wiggle: 0, visible: true, respawnTime: null };
+let redBee = { x: -200, y: -200, r: 30, vx: 0, vy: 0, active: false };
 let score = 0;
-let bflyScore = 0;
+let bflyTouch = 0; // red bee touch counter
 let gameRunning = false;
 let countdownRunning = false;
-let touchSound, endGameSound, countdownSound;
+let touchSound, endGameSound, countdownSound, touchRedSound;
 let HoneySplashes = [];
+let RedSplashes = [];
 let bgMusic;
 let isMuted = false;
 let reactionTimes = [];
@@ -23,35 +22,47 @@ let cameraReady = false;
 let previousArrowX = null;
 let previousHandType = "Left";
 
+// Red bee timing
+let redBeeTimer = 0;
+let redBeeState = "hidden"; // hidden, visible
+let redBeeVisibleStart = 0;
+let redBeeHiddenStart = 0;
+
+// Path Deviation using Distance
 let startPos = null;
 let deviationRatios = [];
 let pathDeviations = [];
+let handVelocities = [];
 
+// Distance Tracking
 let totalDistance = 0;
 let lastX = null, lastY = null;
 
+// Hand bounce
 let handScale = 1;
 let handBounceActive = false;
 
+// Timer variables
 let startTime;
 let timerInterval;
 
+// Countdown
 let countdownValue = 3;
 let countdownInterval;
 
+// Hand position
 let arrowX = 0;
 let arrowY = 0;
 
+// Store latest results
 let latestResults = null;
 
+// Bee animation
 let flap = 0;
 let flapDirection = 1;
 
+// Track respawn timeout
 let respawnTimeout = null;
-let bflyToggleInterval = null;
-
-const HAND_MOVE_THRESHOLD = 10;
-const BFLY_TOGGLE_INTERVAL = 4000; // 4 seconds
 
 
 // ============================================
@@ -66,6 +77,9 @@ window.onload = () => {
     beeImg = new Image();
     beeImg.src = "images/bee2.png";
 
+    redBeeImg = new Image();
+    redBeeImg.src = "images/bee3.png";
+
     LhandImg = new Image();
     LhandImg.src = "images/Lhand.png";
 
@@ -75,22 +89,22 @@ window.onload = () => {
     bgImg = new Image();
     bgImg.src = "images/backgr1.jpg";
 
-    bflyImg = new Image();
-    bflyImg.src = "images/bfly2.png";
-
     // Load sound
     touchSound = new Audio("sounds/touch.wav");
+    touchRedSound = new Audio("sounds/touch2.mp3");
     endGameSound = new Audio("sounds/endapplause.wav");
     countdownSound = new Audio("sounds/countdown.wav");
 
+    // Background Music
     bgMusic = new Audio("sounds/01Backmusic20s.mp3");
     bgMusic.loop = true;
     bgMusic.volume = 0.6;
 
     const muteBtn = document.getElementById("muteBtn");
-    if (muteBtn) {
+    if (muteBtn)  {
         muteBtn.addEventListener("click", () => {
             isMuted = !isMuted;
+
             if (isMuted) {
                 bgMusic.muted = true;
                 muteBtn.textContent = "🔇";
@@ -101,12 +115,14 @@ window.onload = () => {
         });
     }
 
+    // Buttons
     document.getElementById("startBtnOverlay").addEventListener("click", () => {
         document.getElementById("startBtnOverlay").style.display = "none";
         document.getElementById("gameTitle").style.display = "none";
         startCountdown();
     });
 
+    // MediaPipe Hands setup
     hands = new Hands({
         locateFile: (file) =>
             `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
@@ -119,6 +135,7 @@ window.onload = () => {
     });
     hands.onResults((r) => {
         latestResults = r;
+
         if (!cameraReady) {
             cameraReady = true;
             console.log("✅ Camera is ready!");
@@ -137,25 +154,29 @@ window.onload = () => {
 // ============================================
 
 function startCountdown() {
+    // Reset state
     score = 0;
-    bflyScore = 0;
+    bflyTouch = 0;
     countdownValue = 3;
     countdownRunning = false;
     gameRunning = false;
     HoneySplashes = [];
+    RedSplashes = [];
+    redBeeState = "hidden";
+    redBeeTimer = 0;
     if (respawnTimeout) clearTimeout(respawnTimeout);
     respawnTimeout = null;
-    if (bflyToggleInterval) clearInterval(bflyToggleInterval);
-    bflyToggleInterval = null;
 
     document.getElementById("score").innerText = "Score: 0";
     document.getElementById("startBtnOverlay").disabled = true;
     document.getElementById("gameTitle").style.display = "none";
 
+    // Show Loading Overlay
     const loadingOverlay = document.getElementById("loadingOverlay");
     loadingOverlay.style.display = "flex";
     loadingOverlay.innerText = "📷 Loading... Starting Camera";
 
+    // Camera ON
     camera = new Camera(videoElement, {
         onFrame: async () => {
             await hands.send({ image: videoElement });
@@ -165,6 +186,7 @@ function startCountdown() {
     });
     camera.start();
 
+    // Wait until camera is ready
     const waitForCamera = setInterval(() => {
         if (cameraReady) {
             clearInterval(waitForCamera);
@@ -211,9 +233,12 @@ function drawCountdown(value) {
 
 function startGame() {
     gameRunning = true;
+    redBeeState = "hidden";
+    redBeeTimer = 0;
+    redBeeHiddenStart = Date.now();
 
     if (bgMusic) {
-        bgMusic.currentTime = 0;
+        bgMusic.currentTime = 0; 
         bgMusic.play();
     }
 
@@ -226,72 +251,14 @@ function startGame() {
     }, 1000);
 
     spawnBall();
-    initButterfly();
-    startButterflyToggle();
 }
 
-
-// ============================================
-// Initialize Butterfly
-// ============================================
-
-function initButterfly() {
-    // place butterfly at a safe random position away from edges
-    const margin = Math.max(butterfly.r * 2, 60); // ensure not clipped by canvas edges
-    butterfly.x = Math.random() * (canvas.width - margin * 2) + margin;
-    butterfly.y = Math.random() * (canvas.height - margin * 2) + margin;
-    butterfly.baseY = butterfly.y;
-    butterfly.visible = true;
-    butterfly.respawnTime = null;
-}
+const HAND_MOVE_THRESHOLD = 10;
 
 
 // ============================================
-// Start Butterfly Toggle (Appear/Disappear)
+// Spawn Yellow Bee
 // ============================================
-
-function startButterflyToggle() {
-    // clear any previous schedule
-    if (bflyToggleInterval) {
-        clearTimeout(bflyToggleInterval);
-        bflyToggleInterval = null;
-    }
-    if (respawnTimeout) {
-        clearTimeout(respawnTimeout);
-        respawnTimeout = null;
-    }
-
-    // recursive scheduler using setTimeout so intervals are randomized
-    const scheduleNext = () => {
-        // next change in 2s..6s (centered around BFLY_TOGGLE_INTERVAL)
-        const delay = Math.max(800, BFLY_TOGGLE_INTERVAL / 2 + (Math.random() - 0.5) * BFLY_TOGGLE_INTERVAL);
-        bflyToggleInterval = setTimeout(() => {
-            if (butterfly.visible) {
-                // hide butterfly for a random short duration
-                butterfly.visible = false;
-                butterfly.respawnTime = Date.now() + delay;
-            } else {
-                // respawn at a new safe random position (keep away from canvas edges)
-                const margin = Math.max(butterfly.r * 2, 60);
-                butterfly.x = Math.random() * (canvas.width - margin * 2) + margin;
-                butterfly.y = Math.random() * (canvas.height - margin * 2) + margin;
-                butterfly.baseY = butterfly.y;
-                butterfly.visible = true;
-                butterfly.respawnTime = null;
-            }
-            scheduleNext();
-        }, delay);
-    };
-
-    // kick off scheduler
-    scheduleNext();
-}
-
-
-// ============================================
-// Spawn Bee
-// ============================================
-
 function spawnBall() {
     if (typeof spawnBall.lastZone === "undefined") spawnBall.lastZone = -1;
 
@@ -306,7 +273,7 @@ function spawnBall() {
 
     const off = 80;
     const margin = 40;
-
+    
     if (zone === 0) {
         ball.x = -off - Math.random() * 40;
         ball.y = Math.random() * (canvas.height - margin * 2) + margin;
@@ -340,9 +307,110 @@ function spawnBall() {
 
 
 // ============================================
-// Bee Movement
+// Spawn Red Bee (Distraction)
 // ============================================
+function spawnRedBee() {
+    const margin = 60;
+    redBee.x = Math.random() * (canvas.width - margin * 2) + margin;
+    redBee.y = Math.random() * (canvas.height - margin * 2) + margin;
+    
+    // Slower random movement
+    const angle = Math.random() * Math.PI * 2;
+    const speed = Math.random() * 0.4 + 0.5; // much slower
+    redBee.vx = Math.cos(angle) * speed;
+    redBee.vy = Math.sin(angle) * speed;
+    
+    redBee.active = true;
+}
 
+
+// ============================================
+// Update Red Bee Movement
+// ============================================
+function updateRedBeeMovement() {
+    if (!redBee.active) return;
+
+    // Slow wandering
+    if (Math.random() < 0.03) {
+        let angle = Math.atan2(redBee.vy, redBee.vx);
+        angle += (Math.random() - 0.5) * Math.PI * 0.4;
+        let speed = Math.hypot(redBee.vx, redBee.vy);
+        speed += (Math.random() - 0.5) * 0.3;
+        speed = Math.max(0.2, Math.min(0.8, speed)); // slower max speed
+        const targetVx = Math.cos(angle) * speed;
+        const targetVy = Math.sin(angle) * speed;
+        const blend = 0.2;
+        redBee.vx += (targetVx - redBee.vx) * blend;
+        redBee.vy += (targetVy - redBee.vy) * blend;
+    }
+
+    // Edge avoidance
+    const margin = 50;
+    const steerStrength = 0.3;
+    if (redBee.x < margin) redBee.vx += steerStrength;
+    if (redBee.x > canvas.width - margin) redBee.vx -= steerStrength;
+    if (redBee.y < margin) redBee.vy += steerStrength;
+    if (redBee.y > canvas.height - margin) redBee.vy -= steerStrength;
+
+    const maxSpeed = 0.8;
+    let sp = Math.hypot(redBee.vx, redBee.vy);
+    if (sp > maxSpeed) {
+        redBee.vx = (redBee.vx / sp) * maxSpeed;
+        redBee.vy = (redBee.vy / sp) * maxSpeed;
+    }
+
+    redBee.x += redBee.vx;
+    redBee.y += redBee.vy;
+
+    // Boundary bounce
+    if (redBee.x < redBee.r) {
+        redBee.x = redBee.r;
+        redBee.vx = Math.abs(redBee.vx) * 0.7;
+    }
+    if (redBee.x > canvas.width - redBee.r) {
+        redBee.x = canvas.width - redBee.r;
+        redBee.vx = -Math.abs(redBee.vx) * 0.7;
+    }
+    if (redBee.y < redBee.r) {
+        redBee.y = redBee.r;
+        redBee.vy = Math.abs(redBee.vy) * 0.7;
+    }
+    if (redBee.y > canvas.height - redBee.r) {
+        redBee.y = canvas.height - redBee.r;
+        redBee.vy = -Math.abs(redBee.vy) * 0.7;
+    }
+}
+
+
+// ============================================
+// Red Bee State Manager (3s cycle)
+// ============================================
+function updateRedBeeState() {
+    if (!gameRunning) return;
+
+    const now = Date.now();
+
+    if (redBeeState === "hidden") {
+        if (now - redBeeHiddenStart >= 3000) {
+            redBeeState = "visible";
+            redBeeVisibleStart = now;
+            spawnRedBee();
+        }
+    } else if (redBeeState === "visible") {
+        if (now - redBeeVisibleStart >= 4000) {
+            redBeeState = "hidden";
+            redBeeHiddenStart = now;
+            redBee.active = false;
+            redBee.x = -200;
+            redBee.y = -200;
+        }
+    }
+}
+
+
+// ============================================
+// Yellow Bee Movement
+// ============================================
 function updateBallMovement() {
     if (Math.random() < 0.04) {
         let angle = Math.atan2(ball.vy, ball.vx);
@@ -394,255 +462,18 @@ function updateBallMovement() {
 
 
 // ============================================
-// Update Butterfly Wiggle
-// ============================================
-
-function updateButterflyWiggle() {
-    butterfly.wiggle += 0.1;
-    butterfly.y = butterfly.baseY + Math.sin(butterfly.wiggle) * 8;
-}
-
-
-// ============================================
 // Main Game Loop
 // ============================================
 
 function gameLoop() {
     if (countdownRunning) {
         drawCountdown(countdownValue);
-    } else if (gameRunning && latestResults) {
+    } 
+    else if (gameRunning && latestResults) {
+        updateRedBeeState();
         drawScene(latestResults);
     }
     requestAnimationFrame(gameLoop);
-}
-
-
-// ============================================
-// Draw Scene
-// ============================================
-
-function drawScene(results) {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-    // Update bee movement
-    updateBallMovement();
-
-    // Update butterfly wiggle
-    updateButterflyWiggle();
-
-    // Animate bee flap
-    flap += flapDirection * 0.8;
-    if (flap > 10 || flap < -10) flapDirection *= -1;
-
-    ctx.drawImage(
-        beeImg,
-        ball.x - ball.r,
-        ball.y - ball.r + flap,
-        ball.r * 2,
-        ball.r * 2
-    );
-
-    // Draw butterfly with glow effect
-    if (butterfly.visible) {
-        drawButterflyWithGlow(butterfly.x, butterfly.y, butterfly.r);
-    }
-
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-            const landmarks = results.multiHandLandmarks[i];
-            const handType = results.multiHandedness?.[i]?.label || "Unknown";
-            const palmIndices = [0, 1, 5, 9, 13, 17];
-            let sumX = 0, sumY = 0;
-
-            palmIndices.forEach((j) => {
-                sumX += canvas.width - landmarks[j].x * canvas.width;
-                sumY += landmarks[j].y * canvas.height;
-            });
-
-            arrowX = sumX / palmIndices.length;
-            arrowY = sumY / palmIndices.length;
-
-            if (previousArrowX !== null) {
-                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
-            }
-
-            let currentHandType = handType;
-            if (previousArrowX !== null) {
-                const dx = Math.abs(arrowX - previousArrowX);
-                if (dx > 250) {
-                    currentHandType = previousHandType;
-                }
-            }
-
-            if (currentHandType === "Right" && rhandImg) {
-                drawHand(arrowX, arrowY, rhandImg);
-            } else {
-                drawHand(arrowX, arrowY, LhandImg);
-            }
-
-            previousArrowX = arrowX;
-            previousHandType = currentHandType;
-
-            if (!startPos) {
-                const dx = arrowX - ball.x;
-                const dy = arrowY - ball.y;
-                const dist = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist > HAND_MOVE_THRESHOLD) {
-                    startPos = { x: arrowX, y: arrowY };
-                    lastX = arrowX;
-                    lastY = arrowY;
-                    deviationRatios = [];
-                }
-            }
-
-            if (lastX !== null && lastY !== null) {
-                let dxMove = arrowX - lastX;
-                let dyMove = arrowY - lastY;
-                let moveDist = Math.sqrt(dxMove * dxMove + dyMove * dyMove);
-
-                if (moveDist > HAND_MOVE_THRESHOLD) {
-                    totalDistance += moveDist;
-                    lastX = arrowX;
-                    lastY = arrowY;
-                }
-            }
-
-            if (startPos) {
-                const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-                if (pathLength > 0) {
-                    const perpDist = getPerpendicularDistance(
-                        arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-                    );
-                    const ratio = perpDist / pathLength;
-                    deviationRatios.push(ratio);
-                }
-            }
-
-            handleGameLogic(arrowX, arrowY);
-
-            for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-                HoneySplashes[i].update();
-                HoneySplashes[i].draw(ctx);
-                if (HoneySplashes[i].isFinished()) {
-                    HoneySplashes.splice(i, 1);
-                }
-            }
-        }
-    }
-}
-
-
-// ============================================
-// Draw Butterfly with Glow Effect
-// ============================================
-
-function drawButterflyWithGlow(x, y, r) {
-    if (!bflyImg || !bflyImg.complete || bflyImg.naturalWidth === 0) return;
-
-    // Draw glow
-    ctx.shadowColor = "rgba(229, 208, 146, 0.82)";
-    ctx.shadowBlur = 20;
-
-    const size = r * 3;
-    ctx.drawImage(bflyImg, x - size / 2, y - size / 2, size, size);
-
-    ctx.shadowColor = "transparent";
-    ctx.shadowBlur = 0;
-}
-
-
-// ============================================
-// Handle Game Logic
-// ============================================
-
-function handleGameLogic(handX, handY) {
-    // Check collision with bee
-    const dx = handX - ball.x;
-    const dy = handY - ball.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    if (dist < ball.r + 30) {
-        score++;
-        document.getElementById("score").innerText = "Score: " + score;
-        
-        if (touchSound) {
-            touchSound.currentTime = 0;
-            touchSound.play();
-        }
-
-        HoneySplashes.push(new HoneySplash(ball.x, ball.y));
-        handBounceActive = true;
-
-        const reactionTime = Date.now() - ballSpawnTime;
-        reactionTimes.push(reactionTime);
-
-        spawnBall();
-    }
-
-    // Check collision with butterfly
-    const bflyDx = handX - butterfly.x;
-    const bflyDy = handY - butterfly.y;
-    const bflyDist = Math.sqrt(bflyDx * bflyDx + bflyDy * bflyDy);
-
-    if (butterfly.visible && bflyDist < butterfly.r + 30) {
-        bflyScore++;
-        butterfly.visible = false;
-
-        if (touchSound) {
-            touchSound.currentTime = 0;
-            touchSound.play();
-        }
-
-        for (let i = 0; i < 3; i++) {
-            HoneySplashes.push(new ButterflySparkles(butterfly.x, butterfly.y));
-        }
-    }
-
-    // End game when score reaches 20
-    if (score >= 20 && gameRunning) {
-        endGame();
-    }
-}
-
-class ButterflySparkles {
-    constructor(x, y) {
-        this.particles = [];
-        for (let i = 0; i < 12; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 4 + 1,
-                size: Math.random() * 4 + 2,
-                alpha: 1.0,
-            });
-        }
-    }
-
-    update() {
-        this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.05;
-        });
-        this.particles = this.particles.filter((p) => p.alpha > 0);
-    }
-
-    draw(ctx) {
-        this.particles.forEach((p) => {
-            ctx.fillStyle = `rgba(147, 51, 234, ${p.alpha})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    isFinished() {
-        return this.particles.length === 0;
-    }
 }
 
 
@@ -670,6 +501,207 @@ function drawHand(x, y, img) {
 
 
 // ============================================
+// Handle Game Logic
+// ============================================
+
+function handleGameLogic(arrowX, arrowY) {
+    // Yellow bee collision
+    const dx = arrowX - ball.x;
+    const dy = arrowY - ball.y;
+    if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
+        let reaction = Date.now() - ballSpawnTime; 
+        reactionTimes.push(reaction);
+    
+        if (deviationRatios.length > 0) {
+            const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
+            pathDeviations.push(avgRatio * 100);
+        }
+
+        score++;
+        document.getElementById("score").innerText = "Score: " + score;
+
+        handBounceActive = true;
+
+        if (touchSound) {
+            touchSound.currentTime = 0;
+            touchSound.play();
+        }
+
+        HoneySplashes.push(new HoneySplash(ball.x, ball.y));
+
+        startPos = null;
+        deviationRatios = [];
+        lastX = null;
+        lastY = null;
+
+        ball.x = -200;
+        ball.y = -200;
+        ball.vx = 0;
+        ball.vy = 0;
+
+        if (score >= 20) {
+            endGame();
+        } else {
+            if (respawnTimeout) clearTimeout(respawnTimeout);
+            respawnTimeout = setTimeout(spawnBall, 700);
+        }
+    }
+
+    // Red bee collision
+    if (redBee.active) {
+        const rdx = arrowX - redBee.x;
+        const rdy = arrowY - redBee.y;
+        if (Math.sqrt(rdx * rdx + rdy * rdy) < redBee.r + 10) {
+            bflyTouch++;
+            console.log("Red bee touched! Count:", bflyTouch);
+
+            handBounceActive = true;
+
+            if (touchRedSound) {
+                touchRedSound.currentTime = 0;
+                touchRedSound.play();
+            }
+
+            RedSplashes.push(new RedSplash(redBee.x, redBee.y));
+
+            // Hide red bee and restart cycle
+            redBee.active = false;
+            redBee.x = -200;
+            redBee.y = -200;
+            redBeeState = "hidden";
+            redBeeHiddenStart = Date.now();
+        }
+    }
+}
+
+
+// ============================================
+// Draw Scene
+// ============================================
+
+function drawScene(results) {
+    ctx.fillStyle = "white";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
+
+    updateBallMovement();
+    updateRedBeeMovement();
+
+    flap += flapDirection * 0.8;
+    if (flap > 10 || flap < -10) flapDirection *= -1;
+
+    // Draw yellow bee
+    ctx.drawImage(
+        beeImg,
+        ball.x - ball.r,
+        ball.y - ball.r + flap,
+        ball.r * 2,
+        ball.r * 2
+    );
+
+    // Draw red bee if active
+    if (redBee.active) {
+        ctx.drawImage(
+            redBeeImg,
+            redBee.x - redBee.r,
+            redBee.y - redBee.r + flap,
+            redBee.r * 2,
+            redBee.r * 2
+        );
+    }
+
+    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
+            const landmarks = results.multiHandLandmarks[i];
+            const handType = results.multiHandedness?.[i]?.label || "Unknown";
+            const palmIndices = [0, 1, 5, 9, 13, 17];
+            let sumX = 0, sumY = 0;
+
+            palmIndices.forEach((j) => {
+                sumX += canvas.width - landmarks[j].x * canvas.width;
+                sumY += landmarks[j].y * canvas.height;
+            });
+
+            arrowX = sumX / palmIndices.length;
+            arrowY = sumY / palmIndices.length;
+
+            if (previousArrowX !== null) {
+                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
+            }
+
+            let currentHandType = handType;
+            if (previousArrowX !== null) {
+                const dx = Math.abs(arrowX - previousArrowX);
+                if (dx > 250) currentHandType = previousHandType;
+            }
+
+            if (currentHandType === "Right" && rhandImg) {
+                drawHand(arrowX, arrowY, rhandImg);
+            } else {
+                drawHand(arrowX, arrowY, LhandImg);
+            }
+
+            previousArrowX = arrowX;
+            previousHandType = currentHandType;
+
+            if (!startPos) {
+                const dx = arrowX - ball.x;
+                const dy = arrowY - ball.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                if (dist > HAND_MOVE_THRESHOLD) {
+                    startPos = { x: arrowX, y: arrowY };
+                    lastX = arrowX;
+                    lastY = arrowY;
+                    deviationRatios = [];
+                }
+            }
+
+            if (lastX !== null && lastY !== null) {
+                const dx = arrowX - lastX;
+                const dy = arrowY - lastY;
+                const moveDist = Math.sqrt(dx*dx + dy*dy);
+
+                handVelocities.push(moveDist);
+
+                if (moveDist > HAND_MOVE_THRESHOLD) {
+                    totalDistance += moveDist;
+                }
+            }
+            lastX = arrowX;
+            lastY = arrowY;
+
+            if (startPos) {
+                const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
+                if (pathLength > 0) {
+                    const perpDist = getPerpendicularDistance(
+                        arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
+                    );
+                    const ratio = perpDist / pathLength;
+                    deviationRatios.push(ratio);
+                }
+            }
+
+            handleGameLogic(arrowX, arrowY);
+
+            // Honey splashes (yellow)
+            for (let i = HoneySplashes.length - 1; i >= 0; i--) {
+                HoneySplashes[i].update();
+                HoneySplashes[i].draw(ctx);
+                if (HoneySplashes[i].isFinished()) HoneySplashes.splice(i, 1);
+            }
+
+            // Red splashes
+            for (let i = RedSplashes.length - 1; i >= 0; i--) {
+                RedSplashes[i].update();
+                RedSplashes[i].draw(ctx);
+                if (RedSplashes[i].isFinished()) RedSplashes.splice(i, 1);
+            }
+        }
+    }
+}
+
+
+// ============================================
 // End Game
 // ============================================
 
@@ -681,46 +713,48 @@ function endGame() {
     clearInterval(timerInterval);
     if (respawnTimeout) clearTimeout(respawnTimeout);
     respawnTimeout = null;
-    if (bflyToggleInterval) clearInterval(bflyToggleInterval);
-    bflyToggleInterval = null;
 
     let elapsed = Math.floor((Date.now() - startTime) / 1000);
 
     let avgReaction = 0;
     if (reactionTimes.length > 0) {
-        avgReaction = (
-            reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length / 1000
-        ).toFixed(2);
+        avgReaction = (reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length/1000).toFixed(2);
     }
 
     let normDistance = score > 0 ? totalDistance / score : totalDistance;
 
     console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
 
-    let movementStability = 0;
+    let pathStability = 0;
     if (pathDeviations.length > 0) {
-        const avgDeviation = pathDeviations.reduce((a, b) => a + b, 0) / pathDeviations.length;
-        movementStability = (100 - avgDeviation).toFixed(2);
+        const avgDev = pathDeviations.reduce((a,b)=>a+b,0)/pathDeviations.length;
+        pathStability = Math.max(0, 100 - avgDev);
     }
 
-    if (bgMusic) {
-        bgMusic.pause();
-        bgMusic.currentTime = 0;
+    let velStability = 0;
+    if (handVelocities.length > 5) {
+        const diffs = [];
+        for (let i=1;i<handVelocities.length;i++) {
+            diffs.push(Math.abs(handVelocities[i]-handVelocities[i-1]));
+        }
+        const avgJitter = diffs.reduce((a,b)=>a+b,0)/diffs.length;
+        velStability = Math.max(0, 100 - avgJitter);
     }
 
-    if (endGameSound) {
-        endGameSound.currentTime = 0;
-        endGameSound.play();
-    }
+    const movementStability = ((pathStability*0.7 + velStability*0.3)).toFixed(2);
+    console.log("Movement Stability (%):", movementStability);
+    console.log("Red Bee Touches (bfly_touch):", bflyTouch);
+
+    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
+    if (endGameSound) { endGameSound.currentTime = 0; endGameSound.play(); }
 
     startFireworks();
-
-    let fireworksDuration = 2500;
-    let startTimeFireworks = Date.now();
+    const fireworksDuration = 2500;
+    const startTimeFireworks = Date.now();
 
     function fireworksAnimation() {
         if (!fireworksRunning) return;
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0,0,canvas.width,canvas.height);
         drawFireworks(ctx);
 
         if (Date.now() - startTimeFireworks < fireworksDuration) {
@@ -738,8 +772,8 @@ function endGame() {
 // Save Game Result to Supabase
 // ============================================
 
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, bflyTouch) {
-    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, bflyTouch);
+async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance, bflyTouch) {
+    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance, bflyTouch);
 
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) {
@@ -759,8 +793,9 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
             norm_totaldistance: normDistance,
             av_devpath: parseFloat(movementStability),
             consistency: consistency,
-            bfly_touch: bflyTouch,
             level: "ADVANCED",
+            totaldistance: parseFloat(totalDistance),
+            bfly_touch: bflyTouch
         }]);
 
     if (insertError) {
@@ -776,6 +811,7 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
 // ============================================
 
 function showEndText(elapsed, avgReaction, normDistance, movementStability) {
+
     ctx.fillStyle = "rgba(0,0,0,0.1)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -785,7 +821,7 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
     ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
     
     ctx.font = "40px poppins";
-    ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+    ctx.fillText("You've finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
     
     ctx.font = "35px poppins";
     ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
@@ -807,6 +843,7 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
             .from("buzztap_results")
             .select("time_taken")
             .eq("player_email", user.email)
+            .eq("level", "ADVANCED")
             .order("created_at", { ascending: false })
             .limit(4);
 
@@ -827,18 +864,18 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
         let variance = times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / times.length;
         let std = Math.sqrt(variance);
 
-        let consistency = 1 - (std / mean);
+        let consistency = 1 - (std / mean); 
         return Math.max(0, Math.min(1, consistency)).toFixed(3);
     }
 
     calculateConsistency(elapsed).then(consistency => {
-        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, bflyScore);
+        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, totalDistance, bflyTouch);
+    
+        reactionTimes = [];
+        totalDistance = 0;
+        lastX = null;
+        lastY = null;
     });
-
-    reactionTimes = [];
-    totalDistance = 0;
-    lastX = null;
-    lastY = null;
 
     document.getElementById("playAgainBtn").onclick = () => {
         document.getElementById("playAgainBtn").style.display = "none";
@@ -853,7 +890,7 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
 
 
 // ============================================
-// HONEY SPLASH EFFECT
+// HONEY SPLASH EFFECT (Yellow)
 // ============================================
 
 class HoneySplash {
@@ -885,6 +922,51 @@ class HoneySplash {
     draw(ctx) {
         this.particles.forEach((p) => {
             ctx.fillStyle = `rgba(255, 204, 0, ${p.alpha})`;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+    }
+
+    isFinished() {
+        return this.particles.length === 0;
+    }
+}
+
+
+// ============================================
+// RED SPLASH EFFECT (Red Bee)
+// ============================================
+
+class RedSplash {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.particles = [];
+        for (let i = 0; i < 8; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                angle: Math.random() * Math.PI * 2,
+                speed: Math.random() * 3 + 2,
+                size: Math.random() * 8 + 6,
+                alpha: 1.0,
+            });
+        }
+    }
+
+    update() {
+        this.particles.forEach((p) => {
+            p.x += Math.cos(p.angle) * p.speed;
+            p.y += Math.sin(p.angle) * p.speed;
+            p.alpha -= 0.04;
+        });
+        this.particles = this.particles.filter((p) => p.alpha > 0);
+    }
+
+    draw(ctx) {
+        this.particles.forEach((p) => {
+            ctx.fillStyle = `rgba(255, 50, 50, ${p.alpha})`; // Red color
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
             ctx.fill();
@@ -948,5 +1030,3 @@ function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
 }
 
 // --- End of gamebuzz_adv.js ---
-
-

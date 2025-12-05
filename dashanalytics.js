@@ -117,7 +117,7 @@ async function loadBuzzTap(level) {
     if (!buzzCache[level]) {
           const { data } = await supabase
                 .from("buzztap_results")
-                .select("norm_totaldistance, time_taken, av_devpath, created_at, score, consistency, level")
+                .select("totaldistance, time_taken, av_devpath, created_at, score, consistency, level")
                 .eq("player_email", userEmail)
                 .eq("level", level) // assumes a "level" column exists
                 .order("created_at", { ascending: true });
@@ -162,7 +162,7 @@ async function drawBuzzChart(type, level) {
     });
 
     const times = data.map(r => r.time_taken ?? null);
-    const distances = data.map(r => r.norm_totaldistance ?? null);
+    const distances = data.map(r => r.totaldistance ?? null);
     const stability = data.map(r => r.av_devpath ?? null);
 
     await waitForCanvas("#mainChart");
@@ -176,7 +176,7 @@ async function drawBuzzChart(type, level) {
           currentMainChart = initGameChart(labels, times, distances, stability);
     } else {
           if (type === "distance") {
-                currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                currentMainChart.data.datasets[0].label = "Total Distance per Game (px)";
                 currentMainChart.data.datasets[0].data = distances;
                 currentMainChart.data.datasets[0].borderColor = "blue";
           } else if (type === "stability") {
@@ -205,7 +205,7 @@ async function loadShapeSense(level) {
         if (!shapeCache[level]) {
                     const { data } = await supabase
                                     .from("shapesense_results")
-                                    .select("score, time_taken, precision, av_distance, consistency, created_at, level")
+                                    .select("score, time_taken, precision, totaldistance, consistency, created_at, level")
                                     .eq("player_email", userEmail)
                                     .eq("level", level)
                                     .order("created_at", { ascending: true });
@@ -253,7 +253,7 @@ async function drawShapeChart(type, level) {
 
         const times = data.map(r => r.time_taken ?? null);
         const precision = data.map(r => r.precision ?? null);
-        const distances = data.map(r => r.av_distance ?? null);
+        const distances = data.map(r => r.totaldistance ?? null);
 
         await waitForCanvas("#mainChart");
 
@@ -271,7 +271,7 @@ async function drawShapeChart(type, level) {
                                     currentMainChart.data.datasets[0].data = precision;
                                     currentMainChart.data.datasets[0].borderColor = "purple";
                     } else if (type === "distance") {
-                                    currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                                    currentMainChart.data.datasets[0].label = "Total Distance per Game (px)";
                                     currentMainChart.data.datasets[0].data = distances;
                                     currentMainChart.data.datasets[0].borderColor = "blue";
                     } else {
@@ -286,7 +286,7 @@ async function drawShapeChart(type, level) {
                                     currentMainChart.data.datasets[0].data = precision;
                                     currentMainChart.data.datasets[0].borderColor = "purple";
                     } else if (type === "distance") {
-                                    currentMainChart.data.datasets[0].label = "Average Distance per Game (px)";
+                                    currentMainChart.data.datasets[0].label = "Total Distance per Game (px)";
                                     currentMainChart.data.datasets[0].data = distances;
                                     currentMainChart.data.datasets[0].borderColor = "blue";
                     } else {

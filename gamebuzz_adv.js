@@ -555,6 +555,10 @@ function handleGameLogic(arrowX, arrowY) {
             bflyTouch++;
             console.log("Red bee touched! Count:", bflyTouch);
 
+            // Deduct 1 score
+            score = Math.max(0, score - 1);
+            document.getElementById("score").innerText = "Score: " + score;
+
             handBounceActive = true;
 
             if (touchRedSound) {

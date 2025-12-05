@@ -120,8 +120,8 @@ async function getGameStatsByDate() {
             gameName: gameTitle,
             date: selectedDate,
             bestTime: "-",
-            totalPlayed: 0,
-            totalScore: 0,
+            totalPlayed: "-",
+            totalScore: "-",
             timeList: "-",
             distanceList: "-"
         };
@@ -139,7 +139,7 @@ async function getGameStatsByDate() {
     // Distance list (for Buzz Tap)
     let distanceList = "-";
     if (game === "buzz") {
-        const dist = data?.map(r => (r.norm_totaldistance != null ? r.norm_totaldistance.toFixed(1) + "px" : null))
+        const dist = data?.map(r => (r.totaldistance != null ? r.totaldistance.toFixed(1) + "px" : null))
                           .filter(v => v !== null) || [];
         distanceList = dist.length > 0 ? dist.join(", ") : "-";
     }
@@ -169,7 +169,7 @@ scoreCardBtn.addEventListener("click", async () => {
     const result = await getGameStatsByDate();
 
     scGameName.textContent = result.gameName;
-    scGameLevel.textContent = levelSelect.value.toUpperCase();
+    scGameLevel.textContent = result.gameLevel;
     scBestTime.textContent = result.bestTime;
     scTotalPlayed.textContent = result.totalPlayed;
     scTotalScore.textContent = result.totalScore;
@@ -193,7 +193,7 @@ async function updateScoreCard() {
     const result = await getGameStatsByDate();
 
     scGameName.textContent = result.gameName;
-    scGameLevel.textContent = levelSelect.value.toUpperCase();  
+    scGameLevel.textContent = result.gameLevel;  
     scBestTime.textContent = result.bestTime;
     scTotalPlayed.textContent = result.totalPlayed;
     scTotalScore.textContent = result.totalScore;
