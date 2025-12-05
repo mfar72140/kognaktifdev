@@ -188,7 +188,7 @@ function initGame() {
         y: 50,
         width: 180,
         height: 130,
-        speed: 0.8,
+        speed: 1.0,
         direction: 1, // 1 = right, -1 = left
         canRelease: true,
         releaseTimer: 0
@@ -349,7 +349,7 @@ function releaseOrb() {
         y: state.cloud.y + state.cloud.height / 2,
         width: 55,
         height: 55,
-        speed: 0.4, // very slow fall
+        speed: 0.5, // very slow fall
         img: randomColor === "green" ? orbGreenImg : orbPurpleImg,
         grabbed: false,
         broken: false
