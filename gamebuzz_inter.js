@@ -487,7 +487,7 @@ function drawScene(results) {
     updateBallMovement(deltaTime);
 
     // Animate bee flap with delta time
-    const flapSpeed = 0.8 * deltaTime * 60; // normalize to 60fps baseline
+    const flapSpeed = 0.7 * deltaTime * 60; // normalize to 60fps baseline
     flap += flapDirection * flapSpeed;
     if (flap > 10 || flap < -10) flapDirection *= -1;
 
