@@ -543,9 +543,6 @@ function showEndText(elapsed, avgReaction, normDistance, movementStability) {
   ctx.font = "35px poppins";
   ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
   ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
-  //ctx.fillText(`Avg Reaction: ${avgReaction}s`, canvas.width / 2, canvas.height / 2);
-  //ctx.fillText(`Average Distance: ${normDistance.toFixed(2)}`, canvas.width / 2, canvas.height / 2 + 30);
-  //ctx.fillText(`Movement Stability: ${movementStability}%`, canvas.width / 2, canvas.height / 2 + 60);
 
   startPos = null;
   totalDeviation = 0;
