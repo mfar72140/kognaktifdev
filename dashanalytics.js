@@ -158,7 +158,7 @@ async function drawBuzzChart(type, level) {
 
     const labels = data.map((r, i) => {
           const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
-          return `G${i + 1} (${date})`;
+          return `P${i + 1} (${date})`;
     });
 
     const times = data.map(r => r.time_taken ?? null);
@@ -176,15 +176,15 @@ async function drawBuzzChart(type, level) {
           currentMainChart = initGameChart(labels, times, distances, stability);
     } else {
           if (type === "distance") {
-                currentMainChart.data.datasets[0].label = "Total Distance per Game (px)";
+                currentMainChart.data.datasets[0].label = "Total Distance per Play (px)";
                 currentMainChart.data.datasets[0].data = distances;
                 currentMainChart.data.datasets[0].borderColor = "blue";
           } else if (type === "stability") {
-                currentMainChart.data.datasets[0].label = "Movement Stability per Game (%)";
+                currentMainChart.data.datasets[0].label = "Movement Stability per Play (%)";
                 currentMainChart.data.datasets[0].data = stability;
                 currentMainChart.data.datasets[0].borderColor = "orange";
           } else {
-                currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                currentMainChart.data.datasets[0].label = "Time Taken per Play (s)";
                 currentMainChart.data.datasets[0].data = times;
                 currentMainChart.data.datasets[0].borderColor = "green";
           }
@@ -248,7 +248,7 @@ async function drawShapeChart(type, level) {
 
         const labels = data.map((r, i) => {
                     const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
-                    return `G${i + 1} (${date})`;
+                    return `P${i + 1} (${date})`;
         });
 
         const times = data.map(r => r.time_taken ?? null);
@@ -267,30 +267,30 @@ async function drawShapeChart(type, level) {
 
                     // make sure initial dataset reflects the requested type
                     if (type === "precision") {
-                                    currentMainChart.data.datasets[0].label = "Pinch Accuracy per Game (%)";
+                                    currentMainChart.data.datasets[0].label = "Pinch Accuracy per Play (%)";
                                     currentMainChart.data.datasets[0].data = precision;
                                     currentMainChart.data.datasets[0].borderColor = "purple";
                     } else if (type === "distance") {
-                                    currentMainChart.data.datasets[0].label = "Total Distance per Game (px)";
+                                    currentMainChart.data.datasets[0].label = "Total Distance per Play (px)";
                                     currentMainChart.data.datasets[0].data = distances;
                                     currentMainChart.data.datasets[0].borderColor = "blue";
                     } else {
-                                    currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                                    currentMainChart.data.datasets[0].label = "Time Taken per Play (s)";
                                     currentMainChart.data.datasets[0].data = times;
                                     currentMainChart.data.datasets[0].borderColor = "green";
                     }
                     currentMainChart.update();
         } else {
                     if (type === "precision") {
-                                    currentMainChart.data.datasets[0].label = "Pinch Accuracy per Game (%)";
+                                    currentMainChart.data.datasets[0].label = "Pinch Accuracy per Play (%)";
                                     currentMainChart.data.datasets[0].data = precision;
                                     currentMainChart.data.datasets[0].borderColor = "purple";
                     } else if (type === "distance") {
-                                    currentMainChart.data.datasets[0].label = "Total Distance per Game (px)";
+                                    currentMainChart.data.datasets[0].label = "Total Distance per Play (px)";
                                     currentMainChart.data.datasets[0].data = distances;
                                     currentMainChart.data.datasets[0].borderColor = "blue";
                     } else {
-                                    currentMainChart.data.datasets[0].label = "Time Taken per Game (s)";
+                                    currentMainChart.data.datasets[0].label = "Time Taken per Play (s)";
                                     currentMainChart.data.datasets[0].data = times;
                                     currentMainChart.data.datasets[0].borderColor = "green";
                     }

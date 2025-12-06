@@ -17,7 +17,7 @@ export function initGameChart(labels, times, norm_distance = [], stability = [])
     data: {
       labels,
       datasets: [{
-        label: "Time Taken (s)",
+        label: "Time Taken per Play (s)",
         data: times,
         borderColor: "green",
         fill: false
