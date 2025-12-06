@@ -97,28 +97,27 @@ canvas {
 
 #playAgainBtn, #nextBtn {
   position: absolute;
-  transform: translateX(-50%);
+  top: 75%;
+  transform: translate(-50%, -50%);
   padding: 8px 18px;
   font-size: 18px;
   font-family: 'Poppins', sans-serif;
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  display: none; /* hidden until game over */
+  display: none;
 }
 
 #playAgainBtn {
-  top: 62%; /* position below score text */
+  left: 40%;
   color: white;
-  left: 50%;
   background: #7a2cf4;
 }
 
 #nextBtn {
-  top: 72%; /* just below Play Again */
+  left: 60%;
   color: white;
-  left: 50%;
-  background: #43a047;
+  background: #7a2cf4;
 }
 
 #playAgainBtn:hover{
@@ -126,7 +125,31 @@ canvas {
 }
 
 #nextBtn:hover {
-  background: #3a8a3e;
+  background: #4b13a4;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 768px) {
+  #playAgainBtn, #nextBtn {
+    font-size: 14px;
+    padding: 6px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  #playAgainBtn, #nextBtn {
+    font-size: 12px;
+    padding: 5px 12px;
+    top: 70%;
+  }
+  
+  #playAgainBtn {
+    left: 35%;
+  }
+  
+  #nextBtn {
+    left: 65%;
+  }
 }
 
 #muteBtn {

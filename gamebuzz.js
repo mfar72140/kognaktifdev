@@ -4,7 +4,7 @@
 
 let videoElement, hands, camera;
 let ctx, canvas;
-let beeImg, LhandImg, rhandImg, bgImg;
+let beeImg, LhandImg, rhandImg, bgImg, medalImg;
 let ball = { x: 0, y: 0, r: 30 };
 let score = 0;
 let gameRunning = false;
@@ -76,6 +76,9 @@ window.onload = () => {
 
   bgImg = new Image();
   bgImg.src = "images/backgr1.jpg";
+
+  medalImg = new Image();
+  medalImg.src = "images/medal.png";
 
   touchSound = new Audio("sounds/touch.wav");
   endGameSound = new Audio("sounds/endapplause.wav");
@@ -529,20 +532,96 @@ async function saveGameResult(score, timeTaken, avgReaction, normDistance, movem
 // ============================================
 
 function showEndText(elapsed, avgReaction, normDistance, movementStability) {
-  ctx.fillStyle = "rgba(0,0,0,0.1)";
+  // Dark overlay with blur effect
+  ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-  ctx.fillStyle = "white";
-  ctx.font = "bold 65px poppins";
+  // Card dimensions
+  const cardWidth = 520;
+  const cardHeight = 450;
+  const cardX = (canvas.width - cardWidth) / 2;
+  const cardY = (canvas.height - cardHeight) / 2;
+  const cornerRadius = 24;
+  
+  // Card shadow (multiple layers for depth)
+  ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+  roundedRect(ctx, cardX + 8, cardY + 8, cardWidth, cardHeight, cornerRadius);
+  ctx.fill();
+  
+  // Card background with gradient
+  const gradient = ctx.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + cardHeight);
+  gradient.addColorStop(0, "#1E293B");
+  gradient.addColorStop(1, "#0F172A");
+  ctx.fillStyle = gradient;
+  roundedRect(ctx, cardX, cardY, cardWidth, cardHeight, cornerRadius);
+  ctx.fill();
+  
+  // Accent line at top
+  const accentGradient = ctx.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY);
+  accentGradient.addColorStop(0, "#9333EA");
+  accentGradient.addColorStop(0.5, "#C084FC");
+  accentGradient.addColorStop(1, "#9333EA");
+  ctx.fillStyle = accentGradient;
+  ctx.fillRect(cardX, cardY, cardWidth, 6);
+
+  // Medal icon with glow effect
+  if (medalImg && medalImg.complete) {
+    const medalSize = 130;
+    ctx.shadowColor = "#FCD34D";
+    ctx.shadowBlur = 30;
+    ctx.drawImage(medalImg, canvas.width / 2 - medalSize / 2, cardY + 50, medalSize, medalSize);
+    ctx.shadowBlur = 0;
+  }
+
+  // Title with shadow
+  ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = "#FCD34D";
+  ctx.font = "bold 40px Poppins, sans-serif";
   ctx.textAlign = "center";
-  ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
+  ctx.fillText("Congrats!", canvas.width / 2, cardY + 210);
+  ctx.shadowBlur = 0;
+
+  // Subtitle
+  ctx.fillStyle = "#94A3B8";
+  ctx.font = "22px Poppins, sans-serif";
+  ctx.fillText("You did a great job in the practice", canvas.width / 2, cardY + 250);
+
+  // Stats container
+  const statsY = cardY + 280;
+  const statsWidth = cardWidth - 80;
+  const statsX = cardX + 40;
   
-  ctx.font = "45px poppins";
-  ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+  ctx.fillStyle = "rgba(145, 58, 58, 0.05)";
+  roundedRect(ctx, statsX, statsY, statsWidth, 70, 16);
+  ctx.fill();
   
-  ctx.font = "35px poppins";
-  ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
-  ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
+  // Stats border
+  ctx.strokeStyle = "rgba(252, 211, 77, 0.4)";
+  ctx.lineWidth = 2;
+  roundedRect(ctx, statsX, statsY, statsWidth, 70, 16);
+  ctx.stroke();
+
+  // Time stat (centered)
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#94A3B8";
+  ctx.font = "24px Poppins, sans-serif";
+  ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, statsY + 40);
+
+// Helper function for rounded rectangles
+function roundedRect(ctx, x, y, width, height, radius) {
+  ctx.beginPath();
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+}
 
   startPos = null;
   totalDeviation = 0;

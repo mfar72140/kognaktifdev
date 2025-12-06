@@ -105,6 +105,9 @@ handImg.src = "images/rhand_shape.png";
 const pinchImg = new Image();
 pinchImg.src = "images/rpinch_shape.png";
 
+const medalImg = new Image();
+medalImg.src = "images/medal.png";
+
 // sound assets
 const dingSound = new Audio("sounds/dingeffect.wav");
 const countdownSound = new Audio("sounds/countdown.wav");
@@ -716,22 +719,98 @@ function fadeInWinOverlay() {
    opacity = Math.min(elapsed / fadeDuration, 1);
 
    ctx.clearRect(0, 0, canvas.width, canvas.height);
-   ctx.fillStyle = `rgba(0,0,0,${0.5 * opacity})`;
-   ctx.fillRect(0, 0, canvas.width, canvas.height);
+   
+  
+    // Dark overlay with blur effect
+    ctx.fillStyle = "rgba(0, 0, 0, 0.2)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-   ctx.fillStyle = `rgba(255,255,255,${opacity})`;
-   ctx.font = "70px Poppins";
-   ctx.textAlign = "center";
-   ctx.fillText("🎉 Well done! 🎉", canvas.width / 2, canvas.height / 2 - 80);
+    // Card dimensions
+    const cardWidth = 520;
+    const cardHeight = 450;
+    const cardX = (canvas.width - cardWidth) / 2;
+    const cardY = (canvas.height - cardHeight) / 2;
+    const cornerRadius = 24;
+    
+    // Card shadow (multiple layers for depth)
+    ctx.fillStyle = "rgba(0, 0, 0, 0.4)";
+    roundedRect(ctx, cardX + 8, cardY + 8, cardWidth, cardHeight, cornerRadius);
+    ctx.fill();
+    
+    // Card background with gradient
+    const gradient = ctx.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY + cardHeight);
+    gradient.addColorStop(0, "#1E293B");
+    gradient.addColorStop(1, "#0F172A");
+    ctx.fillStyle = gradient;
+    roundedRect(ctx, cardX, cardY, cardWidth, cardHeight, cornerRadius);
+    ctx.fill();
+    
+    // Accent line at top
+    const accentGradient = ctx.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY);
+    accentGradient.addColorStop(0, "#9333EA");
+    accentGradient.addColorStop(0.5, "#C084FC");
+    accentGradient.addColorStop(1, "#9333EA");
+    ctx.fillStyle = accentGradient;
+    ctx.fillRect(cardX, cardY, cardWidth, 6);
 
-   ctx.font = "35px Poppins";
-   ctx.fillText("You've completed the game!", canvas.width / 2, canvas.height / 2 - 10);
+    // Medal icon with glow effect
+    if (medalImg && medalImg.complete) {
+      const medalSize = 130;
+      ctx.shadowColor = "#FCD34D";
+      ctx.shadowBlur = 30;
+      ctx.drawImage(medalImg, canvas.width / 2 - medalSize / 2, cardY + 50, medalSize, medalSize);
+      ctx.shadowBlur = 0;
+    }
 
-   ctx.font = "20px Poppins";
-   ctx.fillText(`Time: ${finalTime}s`, canvas.width / 2, canvas.height / 2 + 30);
+    // Title with shadow
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 10;
+    ctx.fillStyle = "#FCD34D";
+    ctx.font = "bold 40px Poppins, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Congrats!", canvas.width / 2, cardY + 210);
+    ctx.shadowBlur = 0;
 
-   ctx.font = "20px Poppins";
-   ctx.fillText(`Attempts: ${state.attempts}`, canvas.width / 2, canvas.height / 2 + 70);
+    // Subtitle
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "22px Poppins, sans-serif";
+    ctx.fillText("You did a great job in the practice", canvas.width / 2, cardY + 250);
+
+    // Stats container
+    const statsY = cardY + 280;
+    const statsWidth = cardWidth - 80;
+    const statsX = cardX + 40;
+    
+    ctx.fillStyle = "rgba(145, 58, 58, 0.05)";
+    roundedRect(ctx, statsX, statsY, statsWidth, 70, 16);
+    ctx.fill();
+    
+    // Stats border
+    ctx.strokeStyle = "rgba(252, 211, 77, 0.4)";
+    ctx.lineWidth = 2;
+    roundedRect(ctx, statsX, statsY, statsWidth, 70, 16);
+    ctx.stroke();
+
+    // Time stat (centered)
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#94A3B8";
+    ctx.font = "24px Poppins, sans-serif";
+    ctx.fillText(`Your Time: ${finalTime}s`, canvas.width / 2, statsY + 40);
+
+  // Helper function for rounded rectangles
+  function roundedRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+  }
 
    if (opacity < 1) {
     requestAnimationFrame(drawOverlay);
