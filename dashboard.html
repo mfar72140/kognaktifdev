@@ -123,7 +123,7 @@
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
   );
 
-  async function checkAuth() {
+async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
@@ -133,108 +133,114 @@
 
   const user = session.user;
   const userEmail = user.email;
-  
-  // Fetch user profile data from Supabase
-  const { data: profile } = await supabase
+
+  // Fetch user profile
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();  // prevents crash if no row
 
-  // Use firstname if available, otherwise use email
-  const displayName = (profile && profile.firstname) ? profile.firstname : userEmail;
-  
+  // Determine display name
+  let displayName = userEmail; // fallback
+  if (profile && profile.firstname && profile.firstname.trim() !== "") {
+    displayName = profile.firstname;
+  }
+
   document.getElementById("userName").textContent = displayName;
   document.getElementById("welcomeName").textContent = displayName;
 
-  // Update child information
+  // Update child information (safe)
   if (profile) {
     const childFullName = `${profile.cfirstname || ''} ${profile.clastname || ''}`.trim();
     document.getElementById("childName").textContent = childFullName || 'Not available';
-    
-    // Calculate age from birthday
+
     if (profile.birthday) {
-    const birthDate = new Date(profile.birthday);
-    const age = Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
-    document.getElementById("childAge").textContent = age + ' years old';
+      const birthDate = new Date(profile.birthday);
+      const age = Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
+      document.getElementById("childAge").textContent = age + ' years old';
     } else {
-    document.getElementById("childAge").textContent = 'Not available';
+      document.getElementById("childAge").textContent = 'Not available';
     }
+
     document.getElementById("childGender").textContent = profile.cgender || 'Not available';
     document.getElementById("childHealthCategory").textContent = profile.healthcategory || 'Not available';
+  } else {
+    document.getElementById("childName").textContent = 'Not available';
+    document.getElementById("childAge").textContent = 'Not available';
+    document.getElementById("childGender").textContent = 'Not available';
+    document.getElementById("childHealthCategory").textContent = 'Not available';
   }
 
-  // Fetch last session information
+  // Fetch game results
   await fetchLastSession(userEmail);
+}
+
+async function fetchLastSession(userEmail) {
+  const { data: buzzTap } = await supabase
+    .from('buzztap_results')
+    .select('created_at')
+    .eq("player_email", userEmail)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const { data: shapeSense } = await supabase
+    .from('shapesense_results')
+    .select('created_at')
+    .eq("player_email", userEmail)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  // Determine last played
+  let lastSession = null;
+  let gameModule = '';
+
+  if (buzzTap && shapeSense) {
+    const buzzDate = new Date(buzzTap.created_at);
+    const shapeDate = new Date(shapeSense.created_at);
+
+    if (buzzDate > shapeDate) {
+      lastSession = buzzDate;
+      gameModule = 'Buzz Tap!';
+    } else {
+      lastSession = shapeDate;
+      gameModule = 'Shape Sense';
+    }
+  } else if (buzzTap) {
+    lastSession = new Date(buzzTap.created_at);
+    gameModule = 'Buzz Tap!';
+  } else if (shapeSense) {
+    lastSession = new Date(shapeSense.created_at);
+    gameModule = 'Shape Sense';
   }
 
-  async function fetchLastSession(userEmail) {
-    // Fetch latest Buzz Tap game
-    const { data: buzzTap } = await supabase
-      .from('buzztap_results')
-      .select('created_at')
-      .eq("player_email", userEmail)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+  // Update UI
+  if (lastSession) {
+    document.getElementById("lastSessionDate").textContent =
+      lastSession.toLocaleDateString('en-GB');
+    document.getElementById("lastSessionTime").textContent =
+      lastSession.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
+    document.getElementById("lastSessionGameModule").textContent = gameModule;
+  } else {
+    document.getElementById("lastSessionDate").textContent = 'No session yet';
+    document.getElementById("lastSessionTime").textContent = '-';
+    document.getElementById("lastSessionGameModule").textContent = '-';
+  }
+}
 
-    // Fetch latest Shape Sense game
-    const { data: shapeSense } = await supabase
-      .from('shapesense_results')
-      .select('created_at')
-      .eq("player_email", userEmail)
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single();
+checkAuth();
 
-    // Determine which game was played last
-    let lastSession = null;
-    let gameModule = '';
-
-    if (buzzTap && shapeSense) {
-      const buzzDate = new Date(buzzTap.created_at);
-      const shapeDate = new Date(shapeSense.created_at);
-      
-      if (buzzDate > shapeDate) {
-        lastSession = buzzDate;
-        gameModule = 'Buzz Tap!';
-      } else {
-        lastSession = shapeDate;
-        gameModule = 'Shape Sense';
-            }
-          } else if (buzzTap) {
-            lastSession = new Date(buzzTap.created_at);
-            gameModule = 'Buzz Tap!';
-          } else if (shapeSense) {
-            lastSession = new Date(shapeSense.created_at);
-            gameModule = 'Shape Sense';
-          }
-
-          // Update UI
-          if (lastSession) {
-            const dateStr = lastSession.toLocaleDateString('en-GB');
-            const timeStr = lastSession.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
-            
-            document.getElementById("lastSessionDate").textContent = dateStr;
-            document.getElementById("lastSessionTime").textContent = timeStr;
-            document.getElementById("lastSessionGameModule").textContent = gameModule;
-          } else {
-            document.getElementById("lastSessionDate").textContent = 'No session yet';
-            document.getElementById("lastSessionTime").textContent = '-';
-            document.getElementById("lastSessionGameModule").textContent = '-';
-          }
-        }
-
-        checkAuth();
-
-        async function logout() {
-        await supabase.auth.signOut();
-        window.location.href = "index.html";
-        }
+// Logout
+async function logout() {
+  await supabase.auth.signOut();
+  window.location.href = "index.html";
+}
 
 document.getElementById("logout-btn").addEventListener("click", logout);
 
-// ✅ Dropdown toggle for user menu
+// User menu dropdown
 const userMenu = document.querySelector(".user-menu");
 const userName = document.getElementById("userName");
 
@@ -242,12 +248,13 @@ userName.addEventListener("click", () => {
   userMenu.classList.toggle("active");
 });
 
-// ✅ Close dropdown when clicking outside
 document.addEventListener("click", (e) => {
-  if (!userMenu.contains(e.target)) {
+  if (!userMenu.contains(e.target) && e.target !== userName) {
     userMenu.classList.remove("active");
   }
 });
+
+
 </script>
 
 </body>
