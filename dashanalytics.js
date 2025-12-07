@@ -7,6 +7,7 @@ let currentGauge = null;
 // Cached results per level for tab switching
 const buzzCache = {};   // { [level]: dataArray }
 const shapeCache = {};  // { [level]: dataArray }
+const orbCache = {};    // { [level]: dataArray }
 
 /* -----------------------------
        SHOW / HIDE SPECIFIC TABS
@@ -15,7 +16,7 @@ function showBuzzTapUI() {
     document.getElementById("tabDistance").style.display = "inline-block";
     document.getElementById("tabStability").style.display = "inline-block";
     document.getElementById("gaugeSection").style.display = "block";
-
+    document.getElementById("tabGraspStability").style.display = "none";
     document.getElementById("tabPrecision").style.display = "none";
 }
 
@@ -23,8 +24,17 @@ function showShapeSenseUI() {
     document.getElementById("tabDistance").style.display = "inline-block";
     document.getElementById("tabStability").style.display = "none";
     document.getElementById("gaugeSection").style.display = "block";
-
+    document.getElementById("tabGraspStability").style.display = "none";
     document.getElementById("tabPrecision").style.display = "inline-block";
+}
+
+function showOrbCatcherUI() {
+    document.getElementById("tabDistance").style.display = "inline-block";
+    document.getElementById("tabStability").style.display = "none"; 
+    document.getElementById("gaugeSection").style.display = "block";
+
+    document.getElementById("tabPrecision").style.display = "none";
+    document.getElementById("tabGraspStability").style.display = "inline-block";
 }
 
 /* -----------------------------
@@ -87,19 +97,22 @@ async function updateGameAnalytics() {
        currentGauge = null;
     }
 
-    document.getElementById("gameTitle").textContent =
-       game === "buzz" ? "Buzz Tap!" : "Shape Sense";
+      document.getElementById("gameTitle").textContent =
+      game === "buzz" ? "Buzz Tap!" : game === "orb" ? "Orb Catcher" : "Shape Sense";
 
-    // Clear no-data message and cards by default
-    clearStatsCards();
+      // Clear no-data message and cards by default
+      clearStatsCards();
 
-    if (game === "buzz") {
-       showBuzzTapUI();
+      if (game === "buzz") {
+      showBuzzTapUI();
        await loadBuzzTap(level);
-    } else {
-       showShapeSenseUI();
-       await loadShapeSense(level);
-    }
+      } else if (game === "orb") {
+      showOrbCatcherUI();
+      await loadOrbCatcher(level);
+      } else {
+      showShapeSenseUI();
+      await loadShapeSense(level);
+      }
 }
 
 
@@ -298,18 +311,126 @@ async function drawShapeChart(type, level) {
         }
 }
 
+
+/* =============================================
+                   ORB CATCHER ANALYTICS
+================================================*/
+async function loadOrbCatcher(level) {
+      const userEmail = (await supabase.auth.getUser()).data.user?.email;
+      if (!userEmail) {
+            showNoData();
+            return;
+      }
+
+      if (!orbCache[level]) {
+            const { data } = await supabase
+                  .from("orbcatcher_results")
+                  .select("score, time_taken, graspstability, totaldistance, consistency, created_at, level")
+                  .eq("player_email", userEmail)
+                  .eq("level", level)
+                  .order("created_at", { ascending: true });
+
+            orbCache[level] = data ?? [];
+      }
+
+      const data = orbCache[level];
+
+      if (!data || data.length === 0) {
+            showNoData();
+            return;
+      }
+
+      const last = data[data.length - 1];
+
+      document.getElementById("lastScore").textContent = last.score ?? "";
+      document.getElementById("lastDate").textContent =
+            last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
+      document.getElementById("totalGames").textContent = data.length;
+
+      const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
+      document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
+
+      // Gauge for consistency
+      const consistencyPercent = (last.consistency ?? 0);
+      currentGauge = initConsistencyGauge(consistencyPercent);
+
+      // Ensure the default tab for orb catcher is "time"
+      const timeTabBtn = document.querySelector('.tab-btn[data-chart="time"]');
+      if (timeTabBtn) activateTab(timeTabBtn);
+
+      await drawOrbChart("time", level);
+}
+
+async function drawOrbChart(type, level) {
+      const data = orbCache[level];
+      if (!data || data.length === 0) return;
+
+      const labels = data.map((r, i) => {
+            const date = r.created_at ? new Date(r.created_at).toLocaleDateString("en-GB") : "";
+            return `P${i + 1} (${date})`;
+      });
+
+      const times = data.map(r => r.time_taken ?? null);
+      const graspstability = data.map(r => r.graspstability ?? null);
+      const distances = data.map(r => r.totaldistance ?? null);
+
+      await waitForCanvas("#mainChart");
+
+      // Ensure the UI's active tab matches the chart type being displayed
+      const tabBtn = document.querySelector(`.tab-btn[data-chart="${type}"]`);
+      if (tabBtn) activateTab(tabBtn);
+
+      if (!currentMainChart) {
+            currentMainChart = initGameChart(labels, times);
+
+            if (type === "graspstability") {
+                  currentMainChart.data.datasets[0].label = "Grasp Stability per Play (%)";
+                  currentMainChart.data.datasets[0].data = graspstability;
+                  currentMainChart.data.datasets[0].borderColor = "purple";
+            } else if (type === "distance") {
+                  currentMainChart.data.datasets[0].label = "Total Distance per Play (px)";
+                  currentMainChart.data.datasets[0].data = distances;
+                  currentMainChart.data.datasets[0].borderColor = "blue";
+            } else {
+                  currentMainChart.data.datasets[0].label = "Time Taken per Play (s)";
+                  currentMainChart.data.datasets[0].data = times;
+                  currentMainChart.data.datasets[0].borderColor = "green";
+            }
+            currentMainChart.update();
+      } else {
+            if (type === "graspstability") {
+                  currentMainChart.data.datasets[0].label = "Grasp Stability per Play (%)";
+                  currentMainChart.data.datasets[0].data = graspstability;
+                  currentMainChart.data.datasets[0].borderColor = "purple";
+            } else if (type === "distance") {
+                  currentMainChart.data.datasets[0].label = "Total Distance per Play (px)";
+                  currentMainChart.data.datasets[0].data = distances;
+                  currentMainChart.data.datasets[0].borderColor = "blue";
+            } else {
+                  currentMainChart.data.datasets[0].label = "Time Taken per Play (s)";
+                  currentMainChart.data.datasets[0].data = times;
+                  currentMainChart.data.datasets[0].borderColor = "green";
+            }
+            currentMainChart.update();
+      }
+}
+
+
+
 /* ==========================================================
           TAB SWITCHING HANDLER
 ==========================================================*/
 function switchTab(type) {
-    const game = document.getElementById("gameSelect").value;
-    const level = getSelectedLevel();
+      const game = document.getElementById("gameSelect").value;
+      const level = getSelectedLevel();
 
-    if (game === "buzz") {
-          drawBuzzChart(type, level);
-    } else {
-          drawShapeChart(type, level);
-    }
+      if (game === "buzz") {
+              drawBuzzChart(type, level);
+      } else if (game === "orb") {
+              drawOrbChart(type, level);
+      } else {
+              drawShapeChart(type, level);
+      }
 }
 
 /* ==========================================================
