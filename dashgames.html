@@ -118,7 +118,7 @@
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
   );
 
-  async function checkAuth() {
+    async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -127,17 +127,23 @@
     }
 
     const user = session.user;
-    
-    // Fetch user profile data from Supabase
-    const { data: profile } = await supabase
+
+    // Fetch profile
+    const { data: profile, error } = await supabase
       .from('profiles')
       .select('firstname')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();   // avoids .single() crash if no row
 
-    // Use firstname if available, otherwise use email
-    const displayName = (profile && profile.firstname) ? profile.firstname : user.email;
-    
+    // OPTION:
+    // If profile doesn't exist, use email
+    let displayName = user.email;
+
+    // If profile exists AND firstname is filled → use it
+    if (profile && profile.firstname && profile.firstname.trim() !== "") {
+      displayName = profile.firstname;
+    }
+
     document.getElementById("userName").textContent = displayName;
   }
 
@@ -150,7 +156,8 @@
 
   document.getElementById("logout-btn").addEventListener("click", logout);
 
-  // ✅ Dropdown toggle for user menu
+
+  // Dropdown toggle
   const userMenu = document.querySelector(".user-menu");
   const userName = document.getElementById("userName");
 
@@ -158,12 +165,13 @@
     userMenu.classList.toggle("active");
   });
 
-  // ✅ Close dropdown when clicking outside
+  // Close dropdown when clicking outside
   document.addEventListener("click", (e) => {
-    if (!userMenu.contains(e.target)) {
+    if (!userMenu.contains(e.target) && e.target !== userName) {
       userMenu.classList.remove("active");
     }
   });
+
 </script>
 
 
