@@ -8,34 +8,48 @@ export async function loadUser() {
     return;
   }
 
-  // Fetch user profile data
-  const { data: profile } = await supabase
+  // Fetch user profile safely
+  const { data: profile, error } = await supabase
     .from('profiles')
     .select('firstname')
     .eq('id', user.id)
-    .single();
+    .maybeSingle();   // prevent crash if no row
 
-  // Display firstname if available, otherwise use email
-  const displayName = profile?.firstname || user.email;
-  document.getElementById("userName").textContent = displayName;
+  // Choose display name
+  const displayName =
+    profile && profile.firstname && profile.firstname.trim() !== ""
+      ? profile.firstname
+      : user.email;
+
+  const userNameElement = document.getElementById("userName");
+  if (userNameElement) {
+    userNameElement.textContent = displayName;
+  }
 
   const userMenu = document.querySelector(".user-menu");
-  const userName = document.getElementById("userName");
+  const userName = userNameElement;
 
-  userName.addEventListener("click", () => {
-    userMenu.classList.toggle("active");
-  });
+  // Only add listener if elements exist (avoid null)
+  if (userMenu && userName) {
+    userName.addEventListener("click", () => {
+      userMenu.classList.toggle("active");
+    });
 
-  document.addEventListener("click", (e) => {
-    if (!userMenu.contains(e.target)) {
-      userMenu.classList.remove("active");
-    }
-  });
+    document.addEventListener("click", (e) => {
+      if (!userMenu.contains(e.target) && e.target !== userName) {
+        userMenu.classList.remove("active");
+      }
+    });
+  }
 
-
-  document.getElementById("logout-btn").addEventListener("click", async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
-    window.location.href = "index.html";
-  });
+  // Logout
+  const logoutBtn = document.getElementById("logout-btn");
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      await supabase.auth.signOut();
+      localStorage.clear();
+      window.location.href = "index.html";
+    });
+  }
 }
+
