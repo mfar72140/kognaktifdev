@@ -9,7 +9,7 @@ const DETECTION_INTERVAL_MS = 100; // 10 FPS equivalent
 const GRASP_THRESHOLD = 0.2; // hand grasp sensitivity
 const BASKET_SNAP_DISTANCE = 70; // px to snap to basket
 
-const TARGET_SCORE = 10; // Win condition
+const TARGET_SCORE = 15; // Win condition
 
 // Delta time settings
 const TARGET_FPS = 60;
