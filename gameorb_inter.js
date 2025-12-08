@@ -105,11 +105,17 @@ orbGreenImg.src = "images/orbgreen.png";
 const orbPurpleImg = new Image();
 orbPurpleImg.src = "images/orbpurple.png";
 
+const orbRedImg = new Image();
+orbRedImg.src = "images/orbred.png";
+
 const basketGreenImg = new Image();
 basketGreenImg.src = "images/basketgreen.png";
 
 const basketPurpleImg = new Image();
 basketPurpleImg.src = "images/basketpurple.png";
+
+const basketRedImg = new Image();
+basketRedImg.src = "images/basketred.png";
 
 const handImg = new Image();
 handImg.src = "images/rhand_shape.png";
@@ -139,8 +145,8 @@ bgMusic.volume = 0.9;
 function preloadAssets() {
     const promises = [];
     const images = [
-        backgroundImg, cloudImg, orbGreenImg, orbPurpleImg,
-        basketGreenImg, basketPurpleImg, handImg, graspImg
+        backgroundImg, cloudImg, orbGreenImg, orbPurpleImg, orbRedImg,
+        basketGreenImg, basketPurpleImg, basketRedImg, handImg, graspImg
     ];
 
     images.forEach(img => {
@@ -197,19 +203,27 @@ function initGame() {
         releaseTimer: 0
     };
 
-    // Initialize baskets at bottom
+    // Initialize baskets at bottom - 3 baskets positioned evenly
     state.baskets = [
         {
             type: "green",
-            x: 260,
+            x: 200,
             y: canvas.height - 70,
             width: 120,
             height: 120,
             img: basketGreenImg
         },
         {
+            type: "red",
+            x: canvas.width / 2,
+            y: canvas.height - 70,
+            width: 120,
+            height: 120,
+            img: basketRedImg
+        },
+        {
             type: "purple",
-            x: canvas.width - 260,
+            x: canvas.width - 200,
             y: canvas.height - 70,
             width: 120,
             height: 120,
@@ -342,18 +356,27 @@ function updateCloud() {
 }
 
 function releaseOrb() {
-    const colors = ["green", "purple"];
+    const colors = ["green", "purple", "red"];
     const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    let orbImg;
+    if (randomColor === "green") {
+        orbImg = orbGreenImg;
+    } else if (randomColor === "purple") {
+        orbImg = orbPurpleImg;
+    } else {
+        orbImg = orbRedImg;
+    }
     
     const orb = {
         id: Date.now(),
         type: randomColor,
         x: state.cloud.x,
         y: state.cloud.y + state.cloud.height / 2,
-        width: 55,
-        height: 55,
-        speed: 0.5, // very slow fall
-        img: randomColor === "green" ? orbGreenImg : orbPurpleImg,
+        width: 50,
+        height: 50,
+        speed: 0.55, // very slow fall
+        img: orbImg,
         grabbed: false,
         broken: false
     };
@@ -633,7 +656,16 @@ function drawScene() {
                 const y = orb.y + Math.sin(angle) * distance;
                 const alpha = 1 - progress;
                 
-                ctx.fillStyle = orb.type === "green" ? `rgba(0, 255, 0, ${alpha})` : `rgba(138, 43, 226, ${alpha})`;
+                let particleColor;
+                if (orb.type === "green") {
+                    particleColor = `rgba(0, 255, 0, ${alpha})`;
+                } else if (orb.type === "purple") {
+                    particleColor = `rgba(138, 43, 226, ${alpha})`;
+                } else {
+                    particleColor = `rgba(255, 0, 0, ${alpha})`;
+                }
+                
+                ctx.fillStyle = particleColor;
                 ctx.beginPath();
                 const radius = Math.max(0, 5 * (1 - progress));
                 ctx.arc(x, y, radius, 0, Math.PI * 2);
@@ -643,7 +675,15 @@ function drawScene() {
             if (!orb.breakTime) orb.breakTime = Date.now();
         } else if (orb.img && orb.img.complete) {
             // Draw glow effect
-            const glowColor = orb.type === "green" ? "rgba(0, 255, 0, 0.5)" : "rgba(138, 43, 226, 0.5)";
+            let glowColor;
+            if (orb.type === "green") {
+                glowColor = "rgba(0, 255, 0, 0.5)";
+            } else if (orb.type === "purple") {
+                glowColor = "rgba(138, 43, 226, 0.5)";
+            } else {
+                glowColor = "rgba(255, 0, 0, 0.5)";
+            }
+            
             ctx.shadowBlur = 30;
             ctx.shadowColor = glowColor;
             
@@ -903,7 +943,7 @@ async function calculateConsistency(userEmail) {
             .from("orbcatcher_results")
             .select("time_taken")
             .eq("player_email", userEmail)
-            .eq("level", "BEGINNER")
+            .eq("level", "INTERMEDIATE")
             .order("created_at", { ascending: false })
             .limit(5);
 
@@ -965,7 +1005,7 @@ async function saveGameResult() {
         .insert([{
             player_email: user.email,
             score: score,
-            level: "BEGINNER",
+            level: "INTERMEDIATE",
             time_taken: finalTime,
             totaldistance: totalDistance,
             av_distance: averageDistance,

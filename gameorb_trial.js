@@ -7,7 +7,7 @@ const TIMER_ID = "timer";
 const COUNTDOWN_START = 3;
 const DETECTION_INTERVAL_MS = 100; // 10 FPS equivalent
 const GRASP_THRESHOLD = 0.2; // hand grasp sensitivity
-const BASKET_SNAP_DISTANCE = 60; // px to snap to basket
+const BASKET_SNAP_DISTANCE = 70; // px to snap to basket
 
 const TARGET_SCORE = 10; // Win condition
 
@@ -375,6 +375,8 @@ function updateOrbs() {
                 orb.broken = true;
                 state.orbLose++;
                 state.lostGrasps++;
+                state.score = Math.max(0, state.score - 1); // Deduct 1 point, minimum 0
+                updateScore();
                 
                 // Play break sound
                 try {
