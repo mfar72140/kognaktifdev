@@ -1,8 +1,9 @@
+import { supabase } from './supabaseClient.js';
+
 // ==========================================================
 //  SCORECARD v3 — Supabase + Date Filter + Caching + Fast Load + TOTAL SCORE
 // ==========================================================
 
-import { supabase } from './supabaseClient.js';
 const { jsPDF } = window.jspdf;
 
 // ---------- DOM ELEMENTS ----------
@@ -10,11 +11,11 @@ const scoreCardBtn = document.getElementById("openScoreCard");
 const scoreCardModal = document.getElementById("scoreModal");
 const closeScoreCardBtn = document.getElementById("closeScoreModal");
 
-// Inputs (user enters)
-const inputStudent = document.getElementById("studentName");
-const inputAge = document.getElementById("studentAge");
-const inputHealth = document.getElementById("studentHealth");
-const inputTeacher = document.getElementById("studentTeacher");
+// Display fields (auto-populated from profile)
+const inputChild = document.getElementById("childName");
+const inputAge = document.getElementById("childAge");
+const inputHealth = document.getElementById("childHealth");
+const inputParent = document.getElementById("childParent");
 const inputDate = document.getElementById("sessionDate"); // yyyy-mm-dd
 
 // Game selection
@@ -31,10 +32,10 @@ const scTimeList = document.getElementById("scTimeList");
 const scDistanceList = document.getElementById("scDistanceList");
 
 // Printable/PDF fields
-const pdfStudentName = document.getElementById("pdfStudentName");
+const pdfChildName = document.getElementById("pdfChildName");
 const pdfAge = document.getElementById("pdfAge");
 const pdfHealth = document.getElementById("pdfHealth");
-const pdfTeacher = document.getElementById("pdfTeacher");
+const pdfParent = document.getElementById("pdfParent");
 const pdfSessionDate = document.getElementById("pdfsessiondate");
 
 const pdfGameName = document.getElementById("pdfGameName");
@@ -55,6 +56,62 @@ const cache = {};
 
 
 // ==========================================================
+//  FUNCTION: Load Profile Data from Supabase
+// ==========================================================
+async function loadProfileData() {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+        console.error("User not logged in or error:", userError);
+        alert("Please log in to view scorecard.");
+        return false;
+    }
+    
+    const userEmail = userData.user.email;
+    
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("cfirstname, clastname, birthday, healthcategory, firstname, lastname")
+        .eq("id", userData.user.id)
+        .single();
+    
+    if (profileError || !profile) {
+        console.error("Profile fetch error:", profileError);
+        alert("Please update your information in Account Settings first.");
+        return false;
+    }
+    
+    // Check if required fields exist
+    if (!profile.cfirstname || !profile.clastname || !profile.birthday || !profile.healthcategory || !profile.firstname || !profile.lastname) {
+        alert("Please update your information in Account Settings first.");
+        return false;
+    }
+    
+    // Populate child name
+    const childName = `${profile.cfirstname} ${profile.clastname}`;
+    inputChild.textContent = childName;
+    
+    // Calculate age from birthday
+    const birthDate = new Date(profile.birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    inputAge.textContent = age;
+    
+    // Populate health category
+    inputHealth.textContent = profile.healthcategory;
+    
+    // Populate teacher's name
+    const parentName = `${profile.firstname} ${profile.lastname}`;
+    inputParent.textContent = parentName;
+    
+    return true;
+}
+
+
+// ==========================================================
 //  FUNCTION: Get Stats for Selected Date (fixed UTC + caching)
 // ==========================================================
 async function getGameStatsByDate() {
@@ -65,7 +122,7 @@ async function getGameStatsByDate() {
 
     if (!selectedDate) {
         return {
-            gameName: game === "buzz" ? "Buzz Tap!" : "Shape Sense",
+            gameName: game === "buzz" ? "Buzz Tap!" : game === "shape" ? "Shape Sense" : "Orb Catcher",
             gameLevel: levelSelect.value ? levelSelect.value.toUpperCase() : levelRaw,
             date: "-",
             bestTime: "-",
@@ -88,8 +145,8 @@ async function getGameStatsByDate() {
     const userEmail = userData.user.email;
 
     // Determine table and title
-    const table = game === "buzz" ? "buzztap_results" : "shapesense_results";
-    const gameTitle = game === "buzz" ? "Buzz Tap!" : "Shape Sense";
+    const table = game === "buzz" ? "buzztap_results" : game === "shape" ? "shapesense_results" : "orbcatcher_results";
+    const gameTitle = game === "buzz" ? "Buzz Tap!" : game === "shape" ? "Shape Sense" : "Orb Catcher";
 
     // Local day range (timezone-safe)
     const localStart = new Date(selectedDate + "T00:00:00");
@@ -136,9 +193,9 @@ async function getGameStatsByDate() {
     const timeList = data?.map(r => (typeof r.time_taken === "number" ? r.time_taken.toFixed(1) + "s" : null))
                        .filter(v => v !== null) || [];
 
-    // Distance list (for Buzz Tap)
+    // Distance list (for Buzz Tap and Orb Catcher)
     let distanceList = "-";
-    if (game === "buzz") {
+    if (game === "buzz" || game === "orb") {
         const dist = data?.map(r => (r.totaldistance != null ? r.totaldistance.toFixed(1) + "px" : null))
                           .filter(v => v !== null) || [];
         distanceList = dist.length > 0 ? dist.join(", ") : "-";
@@ -164,6 +221,12 @@ async function getGameStatsByDate() {
 // 1. OPEN SCORE CARD MODAL
 // ==========================================================
 scoreCardBtn.addEventListener("click", async () => {
+    // Load profile data first
+    const profileLoaded = await loadProfileData();
+    if (!profileLoaded) {
+        return; // Don't open modal if profile data is incomplete
+    }
+    
     scoreCardModal.style.display = "flex";
 
     const result = await getGameStatsByDate();
@@ -217,10 +280,10 @@ gameSelect.addEventListener("change", () => {
 // ==========================================================
 downloadBtn.addEventListener("click", async () => {
 
-    pdfStudentName.textContent = inputStudent.value;
-    pdfAge.textContent = inputAge.value;
-    pdfHealth.textContent = inputHealth.value;
-    pdfTeacher.textContent = inputTeacher.value;
+    pdfChildName.textContent = inputChild.textContent;
+    pdfAge.textContent = inputAge.textContent;
+    pdfHealth.textContent = inputHealth.textContent;
+    pdfParent.textContent = inputParent.textContent;
     pdfSessionDate.textContent = inputDate.value;
 
     pdfGameName.textContent = scGameName.textContent;
@@ -241,5 +304,5 @@ downloadBtn.addEventListener("click", async () => {
     const imgHeight = canvas.height * (imgWidth / canvas.width);
 
     pdf.addImage(imgData, "JPEG", 20, 20, imgWidth, imgHeight);
-    pdf.save(`ScoreCard_${inputStudent.value}.pdf`);
+    pdf.save(`ScoreCard_${inputChild.textContent}.pdf`);
 });
