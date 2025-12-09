@@ -54,6 +54,21 @@ const downloadBtn = document.getElementById("downloadScorePDF");
 // ==========================================================
 const cache = {};
 
+// ----------------------------
+// Notification System
+// ----------------------------
+function showNotify(message, type = "warning") {
+    const box = document.getElementById("notifyBox");
+    if (!box) return alert(message); // fallback if HTML missing
+
+    box.textContent = message;
+    box.className = `notify ${type}`; // apply style (warning/success/error)
+
+    setTimeout(() => {
+        box.className = "notify hidden";
+    }, 3000);
+}
+
 
 // ==========================================================
 //  FUNCTION: Load Profile Data from Supabase
@@ -62,7 +77,7 @@ async function loadProfileData() {
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
         console.error("User not logged in or error:", userError);
-        alert("Please log in to view scorecard.");
+        showNotify("Please log in to view scorecard.", "error");
         return false;
     }
     
@@ -72,17 +87,17 @@ async function loadProfileData() {
         .from("profiles")
         .select("cfirstname, clastname, birthday, healthcategory, firstname, lastname")
         .eq("id", userData.user.id)
-        .single();
+        .maybeSingle();
     
     if (profileError || !profile) {
         console.error("Profile fetch error:", profileError);
-        alert("Please update your information in Account Settings first.");
+        showNotify("Please update your information in Account Settings first.", "error");
         return false;
     }
     
     // Check if required fields exist
     if (!profile.cfirstname || !profile.clastname || !profile.birthday || !profile.healthcategory || !profile.firstname || !profile.lastname) {
-        alert("Please update your information in Account Settings first.");
+        showNotify("Please update your information in Account Settings first.", "error");
         return false;
     }
     

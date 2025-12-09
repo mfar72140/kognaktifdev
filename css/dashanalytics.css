@@ -668,6 +668,48 @@ body {
   background: #2e6f31;
 }
 
+/* =======================
+   NOTIFICATION BOX 
+   ======================= */
+
+.notify {
+    position: fixed;
+    top: 20px;
+    right: 120px;
+    padding: 12px 18px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-family: Poppins, sans-serif;
+    z-index: 9999;
+    opacity: 1;
+    transition: opacity 0.5s ease;
+}
+
+/* Hide */
+.notify.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Types */
+.notify.warning {
+    background: #ffda75;
+    color: #704c00;
+    border-left: 5px solid #e6b200;
+}
+
+.notify.error {
+    background: #ff7e7e;
+    color: #5e0000;
+    border-left: 5px solid #d30000;
+}
+
+.notify.success {
+    background: #7eed9e;
+    color: #005c1a;
+    border-left: 5px solid #00b33c;
+}
+
 
 /* --------------------------------------------------
    DESIGN A — SCHOOL REPORT CARD STYLE
