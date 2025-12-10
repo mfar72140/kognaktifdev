@@ -30,6 +30,9 @@ const scTotalPlayed = document.getElementById("scTotalGames");
 const scTotalScore = document.getElementById("scTotalScore");
 const scTimeList = document.getElementById("scTimeList");
 const scDistanceList = document.getElementById("scDistanceList");
+const scMovementStabilityList = document.getElementById("scMovementStabilityList");
+const scPinchAccuracyList = document.getElementById("scPinchAccuracyList");
+const scGraspStabilityList = document.getElementById("scGraspStabilityList");
 
 // Printable/PDF fields
 const pdfChildName = document.getElementById("pdfChildName");
@@ -45,6 +48,9 @@ const pdfGamesPlayed = document.getElementById("pdfGamesPlayed");
 const pdfTotalScore = document.getElementById("pdfTotalScore");
 const pdfTimeList = document.getElementById("pdfTimeList");
 const pdfDistanceList = document.getElementById("pdfDistanceList");
+const pdfMovementStabilityList = document.getElementById("pdfMovementStabilityList");
+const pdfPinchAccuracyList = document.getElementById("pdfPinchAccuracyList");
+const pdfGraspStabilityList = document.getElementById("pdfGraspStabilityList");
 
 // Download button
 const downloadBtn = document.getElementById("downloadScorePDF");
@@ -54,9 +60,9 @@ const downloadBtn = document.getElementById("downloadScorePDF");
 // ==========================================================
 const cache = {};
 
-// ----------------------------
+// ==========================================================
 // Notification System
-// ----------------------------
+// ==========================================================
 function showNotify(message, type = "warning") {
     const box = document.getElementById("notifyBox");
     if (!box) return alert(message); // fallback if HTML missing
@@ -80,8 +86,6 @@ async function loadProfileData() {
         showNotify("Please log in to view scorecard.", "error");
         return false;
     }
-    
-    const userEmail = userData.user.email;
     
     const { data: profile, error: profileError } = await supabase
         .from("profiles")
@@ -144,7 +148,10 @@ async function getGameStatsByDate() {
             totalPlayed: "-",
             totalScore: "-",
             timeList: "-",
-            distanceList: "-"
+            distanceList: "-",
+            movementStabilityList: "-",
+            pinchAccuracyList: "-",
+            graspStabilityList: "-"
         };
     }
 
@@ -195,7 +202,10 @@ async function getGameStatsByDate() {
             totalPlayed: "-",
             totalScore: "-",
             timeList: "-",
-            distanceList: "-"
+            distanceList: "-",
+            movementStabilityList: "-",
+            pinchAccuracyList: "-",
+            graspStabilityList: "-"
         };
     }
 
@@ -209,12 +219,24 @@ async function getGameStatsByDate() {
                        .filter(v => v !== null) || [];
 
     // Distance list (for Buzz Tap and Orb Catcher)
+    //let distanceList = "-";
+    // Distance list (for Buzz Tap, Shape Sense, and Orb Catcher)
     let distanceList = "-";
-    if (game === "buzz" || game === "orb") {
+    if (game === "buzz" || game === "shape" || game === "orb") {
         const dist = data?.map(r => (r.totaldistance != null ? r.totaldistance.toFixed(1) + "px" : null))
                           .filter(v => v !== null) || [];
         distanceList = dist.length > 0 ? dist.join(", ") : "-";
     }
+    const movementStabilityList = data?.map(r => (r.av_devpath != null ? r.av_devpath.toFixed(1) + "%" : null))
+                                       .filter(v => v !== null) || [];
+
+    // Pinch Accuracy (precision) - for Shape Sense
+    const pinchAccuracyList = data?.map(r => (r.precision != null ? r.precision.toFixed(1) + "%" : null))
+                                   .filter(v => v !== null) || [];
+
+    // Grasp Stability (graspstability) - for Orb Catcher
+    const graspStabilityList = data?.map(r => (r.graspstability != null ? r.graspstability.toFixed(1) + "%" : null))
+                                    .filter(v => v !== null) || [];
 
     const result = {
         gameName: gameTitle,
@@ -224,11 +246,50 @@ async function getGameStatsByDate() {
         totalPlayed: count || 0,
         totalScore,
         timeList: timeList.length > 0 ? timeList.join(", ") : "-",
-        distanceList
+        distanceList,
+        movementStabilityList: movementStabilityList.length > 0 ? movementStabilityList.join(", ") : "-",
+        pinchAccuracyList: pinchAccuracyList.length > 0 ? pinchAccuracyList.join(", ") : "-",
+        graspStabilityList: graspStabilityList.length > 0 ? graspStabilityList.join(", ") : "-"
     };
 
     cache[cacheKey] = result;
     return result;
+}
+
+
+// ==========================================================
+// FUNCTION: Show/Hide fields based on game
+// ==========================================================
+function updateFieldVisibility(game) {
+    // Modal elements
+    const scMovementStabilityRow = scMovementStabilityList.closest('p');
+    const scPinchAccuracyRow = scPinchAccuracyList.closest('p');
+    const scGraspStabilityRow = scGraspStabilityList.closest('p');
+
+    // PDF elements
+    const pdfMovementStabilityRow = pdfMovementStabilityList.closest('p');
+    const pdfPinchAccuracyRow = pdfPinchAccuracyList.closest('p');
+    const pdfGraspStabilityRow = pdfGraspStabilityList.closest('p');
+
+    // Hide all first
+    if (scMovementStabilityRow) scMovementStabilityRow.style.display = 'none';
+    if (scPinchAccuracyRow) scPinchAccuracyRow.style.display = 'none';
+    if (scGraspStabilityRow) scGraspStabilityRow.style.display = 'none';
+    if (pdfMovementStabilityRow) pdfMovementStabilityRow.style.display = 'none';
+    if (pdfPinchAccuracyRow) pdfPinchAccuracyRow.style.display = 'none';
+    if (pdfGraspStabilityRow) pdfGraspStabilityRow.style.display = 'none';
+
+    // Show relevant field based on game
+    if (game === "buzz") {
+        if (scMovementStabilityRow) scMovementStabilityRow.style.display = 'block';
+        if (pdfMovementStabilityRow) pdfMovementStabilityRow.style.display = 'block';
+    } else if (game === "shape") {
+        if (scPinchAccuracyRow) scPinchAccuracyRow.style.display = 'block';
+        if (pdfPinchAccuracyRow) pdfPinchAccuracyRow.style.display = 'block';
+    } else if (game === "orb") {
+        if (scGraspStabilityRow) scGraspStabilityRow.style.display = 'block';
+        if (pdfGraspStabilityRow) pdfGraspStabilityRow.style.display = 'block';
+    }
 }
 
 
@@ -253,6 +314,13 @@ scoreCardBtn.addEventListener("click", async () => {
     scTotalScore.textContent = result.totalScore;
     scTimeList.textContent = result.timeList;
     scDistanceList.textContent = result.distanceList;
+    scMovementStabilityList.textContent = result.movementStabilityList;
+    scPinchAccuracyList.textContent = result.pinchAccuracyList;
+    scGraspStabilityList.textContent = result.graspStabilityList;
+
+    // Update visibility based on game
+    const game = gameSelect?.value || "buzz";
+    updateFieldVisibility(game);
 });
 
 
@@ -277,6 +345,13 @@ async function updateScoreCard() {
     scTotalScore.textContent = result.totalScore;
     scTimeList.textContent = result.timeList;
     scDistanceList.textContent = result.distanceList;
+    scMovementStabilityList.textContent = result.movementStabilityList;
+    scPinchAccuracyList.textContent = result.pinchAccuracyList;
+    scGraspStabilityList.textContent = result.graspStabilityList;
+
+    // Update visibility based on game
+    const game = gameSelect?.value || "buzz";
+    updateFieldVisibility(game);
 }
 
 // Debounce
@@ -308,6 +383,9 @@ downloadBtn.addEventListener("click", async () => {
     pdfTotalScore.textContent = scTotalScore.textContent;
     pdfTimeList.textContent = scTimeList.textContent;
     pdfDistanceList.textContent = scDistanceList.textContent;
+    pdfMovementStabilityList.textContent = scMovementStabilityList.textContent;
+    pdfPinchAccuracyList.textContent = scPinchAccuracyList.textContent;
+    pdfGraspStabilityList.textContent = scGraspStabilityList.textContent;
 
     const element = document.getElementById("scorecardPrint");
     const canvas = await html2canvas(element, { scale: 2 });

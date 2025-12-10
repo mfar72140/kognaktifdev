@@ -1,874 +1,323 @@
-//gamebuzz_inter.js backup
-// ============================================
-// GLOBAL VARIABLES
-// ============================================
+import { supabase } from './supabaseClient.js';
 
-let videoElement, hands, camera;
-let ctx, canvas;
-let beeImg, LhandImg, rhandImg, bgImg;
-let ball = { x: 0, y: 0, r: 30, vx: 0, vy: 0 };
-let score = 0;
-let gameRunning = false;
-let countdownRunning = false;
-let touchSound, endGameSound, countdownSound;
-let HoneySplashes = [];
-let bgMusic;
-let isMuted = false;
-let reactionTimes = [];
-let ballSpawnTime = null;
-let cameraReady = false;
-let previousArrowX = null;
-let previousHandType = "Left"; // default
+// ==========================================================
+//  SCORECARD v3 — Supabase + Date Filter + Caching + Fast Load + TOTAL SCORE
+// ==========================================================
 
-// Path Deviation using Distance
-let startPos = null; // starting hand position for path deviation
-let deviationRatios = []; // store ratio per frame for current path
-let pathDeviations = []; // store avg deviation % per bee
-let handVelocities = []; // store hand movement velocities for stability
+const { jsPDF } = window.jspdf;
 
+// ---------- DOM ELEMENTS ----------
+const scoreCardBtn = document.getElementById("openScoreCard");
+const scoreCardModal = document.getElementById("scoreModal");
+const closeScoreCardBtn = document.getElementById("closeScoreModal");
 
-// Distance Tracking
-let totalDistance = 0;
-let lastX = null, lastY = null;
+// Display fields (auto-populated from profile)
+const inputChild = document.getElementById("childName");
+const inputAge = document.getElementById("childAge");
+const inputHealth = document.getElementById("childHealth");
+const inputParent = document.getElementById("childParent");
+const inputDate = document.getElementById("sessionDate"); // yyyy-mm-dd
 
-// Hand bounce
-let handScale = 1;
-let handBounceActive = false;
+// Game selection
+const gameSelect = document.getElementById("gameSelect");
+const levelSelect = document.getElementById("levelSelect");
 
-// Timer variables
-let startTime;
-let timerInterval;
+// Output fields in modal
+const scGameName = document.getElementById("scGameName");
+const scGameLevel = document.getElementById("scGameLevel");
+const scBestTime = document.getElementById("scBestTime");
+const scTotalPlayed = document.getElementById("scTotalGames");
+const scTotalScore = document.getElementById("scTotalScore");
+const scTimeList = document.getElementById("scTimeList");
+const scDistanceList = document.getElementById("scDistanceList");
 
-// Countdown
-let countdownValue = 3;
-let countdownInterval;
+// Printable/PDF fields
+const pdfChildName = document.getElementById("pdfChildName");
+const pdfAge = document.getElementById("pdfAge");
+const pdfHealth = document.getElementById("pdfHealth");
+const pdfParent = document.getElementById("pdfParent");
+const pdfSessionDate = document.getElementById("pdfsessiondate");
 
-// Hand position
-let arrowX = 0;
-let arrowY = 0;
+const pdfGameName = document.getElementById("pdfGameName");
+const pdfGameLevel = document.getElementById("pdfGameLevel");
+const pdfBestTime = document.getElementById("pdfBestTime");
+const pdfGamesPlayed = document.getElementById("pdfGamesPlayed");
+const pdfTotalScore = document.getElementById("pdfTotalScore");
+const pdfTimeList = document.getElementById("pdfTimeList");
+const pdfDistanceList = document.getElementById("pdfDistanceList");
 
-// Store latest results
-let latestResults = null;
+// Download button
+const downloadBtn = document.getElementById("downloadScorePDF");
 
-// Bee animation
-let flap = 0;
-let flapDirection = 1;
+// ==========================================================
+//  CACHE for fast repeated queries
+// ==========================================================
+const cache = {};
 
-// Track respawn timeout
-let respawnTimeout = null;
+// ==========================================================
+// Notification System
+// ==========================================================
+function showNotify(message, type = "warning") {
+    const box = document.getElementById("notifyBox");
+    if (!box) return alert(message); // fallback if HTML missing
 
+    box.textContent = message;
+    box.className = `notify ${type}`; // apply style (warning/success/error)
 
-// ============================================
-// WINDOW ONLOAD - INIT
-// ============================================
-
-window.onload = () => {
-    canvas = document.getElementById("output_canvas");
-    ctx = canvas.getContext("2d");
-
-    // Load images
-    beeImg = new Image();
-    beeImg.src = "images/bee2.png";
-
-    LhandImg = new Image();
-    LhandImg.src = "images/Lhand.png";
-
-    rhandImg = new Image();
-    rhandImg.src = "images/rhand.png";
-
-    bgImg = new Image();
-    bgImg.src = "images/backgr1.jpg";
-
-    // Load sound
-    touchSound = new Audio("sounds/touch.wav");
-    endGameSound = new Audio("sounds/endapplause.wav");
-    countdownSound = new Audio("sounds/countdown.wav");
-
-    // Background Music
-    bgMusic = new Audio("sounds/01Backmusic20s.mp3");
-    bgMusic.loop = true;  // keep looping
-    bgMusic.volume = 0.6; // softer than effects
-
-    const muteBtn = document.getElementById("muteBtn");
-    if (muteBtn)  {
-        muteBtn.addEventListener("click", () => {
-            isMuted = !isMuted;
-
-            if (isMuted) {
-                bgMusic.muted = true;
-                muteBtn.textContent = "🔇";
-            } else {
-                bgMusic.muted = false;
-                muteBtn.textContent = "🔊";
-            }
-        });
-    }
-
-    // Buttons
-    document.getElementById("startBtnOverlay").addEventListener("click", () => {
-        document.getElementById("startBtnOverlay").style.display = "none";
-        document.getElementById("gameTitle").style.display = "none";
-        startCountdown();
-    });
-
-    // MediaPipe Hands setup
-    hands = new Hands({
-        locateFile: (file) =>
-            `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
-    });
-    hands.setOptions({
-        maxNumHands: 1,
-        modelComplexity: 0,
-        minDetectionConfidence: 0.6,
-        minTrackingConfidence: 0.6,
-    });
-    hands.onResults((r) => {
-        latestResults = r;
-
-        if (!cameraReady) {
-            cameraReady = true;
-            console.log("✅ Camera is ready!");
-        }
-    });
-
-    videoElement = document.createElement("video");
-    videoElement.style.display = "none";
-
-    requestAnimationFrame(gameLoop);
-};
-
-
-// ============================================
-// Countdown
-// ============================================
-
-function startCountdown() {
-    // Reset state
-    score = 0;
-    countdownValue = 3;
-    countdownRunning = false; // don’t start until camera is ready
-    gameRunning = false;
-    HoneySplashes = [];
-    if (respawnTimeout) clearTimeout(respawnTimeout);
-    respawnTimeout = null;
-
-    document.getElementById("score").innerText = "Score: 0";
-    document.getElementById("startBtnOverlay").disabled = true;
-    document.getElementById("gameTitle").style.display = "none";
-
-    // Show Loading Overlay
-    const loadingOverlay = document.getElementById("loadingOverlay");
-    loadingOverlay.style.display = "flex";
-    loadingOverlay.innerText = "📷 Loading... Starting Camera";
-
-    // Camera ON
-    camera = new Camera(videoElement, {
-        onFrame: async () => {
-            await hands.send({ image: videoElement });
-        },
-        width: 640,
-        height: 480,
-    });
-    camera.start();
-
-
-    // Wait until camera is ready
-    const waitForCamera = setInterval(() => {
-        if (cameraReady) {
-            clearInterval(waitForCamera);
-            console.log("🎥 Camera feed detected, starting countdown...");
-
-            // Hide Loading Overlay once camera ready
-            loadingOverlay.style.display = "none";
-            console.log("🎥 Camera feed detected, starting countdown...");
-
-            if (countdownSound) {
-                countdownSound.currentTime = 0;
-                countdownSound.play();
-            }
-
-            countdownRunning = true;
-            countdownInterval = setInterval(() => {
-                drawCountdown(countdownValue);
-                countdownValue--;
-
-                if (countdownValue < 0) {
-                    clearInterval(countdownInterval);
-                    countdownRunning = false;
-                    startGame();
-                }
-            }, 1000);
-        }
-    }, 200);
+    setTimeout(() => {
+        box.className = "notify hidden";
+    }, 3000);
 }
 
 
-function drawCountdown(value) {
-    ctx.fillStyle = "rgba(0,0,0,0.6)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = "white";
-    ctx.font = "700 180px Arial";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText(value > 0 ? value : "GO!", canvas.width / 2, canvas.height / 2);
-}
-
-
-// ============================================
-// Start Game
-// ============================================
-
-function startGame() {
-    gameRunning = true;
-
-    // ✅ Play background music here
-    if (bgMusic) {
-        bgMusic.currentTime = 0; 
-        bgMusic.play();
+// ==========================================================
+//  FUNCTION: Load Profile Data from Supabase
+// ==========================================================
+async function loadProfileData() {
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+        console.error("User not logged in or error:", userError);
+        showNotify("Please log in to view scorecard.", "error");
+        return false;
     }
-
-    clearInterval(timerInterval);
-    startTime = Date.now();
-    document.getElementById("timer").innerText = "Time: 0s";
-    timerInterval = setInterval(() => {
-        let elapsed = Math.floor((Date.now() - startTime) / 1000);
-        document.getElementById("timer").innerText = "Time: " + elapsed + "s";
-    }, 1000);
-
-    spawnBall();
-}
-
-const HAND_MOVE_THRESHOLD = 10; // pixels: minimum movement to start tracking
-
-
-// ============================================
-// Spawn Bee (spawn just outside screen edge and steer inward)
-// ============================================
-function spawnBall() {
-    // remember last zone to avoid immediate respawn on same side
-    if (typeof spawnBall.lastZone === "undefined") spawnBall.lastZone = -1;
-
-    // pick a zone (0 = left, 1 = right, 2 = top, 3 = bottom)
-    let zone;
-    let attempts = 0;
-    do {
-        zone = Math.floor(Math.random() * 4);
-        attempts++;
-        // allow same zone rarely (in case of repeated attempts)
-    } while (zone === spawnBall.lastZone && attempts < 6);
-
-    spawnBall.lastZone = zone;
-
-    const off = 80; // how far off-screen to place the bee
-    const margin = 40; // keep spawn within vertical/horizontal margins
-    // place just outside the chosen boundary
-    if (zone === 0) {
-        // LEFT: x just left of canvas
-        ball.x = -off - Math.random() * 40;
-        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
-    } else if (zone === 1) {
-        // RIGHT: x just right of canvas
-        ball.x = canvas.width + off + Math.random() * 40;
-        ball.y = Math.random() * (canvas.height - margin * 2) + margin;
-    } else if (zone === 2) {
-        // TOP: y just above canvas
-        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
-        ball.y = -off - Math.random() * 40;
-    } else {
-        // BOTTOM: y just below canvas
-        ball.x = Math.random() * (canvas.width - margin * 2) + margin;
-        ball.y = canvas.height + off + Math.random() * 40;
-    }
-
-    // aim roughly toward screen center with some randomness
-    const targetX = canvas.width / 2 + (Math.random() - 0.5) * canvas.width * 0.3;
-    const targetY = canvas.height / 2 + (Math.random() - 0.5) * canvas.height * 0.3;
-    const angle = Math.atan2(targetY - ball.y, targetX - ball.x);
-    const speed = Math.random() * 1.6 + 0.8; // moderate inward speed
-    ball.vx = Math.cos(angle) * speed;
-    ball.vy = Math.sin(angle) * speed;
-
-    // Record spawn time for reaction calculation
-    ballSpawnTime = Date.now();
-
-    // Reset deviation tracking for this new bee
-    startPos = null;       // will initialize on first hand movement toward new bee
-    totalDeviation = 0;
-    sampleCount = 0;
-
-    // prevent huge distance jumps by resetting last hand pos
-    lastX = null;
-    lastY = null;
-}
-
- // ============================================
- // Bee Movement: wandering steering
- // ============================================
-
-function updateBallMovement() {
-    if (Math.random() < 0.04) {
-        let angle = Math.atan2(ball.vy, ball.vx);
-        angle += (Math.random() - 0.5) * Math.PI * 0.6; // random turn
-        let speed = Math.hypot(ball.vx, ball.vy);
-        speed += (Math.random() - 0.5) * 0.6;
-        speed = Math.max(0.6, Math.min(3.2, speed));
-        const targetVx = Math.cos(angle) * speed;
-        const targetVy = Math.sin(angle) * speed;
-        const blend = 0.25; // 0 = no change, 1 = immediate (original behavior)
-        ball.vx += (targetVx - ball.vx) * blend;
-        ball.vy += (targetVy - ball.vy) * blend;
-    }
-    // steer away from edges gently
-    const margin = 50;
-    const steerStrength = 0.45;
-    if (ball.x < margin) ball.vx += steerStrength;
-    if (ball.x > canvas.width - margin) ball.vx -= steerStrength;
-    if (ball.y < margin) ball.vy += steerStrength;
-    if (ball.y > canvas.height - margin) ball.vy -= steerStrength;
-
-    // limit speed
-    const maxSpeed = 3;
-    let sp = Math.hypot(ball.vx, ball.vy);
-    if (sp > maxSpeed) {
-        ball.vx = (ball.vx / sp) * maxSpeed;
-        ball.vy = (ball.vy / sp) * maxSpeed;
-    }
-
-    // update position
-    ball.x += ball.vx;
-    ball.y += ball.vy;
-
-    // keep inside bounds (bounce minimally)
-    if (ball.x < ball.r) {
-        ball.x = ball.r;
-        ball.vx = Math.abs(ball.vx) * 0.8;
-    }
-    if (ball.x > canvas.width - ball.r) {
-        ball.x = canvas.width - ball.r;
-        ball.vx = -Math.abs(ball.vx) * 0.8;
-    }
-    if (ball.y < ball.r) {
-        ball.y = ball.r;
-        ball.vy = Math.abs(ball.vy) * 0.8;
-    }
-    if (ball.y > canvas.height - ball.r) {
-        ball.y = canvas.height - ball.r;
-        ball.vy = -Math.abs(ball.vy) * 0.8;
-    }
- }
-
-
-// ============================================
-// Main Game Loop
-// ============================================
-
-function gameLoop() {
-    if (countdownRunning) {
-        drawCountdown(countdownValue);
-    } 
-    else if (gameRunning && latestResults) {
-        drawScene(latestResults);
-    }
-    requestAnimationFrame(gameLoop);
-}
-
-// ============================================
-// Draw Hand
-// ============================================
-
-function drawHand(x, y, img) {
-    // 🧱 Safety: skip drawing if image not ready
-    if (!img || !img.complete || img.naturalWidth === 0) return;
-
-    const baseSize = 90;
-    const size = baseSize * handScale; // scaled size
-
-    ctx.drawImage(img, x - size / 2, y - size / 2, size, size);
-
-    // ✨ Bounce animation
-    if (handBounceActive) {
-        handScale += (1.6 - handScale) * 0.25; // grow towards 1.6x
-        if (handScale >= 1.55) {
-            handBounceActive = false;
-        }
-    } else {
-        handScale += (1 - handScale) * 0.2; // return to normal
-    }
-}
-
-// ============================================
-// Handle Game Logic
-// ============================================
-
-function handleGameLogic(arrowX, arrowY) {
-
-        // Collision check
-        const dx = arrowX - ball.x;
-        const dy = arrowY - ball.y;
-        if (Math.sqrt(dx * dx + dy * dy) < ball.r + 10) {
-            let reaction = Date.now() - ballSpawnTime; 
-            reactionTimes.push(reaction);  // ⏱ save reaction time  
-        
-            // ✅ Compute avg deviation for this bee
-            if (deviationRatios.length > 0) {
-                const avgRatio = deviationRatios.reduce((a, b) => a + b, 0) / deviationRatios.length;
-                pathDeviations.push(avgRatio * 100); // store as %
-            }
-
-            score++;
-            document.getElementById("score").innerText = "Score: " + score;
-
-            handBounceActive = true; // trigger hand bounce
-
-
-            if (touchSound) {
-                touchSound.currentTime = 0;
-                touchSound.play();
-            }
-
-            HoneySplashes.push(new HoneySplash(ball.x, ball.y));
-
-            // Reset for next bee
-            startPos = null;
-            deviationRatios = [];
-            lastX = null;
-            lastY = null;
-
-            // Hide current bee off-screen (so it doesn't get hit during respawn delay)
-            ball.x = -200;
-            ball.y = -200;
-            ball.vx = 0;
-            ball.vy = 0;
-
-
-            if (score >= 20) {
-                endGame();
-            } else {
-                if (respawnTimeout) clearTimeout(respawnTimeout);
-                respawnTimeout = setTimeout(spawnBall, 700);
-            }
-        }
-    }
-
-
-
-// ============================================
-// Draw Scene
-// ============================================
-
-function drawScene(results) {
-    ctx.fillStyle = "white";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
-
-    // Update bee movement before drawing
-    updateBallMovement();
-
-    // Animate bee flap
-    flap += flapDirection * 0.8;
-    if (flap > 10 || flap < -10) flapDirection *= -1;
-
-    ctx.drawImage(
-        beeImg,
-        ball.x - ball.r,
-        ball.y - ball.r + flap,
-        ball.r * 2,
-        ball.r * 2
-    );
-
-    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-        for (let i = 0; i < results.multiHandLandmarks.length; i++) {
-            const landmarks = results.multiHandLandmarks[i];
-            const handType = results.multiHandedness?.[i]?.label || "Unknown";
-            const palmIndices = [0, 1, 5, 9, 13, 17];
-            let sumX = 0, sumY = 0;
-
-            palmIndices.forEach((j) => {
-                sumX += canvas.width - landmarks[j].x * canvas.width;
-                sumY += landmarks[j].y * canvas.height;
-            });
-
-            arrowX = sumX / palmIndices.length;
-            arrowY = sumY / palmIndices.length;
-
-            // Smooth hand position slightly
-            if (previousArrowX !== null) {
-                arrowX = arrowX * 0.3 + previousArrowX * 0.7;
-            }
-
-            // Prevent sudden flip
-            let currentHandType = handType;
-            if (previousArrowX !== null) {
-                const dx = Math.abs(arrowX - previousArrowX);
-                if (dx > 250) currentHandType = previousHandType;
-            }
-
-            // Draw hand
-            if (currentHandType === "Right" && rhandImg) {
-                drawHand(arrowX, arrowY, rhandImg);
-            } else {
-                drawHand(arrowX, arrowY, LhandImg);
-            }
-
-            previousArrowX = arrowX;
-            previousHandType = currentHandType;
-
-            // Initialize startPos when movement starts
-            if (!startPos) {
-                const dx = arrowX - ball.x;
-                const dy = arrowY - ball.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                if (dist > HAND_MOVE_THRESHOLD) {
-                    startPos = { x: arrowX, y: arrowY };
-                    lastX = arrowX;
-                    lastY = arrowY;
-                    deviationRatios = [];
-                }
-            }
-
-            // Track hand velocity and total distance
-            if (lastX !== null && lastY !== null) {
-                const dx = arrowX - lastX;
-                const dy = arrowY - lastY;
-                const moveDist = Math.sqrt(dx*dx + dy*dy);
-
-                handVelocities.push(moveDist); // for jitter/stability
-
-                if (moveDist > HAND_MOVE_THRESHOLD) {
-                    totalDistance += moveDist;
-                }
-            }
-            lastX = arrowX;
-            lastY = arrowY;
-
-            // Update Path Deviation
-            if (startPos) {
-                const pathLength = Math.hypot(ball.x - startPos.x, ball.y - startPos.y);
-                if (pathLength > 0) {
-                    const perpDist = getPerpendicularDistance(
-                        arrowX, arrowY, startPos.x, startPos.y, ball.x, ball.y
-                    );
-                    const ratio = perpDist / pathLength;
-                    deviationRatios.push(ratio);
-                }
-            }
-
-            drawHand(arrowX, arrowY);
-            handleGameLogic(arrowX, arrowY);
-
-            // Honey splashes
-            for (let i = HoneySplashes.length - 1; i >= 0; i--) {
-                HoneySplashes[i].update();
-                HoneySplashes[i].draw(ctx);
-                if (HoneySplashes[i].isFinished()) HoneySplashes.splice(i, 1);
-            }
-        }
-    }
-}
-
-// ============================================
-// End Game
-// ============================================
-
-function endGame() {
-    gameRunning = false;
-    if (camera) camera.stop();
-    document.getElementById("startBtnOverlay").disabled = false;
-
-    clearInterval(timerInterval);
-    if (respawnTimeout) clearTimeout(respawnTimeout);
-    respawnTimeout = null;
-
-    let elapsed = Math.floor((Date.now() - startTime) / 1000);
-
-    // Average reaction time
-    let avgReaction = 0;
-    if (reactionTimes.length > 0) {
-        avgReaction = (reactionTimes.reduce((a,b)=>a+b,0)/reactionTimes.length/1000).toFixed(2);
-    }
-
-    // Normalize distance
-    let normDistance = score > 0 ? totalDistance / score : totalDistance;
-
-    console.log("Total Distance:", totalDistance, "Normalized:", normDistance);
-
-    // ================= Movement Stability =================
-    // 1. Path-based stability
-    let pathStability = 0;
-    if (pathDeviations.length > 0) {
-        const avgDev = pathDeviations.reduce((a,b)=>a+b,0)/pathDeviations.length;
-        pathStability = Math.max(0, 100 - avgDev);
-    }
-
-    // 2. Velocity-based stability
-    let velStability = 0;
-    if (handVelocities.length > 5) {
-        const diffs = [];
-        for (let i=1;i<handVelocities.length;i++) {
-            diffs.push(Math.abs(handVelocities[i]-handVelocities[i-1]));
-        }
-        const avgJitter = diffs.reduce((a,b)=>a+b,0)/diffs.length;
-        velStability = Math.max(0, 100 - avgJitter);
-    }
-
-    // 3. Combine both (weighted average)
-    const movementStability = ((pathStability*0.7 + velStability*0.3)).toFixed(2);
-    console.log("Movement Stability (%):", movementStability);
-
-    // Stop music
-    if (bgMusic) { bgMusic.pause(); bgMusic.currentTime = 0; }
-    if (endGameSound) { endGameSound.currentTime = 0; endGameSound.play(); }
-
-    // Fireworks
-    startFireworks();
-    const fireworksDuration = 2500;
-    const startTimeFireworks = Date.now();
-
-    function fireworksAnimation() {
-        if (!fireworksRunning) return;
-        ctx.clearRect(0,0,canvas.width,canvas.height);
-        drawFireworks(ctx);
-
-        if (Date.now() - startTimeFireworks < fireworksDuration) {
-            requestAnimationFrame(fireworksAnimation);
-        } else {
-            stopFireworks();
-            showEndText(elapsed, avgReaction, normDistance, movementStability);
-        }
-    }
-    fireworksAnimation();
-}
-
-
-// ============================================
-// Save Game Result to Supabase
-// ============================================
-
-async function saveGameResult(score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance) {
-    console.log("Saving result...", score, timeTaken, avgReaction, normDistance, movementStability, consistency, totalDistance);
-
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-        console.error("No user logged in:", userError);
-        return;
-    }
-
-    console.log("User found:", user);
-
-    // Insert using email only (since player_id is int8 and not compatible with UUID)
-    const { error: insertError } = await supabase
-        .from("buzztap_results")
-        .insert([{
-            player_email: user.email,
-            score: score,
-            time_taken: timeTaken,
-            avg_reaction_time: avgReaction,
-            norm_totaldistance: normDistance,
-            av_devpath: parseFloat(movementStability), // Save path deviation %
-            consistency: consistency,
-            level: "INTERMEDIATE",
-            totaldistance: parseFloat(totalDistance)
-            // leave player_id empty
-        }]);
-
-    if (insertError) {
-        console.error("Insert error:", insertError);
-    } else {
-        console.log("Result saved successfully!");
-    }
-}
-
-
-// ============================================
-// Show End Text
-// ============================================
-
-function showEndText(elapsed, avgReaction, normDistance, movementStability) {
-
-    ctx.fillStyle = "rgba(0,0,0,0.1)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = "white";
-    ctx.font = "bold 65px poppins";
-    ctx.textAlign = "center";
-    ctx.fillText("🎉 Congratulations! 🎉", canvas.width / 2, canvas.height / 2 - 120);
     
-    ctx.font = "40px poppins";
-    ctx.fillText("You’ve finished your practice.", canvas.width / 2, canvas.height / 2 - 60);
+    const userEmail = userData.user.email;
     
-    ctx.font = "35px poppins";
-    ctx.fillText(`Your Score: ${score}`, canvas.width / 2, canvas.height / 2 );
-    ctx.fillText(`Your Time: ${elapsed}s`, canvas.width / 2, canvas.height / 2 + 50);
+    const { data: profile, error: profileError } = await supabase
+        .from("profiles")
+        .select("cfirstname, clastname, birthday, healthcategory, firstname, lastname")
+        .eq("id", userData.user.id)
+        .maybeSingle();
+    
+    if (profileError || !profile) {
+        console.error("Profile fetch error:", profileError);
+        showNotify("Please update your information in Account Settings first.", "error");
+        return false;
+    }
+    
+    // Check if required fields exist
+    if (!profile.cfirstname || !profile.clastname || !profile.birthday || !profile.healthcategory || !profile.firstname || !profile.lastname) {
+        showNotify("Please update your information in Account Settings first.", "error");
+        return false;
+    }
+    
+    // Populate child name
+    const childName = `${profile.cfirstname} ${profile.clastname}`;
+    inputChild.textContent = childName;
+    
+    // Calculate age from birthday
+    const birthDate = new Date(profile.birthday);
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+        age--;
+    }
+    inputAge.textContent = age;
+    
+    // Populate health category
+    inputHealth.textContent = profile.healthcategory;
+    
+    // Populate teacher's name
+    const parentName = `${profile.firstname} ${profile.lastname}`;
+    inputParent.textContent = parentName;
+    
+    return true;
+}
 
 
-    // ✅ Reset Path Deviation variables for next game
-    startPos = null;
-    totalDeviation = 0;
-    sampleCount = 0;
-    pathDeviations = [];
+// ==========================================================
+//  FUNCTION: Get Stats for Selected Date (fixed UTC + caching)
+// ==========================================================
+async function getGameStatsByDate() {
+    const game = gameSelect?.value || "buzz";
+    const selectedDate = inputDate.value;
+    // Support BEGINNER / INTERMEDIATE / ADVANCED and an "ALL" option
+    const levelRaw = (levelSelect?.value || "ALL").toUpperCase();
 
-    document.getElementById("playAgainBtn").style.display = "block";
-    document.getElementById("nextBtn").style.display = "block";
-
-
-// ============================================
-// Calculate Consistency
-// ============================================
-
-    async function calculateConsistency(newTimeTaken) {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return 0;
-
-        // Get last 4 games from INTERMEDIATE level only
-        const { data, error } = await supabase
-            .from("buzztap_results")
-            .select("time_taken")
-            .eq("player_email", user.email)
-            .eq("level", "INTERMEDIATE")
-            .order("created_at", { ascending: false })
-            .limit(4);
-
-        if (error) {
-            console.error("Fetch error:", error);
-            return 0;
-        }
-
-        let times = data.map(r => r.time_taken);
-        times.push(newTimeTaken);
-
-        if (times.length < 5) {
-            console.log("Not enough games for consistency");
-            return 0; // need minimum 5 games
-        }
-
-        // Coefficient of variation: std / mean
-        let mean = times.reduce((a, b) => a + b, 0) / times.length;
-        let variance = times.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / times.length;
-        let std = Math.sqrt(variance);
-
-        let consistency = 1 - (std / mean); 
-        return Math.max(0, Math.min(1, consistency)).toFixed(3); // clamp 0–1
+    if (!selectedDate) {
+        return {
+            gameName: game === "buzz" ? "Buzz Tap!" : game === "shape" ? "Shape Sense" : "Orb Catcher",
+            gameLevel: levelSelect.value ? levelSelect.value.toUpperCase() : levelRaw,
+            date: "-",
+            bestTime: "-",
+            totalPlayed: "-",
+            totalScore: "-",
+            timeList: "-",
+            distanceList: "-"
+        };
     }
 
+    const cacheKey = `${game}-${levelRaw}-${selectedDate}`;
+    if (cache[cacheKey]) return cache[cacheKey];
 
-    // ✅ Save score + time + reaction + distance + path + consistency
-    calculateConsistency(elapsed).then(consistency => {
-        saveGameResult(score, elapsed, avgReaction, normDistance, movementStability, consistency, totalDistance);
-    
-    reactionTimes = [];
-    totalDistance = 0;
-    lastX = null;
-    lastY = null;
-    
-    });
+    // Get logged-in user's email
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+        console.error("User not logged in or error:", userError);
+        return {};
+    }
+    const userEmail = userData.user.email;
 
-    document.getElementById("playAgainBtn").onclick = () => {
-        document.getElementById("playAgainBtn").style.display = "none";
-        document.getElementById("nextBtn").style.display = "none";
-        window.location.href = "gamebuzzplay.html";
+    // Determine table and title
+    const table = game === "buzz" ? "buzztap_results" : game === "shape" ? "shapesense_results" : "orbcatcher_results";
+    const gameTitle = game === "buzz" ? "Buzz Tap!" : game === "shape" ? "Shape Sense" : "Orb Catcher";
+
+    // Local day range (timezone-safe)
+    const localStart = new Date(selectedDate + "T00:00:00");
+    const localEnd = new Date(selectedDate + "T23:59:59");
+    const startUTC = localStart.toISOString();
+    const endUTC = localEnd.toISOString();
+    console.log("UTC Filter:", startUTC, endUTC);
+
+    // Build query and apply level filter only when a specific level is selected
+    let query = supabase
+        .from(table)
+        .select("*", { count: "exact" })
+        .eq("player_email", userEmail)
+        .gte("created_at", startUTC)
+        .lte("created_at", endUTC)
+        .order("time_taken", { ascending: true });
+
+    if (levelRaw !== "ALL") {
+        // include records with matching level or null
+        query = query.or(`level.eq.${levelRaw},level.is.null`);
+    }
+
+    const { data, count, error } = await query;
+
+    if (error) {
+        console.error("Supabase Error:", error);
+        return {
+            gameName: gameTitle,
+            date: selectedDate,
+            bestTime: "-",
+            totalPlayed: "-",
+            totalScore: "-",
+            timeList: "-",
+            distanceList: "-"
+        };
+    }
+
+    const bestRecord = data?.[0];
+
+    // Total score = last record score (if any)
+    let totalScore = data && data.length > 0 ? (data[data.length - 1].score ?? 0) : "-";
+
+    // Time list
+    const timeList = data?.map(r => (typeof r.time_taken === "number" ? r.time_taken.toFixed(1) + "s" : null))
+                       .filter(v => v !== null) || [];
+
+    // Distance list (for Buzz Tap and Orb Catcher)
+    let distanceList = "-";
+    if (game === "buzz" || game === "orb") {
+        const dist = data?.map(r => (r.totaldistance != null ? r.totaldistance.toFixed(1) + "px" : null))
+                          .filter(v => v !== null) || [];
+        distanceList = dist.length > 0 ? dist.join(", ") : "-";
+    }
+
+    const result = {
+        gameName: gameTitle,
+        gameLevel: levelSelect.value ? levelSelect.value.toUpperCase() : levelRaw,
+        date: selectedDate,
+        bestTime: bestRecord?.time_taken ? bestRecord.time_taken.toFixed(1) + "s" : "-",
+        totalPlayed: count || 0,
+        totalScore,
+        timeList: timeList.length > 0 ? timeList.join(", ") : "-",
+        distanceList
     };
 
-    document.getElementById("nextBtn").onclick = () => {
-        window.location.href = "gamebuzzcover.html";
-    };
-}
-
-// ============================================
-// HONEY SPLASH EFFECT
-// ============================================
-
-class HoneySplash {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.particles = [];
-        for (let i = 0; i < 8; i++) {
-            this.particles.push({
-                x: x,
-                y: y,
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 3 + 2,
-                size: Math.random() * 8 + 6,
-                alpha: 1.0,
-            });
-        }
-    }
-
-    update() {
-        this.particles.forEach((p) => {
-            p.x += Math.cos(p.angle) * p.speed;
-            p.y += Math.sin(p.angle) * p.speed;
-            p.alpha -= 0.04;
-        });
-        this.particles = this.particles.filter((p) => p.alpha > 0);
-    }
-
-    draw(ctx) {
-        this.particles.forEach((p) => {
-            ctx.fillStyle = `rgba(255, 204, 0, ${p.alpha})`;
-            ctx.beginPath();
-            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2);
-            ctx.fill();
-        });
-    }
-
-    isFinished() {
-        return this.particles.length === 0;
-    }
+    cache[cacheKey] = result;
+    return result;
 }
 
 
-// ========================
-// HOW TO PLAY POPUP SYSTEM
-// ========================
-
-function showPopup() {
-    guidePopup.style.display = "flex";
-}
-
-function hidePopup() {
-    guidePopup.style.display = "none";
-}
-
-howToPlayBtn.addEventListener("click", showPopup);
-closeGuideBtn.addEventListener("click", hidePopup);
-
-// Auto open popup on page load
-window.addEventListener("load", showPopup);
-
-
-// =================================================
-// Helper: perpendicular distance from point to line
-// =================================================
-
-function getPerpendicularDistance(px, py, x1, y1, x2, y2) {
-    const A = px - x1;
-    const B = py - y1;
-    const C = x2 - x1;
-    const D = y2 - y1;
-
-    const dot = A * C + B * D;
-    const len_sq = C * C + D * D;
-    const param = len_sq !== 0 ? dot / len_sq : -1;
-
-    let xx, yy;
-
-    if (param < 0) {
-        xx = x1;
-        yy = y1;
-    } else if (param > 1) {
-        xx = x2;
-        yy = y2;
-    } else {
-        xx = x1 + param * C;
-        yy = y1 + param * D;
+// ==========================================================
+// 1. OPEN SCORE CARD MODAL
+// ==========================================================
+scoreCardBtn.addEventListener("click", async () => {
+    // Load profile data first
+    const profileLoaded = await loadProfileData();
+    if (!profileLoaded) {
+        return; // Don't open modal if profile data is incomplete
     }
+    
+    scoreCardModal.style.display = "flex";
 
-    const dx = px - xx;
-    const dy = py - yy;
-    return Math.sqrt(dx * dx + dy * dy);
+    const result = await getGameStatsByDate();
+
+    scGameName.textContent = result.gameName;
+    scGameLevel.textContent = result.gameLevel;
+    scBestTime.textContent = result.bestTime;
+    scTotalPlayed.textContent = result.totalPlayed;
+    scTotalScore.textContent = result.totalScore;
+    scTimeList.textContent = result.timeList;
+    scDistanceList.textContent = result.distanceList;
+});
+
+
+// ==========================================================
+// 2. CLOSE MODAL
+// ==========================================================
+closeScoreCardBtn.addEventListener("click", () => {
+    scoreCardModal.style.display = "none";
+});
+
+
+// ==========================================================
+// 3. UPDATE SCORECARD WHEN DATE OR GAME CHANGES
+// ==========================================================
+async function updateScoreCard() {
+    const result = await getGameStatsByDate();
+
+    scGameName.textContent = result.gameName;
+    scGameLevel.textContent = result.gameLevel;  
+    scBestTime.textContent = result.bestTime;
+    scTotalPlayed.textContent = result.totalPlayed;
+    scTotalScore.textContent = result.totalScore;
+    scTimeList.textContent = result.timeList;
+    scDistanceList.textContent = result.distanceList;
 }
 
-// --- End of gamebuzz_inter.js ---
- 
+// Debounce
+let debounceTimer;
+inputDate.addEventListener("change", () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(updateScoreCard, 300);
+});
+gameSelect.addEventListener("change", () => {
+    updateScoreCard();
+});
+
+
+// ==========================================================
+// 4. GENERATE PDF
+// ==========================================================
+downloadBtn.addEventListener("click", async () => {
+
+    pdfChildName.textContent = inputChild.textContent;
+    pdfAge.textContent = inputAge.textContent;
+    pdfHealth.textContent = inputHealth.textContent;
+    pdfParent.textContent = inputParent.textContent;
+    pdfSessionDate.textContent = inputDate.value;
+
+    pdfGameName.textContent = scGameName.textContent;
+    pdfGameLevel.textContent = scGameLevel.textContent;
+    pdfBestTime.textContent = scBestTime.textContent;
+    pdfGamesPlayed.textContent = scTotalPlayed.textContent;
+    pdfTotalScore.textContent = scTotalScore.textContent;
+    pdfTimeList.textContent = scTimeList.textContent;
+    pdfDistanceList.textContent = scDistanceList.textContent;
+
+    const element = document.getElementById("scorecardPrint");
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL("image/jpeg", 2.0);
+
+    const pdf = new jsPDF("p", "pt", "a4");
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const imgWidth = pdfWidth - 40;
+    const imgHeight = canvas.height * (imgWidth / canvas.width);
+
+    pdf.addImage(imgData, "JPEG", 20, 20, imgWidth, imgHeight);
+    pdf.save(`ScoreCard_${inputChild.textContent}.pdf`);
+});
