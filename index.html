@@ -6,8 +6,6 @@
   <title>Sign In</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/auth.css">
-  <!-- Supabase CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 
 <body>
@@ -36,9 +34,8 @@
           <span id="btn-text">Sign In</span>
           <div class="spinner" id="spinner" style="display: none;"></div>
         </button>
-
       </form>
-      
+
       <p class="alt">
         Forgot your password? <a href="#" id="forgotPasswordLink">Reset here</a><br>
         Don’t have an account? <a href="signup.html">Sign Up</a>
@@ -73,18 +70,16 @@
     window.addEventListener("resize", checkScreen);
   </script>
 
-  <script>
-    // Initialize Supabase
-    const supabaseClient  = window.supabase.createClient(
-      "https://ijugaqvsszticpzrznnb.supabase.co",   // replace with your project URL
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
-    );
+  <!-- Module script using supabaseClient.js -->
+  <script type="module">
+    import { supabase } from './supabaseClient.js';
 
     const form = document.getElementById("signin-form");
     const message = document.getElementById("message");
     const signinButton = document.getElementById("signin-btn");
     const spinner = document.getElementById("spinner");
 
+    // Sign in
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -94,10 +89,7 @@
       spinner.style.display = "inline-block";
       signinButton.disabled = true;
 
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email,
-        password
-      });
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
       spinner.style.display = "none";
       signinButton.disabled = false;
@@ -110,21 +102,29 @@
         message.style.color = "green";
 
         setTimeout(() => {
-          window.location.href = "https://apps.kognaktif.com/dashboard.html";
+          window.location.href = "dashboard.html";
         }, 800);
       }
     });
 
-    document.getElementById("resetPasswordBtn").addEventListener("click", async () => {
+    // Forgot password
+    const resetBtn = document.getElementById("resetPasswordBtn");
+    resetBtn.addEventListener("click", async () => {
       const email = document.getElementById("resetEmail").value;
       if (!email) return alert("Please enter your email.");
 
-      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
-        redirectTo: "https://apps.kognaktif.com/resetpass.html"
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "resetpass.html"
       });
 
       if (error) alert(error.message);
       else document.getElementById("resetNotice").style.display = "block";
+    });
+
+    // Show forgot popup
+    document.getElementById("forgotPasswordLink").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("forgotPopup").style.display = "flex";
     });
   </script>
 </body>
