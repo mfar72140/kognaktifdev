@@ -36,7 +36,10 @@ export async function loadUser() {
     logoutBtn.addEventListener("click", async () => {
       await supabase.auth.signOut();
       localStorage.clear();
-      window.location.href = "index.html";
+      
+      // ✅ REMOVE CROSS-SUBDOMAIN COOKIE
+      document.cookie = "kognaktif_logged_in=; domain=.kognaktif.com; path=/; max-age=0";
+      window.location.href = "https://kognaktif.com";
     });
   }
 }
