@@ -231,6 +231,10 @@ checkAuth();
 // Logout
 async function logout() {
   await supabase.auth.signOut();
+
+  // ✅ REMOVE CROSS-SUBDOMAIN COOKIE
+  document.cookie = "kognaktif_logged_in=; domain=.kognaktif.com; path=/; max-age=0";
+  
   window.location.href = "index.html";
 }
 

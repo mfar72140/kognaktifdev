@@ -101,6 +101,10 @@
         message.textContent = "✅ Sign in successful!";
         message.style.color = "green";
 
+        // ✅ SET COOKIE FOR WORDPRESS
+        document.cookie = "kognaktif_logged_in=true; domain=.kognaktif.com; path=/; max-age=2592000";
+
+
         setTimeout(() => {
           window.location.href = "dashboard.html";
         }, 800);
