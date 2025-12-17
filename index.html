@@ -75,7 +75,7 @@
 
   <script>
     // Initialize Supabase
-    const supabase = window.supabase.createClient(
+    const supabaseClient  = window.supabase.createClient(
       "https://ijugaqvsszticpzrznnb.supabase.co",   // replace with your project URL
       "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
     );
@@ -87,56 +87,45 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
 
-      // Show spinner & disable button
       spinner.style.display = "inline-block";
       signinButton.disabled = true;
 
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabaseClient.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      // Hide spinner & re-enable button
       spinner.style.display = "none";
       signinButton.disabled = false;
 
       if (error) {
-        message.textContent = "⚠️ Username and password do not match!";
+        message.textContent = "⚠️ Incorrect email or password. Please try again.";
         message.style.color = "red";
       } else {
         message.textContent = "✅ Sign in successful!";
         message.style.color = "green";
-      // redirect after a short delay (optional)
-      setTimeout(() => {
-        window.location.href = "dashboard.html";
-      }, 800);
-      }
-    });
 
-    // Forgot password popup
-    document.getElementById("forgotPasswordLink").addEventListener("click", () => {
-      document.getElementById("forgotPopup").style.display = "flex";
+        setTimeout(() => {
+          window.location.href = "https://apps.kognaktif.com/dashboard.html";
+        }, 800);
+      }
     });
 
     document.getElementById("resetPasswordBtn").addEventListener("click", async () => {
       const email = document.getElementById("resetEmail").value;
-      if (!email) {
-        alert("Please enter your email.");
-        return;
-      }
+      if (!email) return alert("Please enter your email.");
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "http://apps.kognaktif.com/resetpass.html"
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
+        redirectTo: "https://apps.kognaktif.com/resetpass.html"
       });
 
-      if (error) {
-        alert("Error: " + error.message);
-      } else {
-        document.getElementById("resetNotice").style.display = "block";
-      }
+      if (error) alert(error.message);
+      else document.getElementById("resetNotice").style.display = "block";
     });
-
-
   </script>
 </body>
 </html>
