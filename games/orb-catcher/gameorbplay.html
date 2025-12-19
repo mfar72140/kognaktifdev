@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Orb Catcher</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/games/orb-catcher/gameorbplay.css">
   <link rel="stylesheet" href="/games/orb-catcher/style.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -97,10 +98,10 @@
     document.body.appendChild(s);
   }
 
-  if (level === "trial") loadScript("gameorb_trial.js");
-  if (level === "beginner") loadScript("gameorb.js");
-  if (level === "intermediate") loadScript("gameorb_inter.js");
-  if (level === "advanced") loadScript("gameorb_adv.js");
+  if (level === "trial") loadScript("/games/orb-catcher/gameorb_trial.js");
+  if (level === "beginner") loadScript("/games/orb-catcher/gameorb.js");
+  if (level === "intermediate") loadScript("/games/orb-catcher/gameorb_inter.js");
+  if (level === "advanced") loadScript("/games/orb-catcher/gameorb_adv.js");
 </script>
 
 
@@ -143,7 +144,7 @@
 
     // Exit confirmed
     confirmExitBtn.addEventListener("click", () => {
-      window.location.href = "gameorbcover.html";
+      window.location.href = "/games/orb-catcher/gameorbcover.html";
     });
 
     // Cancel exit

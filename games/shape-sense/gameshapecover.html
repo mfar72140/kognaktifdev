@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>Shape Sense</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
   <link rel="stylesheet" href="/games/shape-sense/style.css">
   <link rel="stylesheet" href="/games/shape-sense/gameshapecover.css">
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -58,16 +59,16 @@
         const lvl = btn.dataset.level;
         localStorage.setItem("shapeSenseLevel", lvl);
 
-        if (lvl === "trial") window.location.href = "gameshapeplay.html";
-        if (lvl === "beginner") window.location.href = "gameshapeplay.html";
-        if (lvl === "intermediate") window.location.href = "gameshapeplay.html"; 
-        if (lvl === "advanced") window.location.href = "gameshapeplay.html";     
+        if (lvl === "trial") window.location.href = "/games/shape-sense/gameshapeplay.html";
+        if (lvl === "beginner") window.location.href = "/games/shape-sense/gameshapeplay.html";
+        if (lvl === "intermediate") window.location.href = "/games/shape-sense/gameshapeplay.html"; 
+        if (lvl === "advanced") window.location.href = "/games/shape-sense/gameshapeplay.html";     
       });
     });
 
      // Close button -> redirect to dashgames.html
     document.getElementById("closeBtn").addEventListener("click", () => {
-    window.location.href = "/dashgames.html";
+    window.location.href = "/dashboard/dashgames.html";
     });
   </script>
 
