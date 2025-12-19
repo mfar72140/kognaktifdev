@@ -892,10 +892,10 @@ startBtn.addEventListener("click", async () => {
 });
 
 playAgainBtn.addEventListener("click", () => {
-  window.location.href = "gameshapeplay.html";
+  window.location.href = "games/shape-sense/gameshapeplay.html";
 });
 nextBtn.addEventListener("click", () => {
-  window.location.href = "gameshapecover.html";
+  window.location.href = "games/shape-sense/gameshapecover.html";
 });
 
 /* =========================
