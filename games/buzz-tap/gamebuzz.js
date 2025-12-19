@@ -683,11 +683,11 @@ calculateConsistency(elapsed).then(consistency => {
   document.getElementById("playAgainBtn").onclick = () => {
     document.getElementById("playAgainBtn").style.display = "none";
     document.getElementById("nextBtn").style.display = "none";
-    window.location.href = "games/buzz-tap/gamebuzzplay.html";
+    window.location.href = "/games/buzz-tap/gamebuzzplay.html";
   };
 
   document.getElementById("nextBtn").onclick = () => {
-    window.location.href = "games/buzz-tap/gamebuzzcover.html";
+    window.location.href = "/games/buzz-tap/gamebuzzcover.html";
   };
 }
 
