@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Orb Catcher</title>
+  <link rel="stylesheet" href="/games/orb-catcher/gameorbplay.css">
+  <link rel="stylesheet" href="/games/orb-catcher/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <h1></h1>
+
+  <!-- Loading Camera.... -->
+  <div id="loadingOverlay" 
+    style="position:absolute; top:0; left:0; width:100%; height:100%; 
+          background:rgba(0,0,0,0.6); color:white; font-size:32px; 
+          display:flex; align-items:center; justify-content:center; 
+          z-index:20; display:none;">
+    📷 Loading... Starting Camera
+  </div>
+
+
+  <!-- Wrap canvas + title -->
+  <div id="gameWrapper">
+    <canvas id="output_canvas" width="960" height="540"></canvas>
+    <div id="gameTitle">Orb Catcher</div>
+    <button id="muteBtn">🔊</button>
+    <button id="startBtnOverlay">Start Game</button> 
+    <button id="playAgainBtn" style="display:none;">Play Again</button>
+    <button id="nextBtn" style="display:none;">Next Challenge</button>
+    
+    <!-- Black Status Bar -->
+    <div id="statusBar">
+      <div id="score">Score: 0</div>
+      <div id="timer">Time: 0s</div>
+      <div id="level">Level: BEGINNER</div> 
+      
+      <div class="right-buttons">
+      <button id="howToPlayBtn" class="how-btn">❔ Guide</button>
+      <button id="closeBtn">✖ Exit</button>
+      <img src="/assets/images/Kog_logowhite.png" alt="Logo" style="height: 30px; margin-left: 10px;">
+    </div>
+  </div>
+  </div>
+  
+  <!-- HOW TO PLAY POPUP -->
+  <div id="guidePopup" class="popuphow">
+    <div class="popuphow-content">
+      <h2>How to Play!</h2>
+
+      <ul>
+        <li>Make sure your <strong>webcam is ON</strong> and working.</li>
+        <li>Please stay <strong>at least 2.0 ft</strong> from the webcam.</li>
+        <li>Use <strong>one hand</strong> — left or right.</li>
+        <li>Show your hand in front of the camera and let the hand icon <strong>track</strong> your movement.</li>
+        <li><strong>Grasp</strong> the falling colored orbs and drop them into the matching color chest!</li>
+        <li><strong>Be careful!</strong> If an orb slips from your grasp, you'll need to <strong>catch it again</strong>.</li>
+        <li><strong>Quick reflexes!</strong> Grab orbs before they hit the ground and break.</li>
+        <li><strong>Beware!</strong> If an orb hits the ground, you will <strong>lose points!</strong></li>
+        <li>Each correct color match gives you <strong>awesome points!</strong></li>
+        <li><strong>Speed matters!</strong> The faster you collect, the higher your score!</li>
+        <li>The timer stops when you've <strong>collected all the orbs.</strong></li>
+      </ul>
+
+      <button id="closeGuideBtn" class="close-btn">Got it!</button>
+    </div>
+  </div>
+
+<!-- Custom Exit Popup -->
+<div id="exitPopup" class="popupexit">
+  <div class="popupexit-content">
+    <h3>Exit Game?</h3>
+    <p>Are you sure you want to leave this game?</p>
+    <div class="popupexit-buttons">
+      <button id="confirmExitBtn">Yes, Exit</button>
+      <button id="cancelExitBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- Load game script based on selected level -->
+<script>
+  const level = localStorage.getItem("orbCatcherLevel") || "beginner";
+
+  // Update level text
+  const levelBar = document.getElementById("level");
+  levelBar.textContent = "Level: " + level.toUpperCase();
+
+  // Apply TEXT color only
+  levelBar.classList.add("text-" + level);
+
+  // Dynamic script loader depending on level
+  function loadScript(file) {
+    const s = document.createElement("script");
+    s.src = file;
+    document.body.appendChild(s);
+  }
+
+  if (level === "trial") loadScript("gameorb_trial.js");
+  if (level === "beginner") loadScript("gameorb.js");
+  if (level === "intermediate") loadScript("gameorb_inter.js");
+  if (level === "advanced") loadScript("gameorb_adv.js");
+</script>
+
+
+<script type="module">
+  import {
+    FilesetResolver,
+    HandLandmarker,
+    DrawingUtils
+  } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest";
+
+  // Make them global so your other JS can use them
+  window.FilesetResolver = FilesetResolver;
+  window.HandLandmarker = HandLandmarker;
+  window.DrawingUtils = DrawingUtils;
+</script>
+
+
+<!-- MediaPipe & p5.js -->
+<script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
+
+<!-- ✅ Supabase client -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  const supabaseUrl = "https://ijugaqvsszticpzrznnb.supabase.co";
+  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY";  // use anon key only
+  window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
+</script>
+
+
+  <script>
+    const closeBtn = document.getElementById("closeBtn");
+    const popup = document.getElementById("exitPopup");
+    const confirmExitBtn = document.getElementById("confirmExitBtn");
+    const cancelExitBtn = document.getElementById("cancelExitBtn");
+
+    // Show popup
+    closeBtn.addEventListener("click", () => {
+      popup.style.display = "flex";
+    });
+
+    // Exit confirmed
+    confirmExitBtn.addEventListener("click", () => {
+      window.location.href = "gameorbcover.html";
+    });
+
+    // Cancel exit
+    cancelExitBtn.addEventListener("click", () => {
+      popup.style.display = "none";
+    });
+
+    // Close popup if click outside
+    popup.addEventListener("click", (e) => {
+      if (e.target === popup) popup.style.display = "none";
+    });
+  </script>
+
+</body>
+</html>

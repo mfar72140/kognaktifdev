@@ -13,10 +13,10 @@
 
     <!-- Left panel -->
     <div class="auth-left">
-      <img src="images/Kog_logowhite.png" alt="KognAktif Logo" class="logo">
+      <img src="/assets/images/Kog_logowhite.png" alt="KognAktif Logo" class="logo">
       <h2>Play, Learn, and Grow Together!</h2>
       <p>Together we share laughter, learning, and the joy of growing up</p>
-      <img src="images/signcover.png" alt="Illustration" class="cover-img">
+      <img src="/assets/images/signcover.png" alt="Illustration" class="cover-img">
     </div>
 
     <!-- Right panel -->
@@ -38,7 +38,7 @@
 
       <p class="alt">
         Forgot your password? <a href="#" id="forgotPasswordLink">Reset here</a><br>
-        Don’t have an account? <a href="signup.html">Sign Up</a>
+        Don’t have an account? <a href="/auth/signup.html">Sign Up</a>
       </p>
       <p id="message"></p>
     </div>
@@ -72,7 +72,7 @@
 
   <!-- Module script using supabaseClient.js -->
   <script type="module">
-    import { supabase } from './supabaseClient.js';
+    import { supabase } from '/js/supabaseClient.js';
 
     const form = document.getElementById("signin-form");
     const message = document.getElementById("message");
@@ -106,7 +106,7 @@
 
 
         setTimeout(() => {
-          window.location.href = "dashboard.html";
+          window.location.href = "/dashboard/dashboard.html";
         }, 800);
       }
     });
@@ -118,7 +118,7 @@
       if (!email) return alert("Please enter your email.");
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "resetpass.html"
+        redirectTo: "/auth/resetpass.html"
       });
 
       if (error) alert(error.message);

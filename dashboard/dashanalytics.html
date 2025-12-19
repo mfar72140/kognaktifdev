@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KognaAktif | Analytics</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/dashboard/dashanalytics.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+        <img src="/assets/images/Kog_logowhite.png" alt="KognAktif Logo">
+    </div>
+    <ul class="nav-links">
+      <li><a href="/dashboard/dashboard.html">Dashboard</a></li>
+      <li><a href="/dashboard/dashgames.html">Games</a></li>
+      <li><a href="#" class="active">Analytic</a></li>
+      <li><a href="/dashboard/dashsetting.html">Setting</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="notif-btn">🔔</button>
+      <div class="user-menu">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="dropdown" id="dropdownMenu">
+          <button id="logout-btn">Logout</button>
+        </div>   
+      </div> 
+    </div>
+  </nav>
+
+  <!-- Game Selector / Score Card / Report Card-->
+  <div class="selector-wrapper">
+
+    <div class="game-selector">
+        <label>Select Game:</label>
+        <select id="gameSelect">
+            <option value="buzz">Buzz Tap!</option>
+            <option value="shape">Shape Sense</option>
+            <option value="orb">Orb Catcher</option>
+        </select>
+    </div>
+
+    <!-- Level Selector -->
+    <div class="level-selector">
+        <label>Select Level:</label>
+        <select id="levelSelect">
+            <option value="BEGINNER" selected>BEGINNER</option>
+            <option value="INTERMEDIATE" >INTERMEDIATE</option>
+            <option value="ADVANCED" >ADVANCED</option>
+        </select>
+    </div>
+
+    <button class="scorecard-btn" id="openScoreCard">
+        <img src="/assets/images/cardscore.png" alt="Score Card Icon">
+        <span>View Score Card</span>
+    </button>
+
+    <button class="scorecard-btn" id="openReportCard">
+        <img src="/assets/images/cardreport.png" alt="Report Card Icon">
+        <span>View Report Card</span>
+    </button>
+
+  </div>
+
+
+  <div id="noDataMessage" class="no-data"></div>  
+
+  <!-- Main Dashboard Content -->
+ 
+  <main class="analytics-container">
+    <h2 id="gameTitle">Buzz Tap!</h2>
+    
+    <!-- Player Stats -->
+    <div class="stats">
+      <div class="stats-card">
+        <h3>Last Score</h3>
+        <p id="lastScore">Loading...</p>
+      </div>
+      <div class="stats-card">
+        <h3>Last Play Date</h3>
+        <p id="lastDate">Loading...</p>
+      </div>
+      <div class="stats-card">
+        <h3>Total Games Played</h3>
+        <p id="totalGames">Loading...</p>
+      </div>
+      <div class="stats-card">
+        <h3>Best Time</h3>
+        <p id="bestTime">Loading...</p>
+      </div>
+    </div>
+    
+    <!-- Charts -->
+    <div class="charts">
+      <div class="chart-card">
+        
+        <div class="chart-tabs">
+          <button id="tabTime" class="tab-btn active" data-chart="time">
+            <img src="/assets/images/time.png" class="tab-icon">
+            Time Taken
+          </button>
+
+          <button id="tabDistance" class="tab-btn" data-chart="distance">
+            <img src="/assets/images/distance.png" class="tab-icon">
+            Total Distance
+          </button>
+
+          <button id="tabStability" class="tab-btn" data-chart="stability">
+            <img src="/assets/images/movement.png" class="tab-icon">
+            Movement Stability
+          </button>
+
+          <button id="tabPrecision" class="tab-btn" data-chart="precision">
+            <img src="/assets/images/precision.png" class="tab-icon">
+            Pinch Accuracy
+          </button>
+
+          <button id="tabGraspStability" class="tab-btn" data-chart="graspstability">
+            <img src="/assets/images/precision.png" class="tab-icon">
+            Grasp Stability
+          </button>
+        </div>
+
+        <!-- Single Canvas -->
+        <div class="chart-wrapper">
+          <canvas id="mainChart"></canvas>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Consistency Gauge Section -->
+    <section class="charts">
+      <div class="gauge-card" id="gaugeSection">
+        <h3>Consistency</h3>
+        <div class="gauge-wrapper">
+          <canvas id="consistencyGauge"></canvas>
+          <div class="gauge-legend">
+            <div><span class="legend-box green"></span> Good</div>
+            <div><span class="legend-box yellow"></span> Moderate</div>
+            <div><span class="legend-box red"></span> Poor</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Progress Info Card -->
+    <section class="charts">
+      <div class="info-card">
+        <h3>What do these results mean?</h3>
+        <div class="info-content">
+          <div class="info-item">
+            <strong>Time Taken:</strong> How fast your child can complete the task. Faster time means better focus and quicker responses.
+          </div>
+          <div class="info-item">
+            <strong>Total Distance:</strong> How much your child moved their hand while playing. Smaller distance means better control and smoother movements.
+          </div>
+          <div class="info-item">
+            <strong>Movement Stability:</strong> How steady your child's hand is during the activity. Higher stability means better muscle control and less shaking.
+          </div>
+          <div class="info-item">
+            <strong>Pinch Accuracy:</strong> How well your child uses the pinch gesture to grab objects. Higher accuracy means better fine motor skills and finger control.
+          </div>
+          <div class="info-item">
+            <strong>Consistency:</strong> How steadily your child performs each time they play. Higher consistency means they can repeat the same skill reliably.
+          </div>
+          <div class="info-item">
+            <strong>Grasp Stability:</strong> How consistent your child is in keeping the object held without losing the grasp. Higher stability means better hand control and a more consistent grip.
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+
+  <!-- SCORE CARD MODAL -->
+  <div id="scoreModal" class="modal">
+    <div class="modal-content score-card">
+      <span id="closeScoreModal" class="close">&times;</span>
+      <h2>Score Card</h2>
+
+      <div class="score-section">
+        <label>Child Name:</label>
+        <span id="childName"></span>
+
+        <label>Age:</label>
+        <span id="childAge"></span>
+
+        <label>Health Category:</label>
+        <span id="childHealth"></span>
+
+        <label>Parent's Name:</label>
+        <span id="childParent"></span>
+
+        <label>Select Date:</label>
+        <input id="sessionDate" type="date">
+
+      </div>
+
+      <hr>
+
+      <div class="score-section">
+        <p><strong>Game Module:</strong> <span id="scGameName"></span></p>
+        <p><strong>Game Level:</strong> <span id="scGameLevel"></span></p>
+        <p><strong>Best Time:</strong> <span id="scBestTime"></span></p>
+        <p><strong>Total Games Played:</strong> <span id="scTotalGames"></span></p>
+        <p><strong>Total Score:</strong> <span id="scTotalScore"></span></p>
+        <p><strong>Time Taken:</strong> <span id="scTimeList">-</span></p>
+        <p><strong>Total Distance:</strong> <span id="scDistanceList">-</span></p>
+        <p><strong>Movement Stability:</strong> <span id="scMovementStabilityList">-</span></p>
+        <p><strong>Pinch Accuracy:</strong> <span id="scPinchAccuracyList">-</span></p>
+        <p><strong>Grasp Stability:</strong> <span id="scGraspStabilityList">-</span></p>
+      </div>
+
+      <button id="downloadScorePDF" class="download-btn">Download PDF</button>
+
+    </div>
+  </div>
+
+  <!-- Notification Box -->
+  <div id="notifyBox" class="notify hidden"></div>
+
+  <!-- Hidden Scorecard for PDF Generation -->
+  <div id="scorecardPrint" class="design-a">
+    <div class="header">
+        <h2>KognAktif Performance Score Card</h2>
+        <p class="sub">Child Progress Report</p>
+    </div>
+
+    <div class="section">
+        <h3>Child Information</h3>
+        <p><strong>Name:</strong> <span id="pdfChildName"></span></p>
+        <p><strong>Age:</strong> <span id="pdfAge"></span></p>
+        <p><strong>Health Category:</strong> <span id="pdfHealth"></span></p>
+        <p><strong>Parent:</strong> <span id="pdfParent"></span></p>
+        <p><strong>Date:</strong> <span id="pdfsessiondate"></span></p>
+    </div>
+
+    <div class="section">
+        <h3>Game Performance</h3>
+        <p><strong>Game Module:</strong> <span id="pdfGameName"></span></p>
+        <p><strong>Game Level:</strong> <span id="pdfGameLevel"></span></p>
+        <p><strong>Best Time:</strong> <span id="pdfBestTime"></span></p>
+        <p><strong>Total Played:</strong> <span id="pdfGamesPlayed"></span></p>
+        <p><strong>Total Score:</strong> <span id="pdfTotalScore"></span></p>
+        <p><strong>Time Taken:</strong> <span id="pdfTimeList"></span></p>
+        <p><strong>Total Distance:</strong> <span id="pdfDistanceList"></span></p>
+        <p><strong>Movement Stability:</strong> <span id="pdfMovementStabilityList"></span></p>
+        <p><strong>Pinch Accuracy:</strong> <span id="pdfPinchAccuracyList"></span></p>
+        <p><strong>Grasp Stability:</strong> <span id="pdfGraspStabilityList"></span></p>
+    </div>
+
+    <div class="footer">
+        <p>Generated by KognAktif</p>
+    </div>
+  </div>
+
+
+
+  <!-- Footer -->
+  <section id="footer" class="footer-section">
+    <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
+    <div class="footer-links">
+      <a href="#">Terms of Service</a>
+      <a href="#">Privacy Policy</a>
+    </div>
+  </section>
+
+<script type="module">
+import { loadUser } from '/dashboard/dashanalyticsUser.js';
+import { loadAnalytics } from '/dashboard/dashanalytics.js';
+
+loadUser();
+loadAnalytics();
+</script>
+
+
+<!-- jsPDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<!-- html2canvas -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script type="module" src="/dashboard/scorecard.js"></script>
+
+
+  
+
+
+</body>
+</html>

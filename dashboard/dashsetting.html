@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>KognAktif | Setting</title>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <link rel="stylesheet" href="/dashboard/dashboard.css">
+  <link rel="stylesheet" href="/dashboard/dashsetting.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav class="navbar">
+    <div class="logo">
+        <img src="/assets/images/Kog_logowhite.png" alt="KognAktif Logo">
+    </div>
+    <ul class="nav-links">
+      <li><a href="/dashboard/dashboard.html">Dashboard</a></li>
+      <li><a href="/dashboard/dashgames.html">Games</a></li>
+      <li><a href="/dashboard/dashanalytics.html">Analytic</a></li>
+      <li><a href="#" class="active">Setting</a></li>
+    </ul>
+    <div class="nav-right">
+      <button class="notif-btn">🔔</button>
+      <div class="user-menu">
+        <div class="user-name" id="userName">Loading...</div>
+        <div class="dropdown" id="dropdownMenu">
+          <button id="logout-btn">Logout</button>
+        </div>   
+      </div> 
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+<section class="settings-container">
+  <h2>Account Settings</h2>
+
+  <form class="settings-form" id="settingsForm">
+
+    <!-- Parent Info -->
+    <h3>Parent / Guardian Information</h3>
+
+    <div class="form-group">
+      <label for="firstname">First Name <span class="required">*</span></label>
+      <input type="text" id="firstname" placeholder="Enter your first name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="lastname">Last Name <span class="required">*</span></label>
+      <input type="text" id="lastname" placeholder="Enter your last name" required>
+    </div>
+
+    <!-- Divider -->
+    <div class="section-divider"></div>
+
+    <!-- Child Info -->
+    <h3>Child Information</h3>
+
+    <div class="form-group">
+      <label for="cfirstname">Child First Name <span class="required">*</span></label>
+      <input type="text" id="cfirstname" placeholder="Enter child's first name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="clastname">Child Last Name <span class="required">*</span></label>
+      <input type="text" id="clastname" placeholder="Enter child's last name" required>
+    </div>
+
+    <div class="form-group">
+      <label for="birthday">Birthday</label>
+      <input type="date" id="birthday">
+    </div>
+
+    <div class="form-group">
+      <label for="cgender">Gender</label>
+      <select id="cgender">
+      <option value="">Select gender</option>
+      <option value="Male">Male</option>
+      <option value="Female">Female</option>
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label for="healthcategory">Health Category</label>
+      <select id="healthcategory">
+      <option value="">Select category</option>
+      <option value="Normal">Normal</option>
+      <option value="Autism">Autism</option>
+      <option value="ADHD">ADHD</option>
+      <option value="Dyslexia">Dyslexia</option>
+      <option value="Down Syndrome">Down Syndrome</option>
+      <option value="Other">Other</option>
+      </select>
+    </div>
+
+    <button type="submit" class="save-btn">Save Changes</button>
+    <p id="statusMsg"></p>
+
+  </form>
+</section>
+
+  <!-- Footer -->
+  <section id="footer" class="footer-section">
+    <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
+    <div class="footer-links">
+      <a href="#">Terms of Service</a>
+      <a href="#">Privacy Policy</a>
+    </div>
+  </section>
+
+
+<!-- Supabase Auth Script -->
+<script type="module">
+  import { supabase } from '/js/supabaseClient.js';
+
+  let currentUserId = null;
+
+  async function checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = "index.html";
+      return;
+    }
+
+    const user = session.user;
+    currentUserId = user.id;
+
+    // Load current profile data
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('firstname, lastname, birthday, cfirstname, clastname, healthcategory, cgender')
+      .eq('id', user.id)
+      .maybeSingle(); 
+
+    if (error) {
+      console.error('Error fetching profile:', error);
+      document.getElementById("userName").textContent = user.email;
+    } else if (data && data.firstname) {
+      document.getElementById("userName").textContent = data.firstname;
+      console.log('Profile:', data);
+      document.getElementById("firstname").value = data.firstname || "";
+      document.getElementById("lastname").value = data.lastname || "";
+      document.getElementById("birthday").value = data.birthday || "";
+      document.getElementById("cfirstname").value = data.cfirstname || "";
+      document.getElementById("clastname").value = data.clastname || "";
+      document.getElementById("cgender").value = data.cgender || "";
+      document.getElementById("healthcategory").value = data.healthcategory || "";
+    } else {
+      document.getElementById("userName").textContent = user.email;
+    }
+  }
+
+  checkAuth();
+
+  async function logout() {
+    await supabase.auth.signOut();
+    
+    // ✅ REMOVE CROSS-SUBDOMAIN COOKIE
+    document.cookie = "kognaktif_logged_in=; domain=.kognaktif.com; path=/; max-age=0";
+    
+    window.location.href = "https://kognaktif.com";
+  }
+
+  document.getElementById("logout-btn").addEventListener("click", logout);
+
+  // ✅ Dropdown toggle for user menu
+  const userMenu = document.querySelector(".user-menu");
+  const userName = document.getElementById("userName");
+
+  userName.addEventListener("click", () => {
+    userMenu.classList.toggle("active");
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!userMenu.contains(e.target)) {
+      userMenu.classList.remove("active");
+    }
+  });
+
+  // ✅ Save profile updates
+  document.getElementById("settingsForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const firstname = document.getElementById("firstname").value;
+    const lastname = document.getElementById("lastname").value;
+    const birthday = document.getElementById("birthday").value;
+    const cfirstname = document.getElementById("cfirstname").value;
+    const clastname = document.getElementById("clastname").value;
+    const cgender = document.getElementById("cgender").value;
+    const healthcategory = document.getElementById("healthcategory").value;
+
+    if (!currentUserId) {
+      alert("User not authenticated.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .upsert({ id: currentUserId, firstname, lastname, birthday, cfirstname, clastname, healthcategory, cgender }); 
+
+    const statusMsg = document.getElementById("statusMsg");
+
+    if (error) {
+      console.error(error);
+      statusMsg.textContent = "❌ Error saving changes.";
+      statusMsg.style.color = "red";
+    } else {
+      statusMsg.textContent = "✅ Changes saved successfully!";
+      statusMsg.style.color = "green";
+      
+      // Refresh the page after a short delay
+      setTimeout(() => {
+        location.reload();
+      }, 1000);
+    }
+  });
+</script>
+
+</body>
+</html>

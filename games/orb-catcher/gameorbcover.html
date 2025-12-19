@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Orb Catcher</title>
+  <link rel="stylesheet" href="/games/orb-catcher/style.css">
+  <link rel="stylesheet" href="/games/orb-catcher/gameorbcover.css">
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Cover Screen -->
+  <div id="coverScreen">
+    
+    <button id="closeBtn">&times;</button>
+
+    <div class="cover-card">
+      <div class="cover-left">
+        <h2>How to play</h2>
+        <p>Catch the falling colored orbs with your hand and place them into the matching chest. Have fun!</p>
+        <p>Let’s see how fast you can finish it!</p>   
+        <p>Select level & play when you're ready</p>
+        <h3>Trained skills</h3>
+        <ul>
+            <li>🔍 Focus</li>
+            <li>🎨 Color Matching</li>
+            <li>🧠 Motor Skills</li>
+            <li>🖐️ Hand-Eye Coordination</li>
+        </ul>
+        <p>The game is based on speed — your time to finish is your final score!</p>
+      </div>
+      <div class="cover-right">
+        <h2>Orb Catcher</h2>
+        <h3>Select Level</h3>
+
+        <button class="level-btn" data-level="trial">▶ Trial Mode</button>
+        <button class="level-btn" data-level="beginner">⭐<br>Beginner</button>
+        <button class="level-btn" data-level="intermediate">⭐⭐<br>Intermediate</button>
+        <button class="level-btn" data-level="advanced">⭐⭐⭐<br>Advanced</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Canvas for the game -->
+  <canvas id="output_canvas" width="640" height="480"></canvas>
+
+  <!-- MediaPipe & p5.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
+
+
+  <script>
+    // LEVEL BUTTON LOGIC
+    document.querySelectorAll(".level-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+
+        const lvl = btn.dataset.level;
+        localStorage.setItem("orbCatcherLevel", lvl);
+
+        if (lvl === "trial") window.location.href = "/games/orb-catcher/gameorbplay.html";
+        if (lvl === "beginner") window.location.href = "/games/orb-catcher/gameorbplay.html";
+        if (lvl === "intermediate") window.location.href = "/games/orb-catcher/gameorbplay.html"; 
+        if (lvl === "advanced") window.location.href = "/games/orb-catcher/gameorbplay.html";     
+      });
+    });
+
+     // Close button -> redirect to dashgames.html
+    document.getElementById("closeBtn").addEventListener("click", () => {
+    window.location.href = "/dashgames.html";
+    });
+  </script>
+
+</body>
+</html>
