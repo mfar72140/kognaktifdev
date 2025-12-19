@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Reset Password</title>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/auth.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="/css/auth.css">
+  
 </head>
 <body>
 
@@ -31,12 +31,9 @@
     <p id="reset-message"></p>
   </div>
 
-  <script>
-    // Initialize Supabase
-    const supabase = window.supabase.createClient(
-      "https://ijugaqvsszticpzrznnb.supabase.co",
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY"
-    );
+  <!-- Module script using supabaseClient.js -->
+  <script type="module">
+    import { supabase } from '/js/supabaseClient.js';
 
     const form = document.getElementById("reset-form");
     const message = document.getElementById("reset-message");
