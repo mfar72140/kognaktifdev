@@ -51,11 +51,25 @@
   <script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
 
 
-  <script>
+  <script type="module">
+    import { supabase } from '/js/supabaseClient.js';
+
+    // Check authentication
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session) {
+        window.location.href = "/index.html";
+        return;
+      }
+    }
+
+    // Run auth check on page load
+    await checkAuth();
+
     // LEVEL BUTTON LOGIC
     document.querySelectorAll(".level-btn").forEach(btn => {
       btn.addEventListener("click", () => {
-
         const lvl = btn.dataset.level;
         localStorage.setItem("shapeSenseLevel", lvl);
 
@@ -66,9 +80,9 @@
       });
     });
 
-     // Close button -> redirect to dashgames.html
+    // Close button -> redirect to dashgames.html
     document.getElementById("closeBtn").addEventListener("click", () => {
-    window.location.href = "/dashboard/dashgames.html";
+      window.location.href = "/dashboard/dashgames.html";
     });
   </script>
 
