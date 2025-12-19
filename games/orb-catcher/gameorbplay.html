@@ -130,6 +130,23 @@
   window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
 </script>
 
+<!-- ✅ Authentication check -->
+<script type="module">
+  import { supabase } from '/js/supabaseClient.js';
+
+  // Check authentication
+  async function checkAuth() {
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      window.location.href = "/index.html";
+      return;
+    }
+  }
+
+  // Run auth check on page load
+  await checkAuth();
+</script>
 
   <script>
     const closeBtn = document.getElementById("closeBtn");
