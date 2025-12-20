@@ -5,9 +5,9 @@ export async function loadUser() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    window.location.href = "/index.html";
+    window.location.href = "/signin";
     return;
-  }
+  } 
 
   const { data: profile } = await supabase
     .from('profiles')

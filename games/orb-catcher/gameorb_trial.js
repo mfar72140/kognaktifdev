@@ -1006,11 +1006,11 @@ startBtn.addEventListener("click", async () => {
 });
 
 playAgainBtn.addEventListener("click", () => {
-    window.location.href = "/games/orb-catcher/gameorbplay.html";
+    window.location.href = "/games/orb-catcher/play";
 });
 
 nextBtn.addEventListener("click", () => {
-    window.location.href = "/games/orb-catcher/gameorbcover.html";
+    window.location.href = "/games/orb-catcher/cover";
 });
 
 /* =========================
