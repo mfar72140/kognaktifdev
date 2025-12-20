@@ -21,8 +21,8 @@
       "destination": "/dashboard/dashgames.html"
     },
     {
-      "source": "/dashboard/settings",
-      "destination": "/dashboard/dashsettings.html"
+      "source": "/dashboard/setting",
+      "destination": "/dashboard/dashsetting.html"
     },
     {
       "source": "/dashboard/analytics",
