@@ -63,7 +63,7 @@
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session) {
-        window.location.href = "/index.html";
+        window.location.href = "/signin";
         return;
       }
     }
@@ -78,15 +78,15 @@
         const lvl = btn.dataset.level;
         localStorage.setItem("buzzTapLevel", lvl);
 
-        if (lvl === "trial") window.location.href = "/games/buzz-tap/gamebuzzplay.html";
-        if (lvl === "beginner") window.location.href = "/games/buzz-tap/gamebuzzplay.html";
-        if (lvl === "intermediate") window.location.href = "/games/buzz-tap/gamebuzzplay.html";
-        if (lvl === "advanced") window.location.href = "/games/buzz-tap/gamebuzzplay.html";
+        if (lvl === "trial") window.location.href = "/games/buzz-tap/play";
+        if (lvl === "beginner") window.location.href = "/games/buzz-tap/play";
+        if (lvl === "intermediate") window.location.href = "/games/buzz-tap/play";
+        if (lvl === "advanced") window.location.href = "/games/buzz-tap/play";
       });
     });
 
     document.getElementById("closeBtn").addEventListener("click", () => {
-      window.location.href = "/dashboard/dashgames.html";
+      window.location.href = "/dashboard/games";
     });
   </script>
 
