@@ -16,9 +16,9 @@
         <img src="/assets/images/Kog_logowhite.png" alt="KognAktif Logo">
     </div>
     <ul class="nav-links">
-      <li><a href="/dashboard/dashboard.html">Dashboard</a></li>
-      <li><a href="/dashboard/dashgames.html">Games</a></li>
-      <li><a href="/dashboard/dashanalytics.html">Analytic</a></li>
+      <li><a href="/dashboard/main">Dashboard</a></li>
+      <li><a href="/dashboard/games">Games</a></li>
+      <li><a href="/dashboard/analytics">Analytic</a></li>
       <li><a href="#" class="active">Setting</a></li>
     </ul>
     <div class="nav-right">
@@ -120,7 +120,7 @@
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      window.location.href = "/index.html";
+      window.location.href = "/signin";
       return;
     }
 

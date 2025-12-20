@@ -16,9 +16,9 @@
     </div>
     <ul class="nav-links">
       <li><a href="#" class="active">Dashboard</a></li>
-      <li><a href="/dashboard/dashgames.html">Games</a></li>
-      <li><a href="/dashboard/dashanalytics.html">Analytic</a></li>
-      <li><a href="/dashboard/dashsetting.html">Setting</a></li>
+      <li><a href="/dashboard/games">Games</a></li>
+      <li><a href="/dashboard/analytics">Analytic</a></li>
+      <li><a href="/dashboard/settings">Setting</a></li>
     </ul>
     <div class="nav-right">
       <button class="notif-btn">🔔</button>
@@ -123,7 +123,7 @@ async function checkAuth() {
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
-    window.location.href = "/index.html";
+    window.location.href = "/signin";
     return;
   }
 

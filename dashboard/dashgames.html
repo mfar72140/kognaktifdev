@@ -16,10 +16,10 @@
         <img src="/assets/images/Kog_logowhite.png" alt="KognAktif Logo">
     </div>
     <ul class="nav-links">
-      <li><a href="/dashboard/dashboard.html" >Dashboard</a></li>
+      <li><a href="/dashboard/main" >Dashboard</a></li>
       <li><a href="#"class="active" >Games</a></li>
-      <li><a href="/dashboard/dashanalytics.html">Analytic</a></li>
-      <li><a href="/dashboard/dashsetting.html">Setting</a></li>
+      <li><a href="/dashboard/analytics">Analytic</a></li>
+      <li><a href="/dashboard/settings">Setting</a></li>
     </ul>
     <div class="nav-right">
       <button class="notif-btn">🔔</button>
@@ -67,7 +67,7 @@
         <img src="/assets/images/orbback1.png" alt="Orb Catcher">
         <div class="game-overlay">
         <h3>ORB CATCHER</h3>
-        <button class="play-btn" onclick="window.location.href='/games/orb-catcher/gameorbcover.html'">PLAY</button>
+        <button class="play-btn" onclick="window.location.href='/games/orb-catcher/cover'">PLAY</button>
         <p>Focus | Color Matching | Motor Skills | <br>Hand-Eye Coordination </p>
         </div>
     </div>
@@ -118,7 +118,7 @@
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
-      window.location.href = "/index.html";
+      window.location.href = "/signin";
       return;
     }
 
