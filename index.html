@@ -39,7 +39,7 @@
 
       <p class="alt">
         Forgot your password? <a href="#" id="forgotPasswordLink">Reset here</a><br>
-        Don’t have an account? <a href="/auth/signup.html">Sign Up</a>
+        Don’t have an account? <a href="/auth/signup">Sign Up</a>
       </p>
       <p id="message"></p>
     </div>
@@ -107,7 +107,7 @@
 
 
         setTimeout(() => {
-          window.location.href = "/dashboard/dashboard.html";
+          window.location.href = "/dashboard/main";
         }, 800);
       }
     });
@@ -119,7 +119,7 @@
       if (!email) return alert("Please enter your email.");
 
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "/auth/resetpass.html"
+        redirectTo: "/auth/reset"
       });
 
       if (error) alert(error.message);
