@@ -15,12 +15,27 @@
     {
       "source": "/dashboard/main",
       "destination": "/dashboard/dashboard.html"
-    }   
+    }
   ],
   "redirects": [
     {
       "source": "/index.html",
       "destination": "/signin",
+      "permanent": true
+    },
+    {
+      "source": "/auth/signup.html",
+      "destination": "/auth/signup",
+      "permanent": true
+    },
+    {
+      "source": "/auth/resetpass.html",
+      "destination": "/auth/reset",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard/dashboard.html",
+      "destination": "/dashboard/main",
       "permanent": true
     }
   ]
