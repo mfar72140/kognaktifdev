@@ -15,7 +15,44 @@
     {
       "source": "/dashboard/main",
       "destination": "/dashboard/dashboard.html"
-    }
+    },
+    {
+      "source": "/dashboard/games",
+      "destination": "/dashboard/dashgames.html"
+    },
+    {
+      "source": "/dashboard/settings",
+      "destination": "/dashboard/dashsettings.html"
+    },
+    {
+      "source": "/dashboard/analytics",
+      "destination": "/dashboard/dashanalytics.html"
+    },
+    {
+      "source": "/games/buzz-tap/play",
+      "destination": "/games/buzz-tap/gamebuzzplay.html"
+    },
+    {
+      "source": "/games/buzz-tap/cover",
+      "destination": "/games/buzz-tap/gamebuzzcover.html"
+    },
+    {
+      "source": "/games/shape-sense/play",
+      "destination": "/games/shape-sense/gameshapeplay.html"
+    },
+    {
+      "source": "/games/shape-sense/cover",
+      "destination": "/games/shape-sense/gameshapecover.html"
+    },
+    {
+      "source": "/games/orb-catcher/play",
+      "destination": "/games/orb-catcher/gameorbplay.html"
+    },
+    {
+      "source": "/games/orb-catcher/cover",
+      "destination": "/games/orb-catcher/gameorbcover.html"
+    }   
+
   ],
   "redirects": [
     {
@@ -37,6 +74,52 @@
       "source": "/dashboard/dashboard.html",
       "destination": "/dashboard/main",
       "permanent": true
+    },
+    {
+      "source": "/dashboard/dashgames.html",
+      "destination": "/dashboard/games",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard/dashsettings.html",
+      "destination": "/dashboard/settings",
+      "permanent": true
+    },
+    {
+      "source": "/dashboard/dashanalytics.html",
+      "destination": "/dashboard/analytics",
+      "permanent": true
+    },
+    {
+      "source": "/games/buzz-tap/gamebuzzplay.html",
+      "destination": "/games/buzz-tap/play",
+      "permanent": true
+    },
+    {
+      "source": "/games/buzz-tap/gamebuzzcover.html",
+      "destination": "/games/buzz-tap/cover",
+      "permanent": true
+    },
+    {
+      "source": "/games/shape-sense/gameshapeplay.html",
+      "destination": "/games/shape-sense/play",
+      "permanent": true
+    },
+    {
+      "source": "/games/shape-sense/gameshapecover.html",
+      "destination": "/games/shape-sense/cover",
+      "permanent": true
+    },
+    {
+      "source": "/games/orb-catcher/gameorbplay.html",
+      "destination": "/games/orb-catcher/play",
+      "permanent": true
+    },
+    {
+      "source": "/games/orb-catcher/gameorbcover.html",
+      "destination": "/games/orb-catcher/cover",
+      "permanent": true
     }
+
   ]
 }
