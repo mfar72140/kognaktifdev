@@ -1,8 +1,26 @@
 {
+  "rewrites": [
+    {
+      "source": "/signin",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/auth/signup",
+      "destination": "/auth/signup.html"
+    },
+    {
+      "source": "/auth/reset",
+      "destination": "/auth/resetpass.html"
+    },
+    {
+      "source": "/dashboard/main",
+      "destination": "/dashboard/dashboard.html"
+    }   
+  ],
   "redirects": [
     {
       "source": "/index.html",
-      "destination": "/",
+      "destination": "/signin",
       "permanent": true
     }
   ]
