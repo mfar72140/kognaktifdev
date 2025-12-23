@@ -156,6 +156,32 @@ button {
   100% { transform: rotate(360deg); }
 }
 
+/* Password field with show/hide icon */
+.password-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-wrapper input {
+  width: 100%;
+  padding-right: 10px; /* space for eye icon */
+}
+
+.toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  user-select: none;
+  font-size: 16px;
+}
+
+.toggle-password:hover {
+  opacity: 0.7;
+}
+
+
 /* Popup overlay */
 .popup-overlay {
   display: none;

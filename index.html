@@ -28,8 +28,12 @@
         <label>Email</label>
         <input type="email" id="email" placeholder="Enter your email" required>
 
-        <label>Password</label>
-        <input type="password" id="password" placeholder="Enter your password" required>
+    <label>Password</label>
+    <div class="password-wrapper">
+      <input type="password" id="password" placeholder="Enter your password" required>
+      <span id="togglePassword" class="toggle-password" aria-label="Show or hide password"> 👁️
+      </span>
+    </div>
 
         <button type="submit" id="signin-btn">
           <span id="btn-text">Sign In</span>
@@ -56,6 +60,18 @@
       <button class="close-btn" onclick="document.getElementById('forgotPopup').style.display='none'">Close</button>
     </div>
   </div>
+
+  <script>
+    // Toggle password visibility
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
+
+    togglePassword.addEventListener("click", () => {
+      const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+      passwordInput.setAttribute("type", type);
+      togglePassword.textContent = type === "password" ? "👁️" : "🙈";
+    });
+  </script> 
 
   <!-- Screen width check -->
   <script>
