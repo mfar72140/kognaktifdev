@@ -56,7 +56,6 @@
       const { data, error } = await supabase.auth.signUp({ 
           email,
           password,
-
         });
 
       if (error) {
@@ -65,9 +64,25 @@
         return;
       }
 
-        message.textContent = "✅ Sign up successful! Please check your email to confirm.";
-        message.style.color = "green";
-        
+      // Save email to public.profiles table
+      if (data?.user) {
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([
+            { 
+              id: data.user.id,
+              email: email 
+            }
+          ]);
+
+        if (profileError) {
+          console.error("Profile creation error:", profileError);
+        }
+      }
+
+      message.textContent = "✅ Sign up successful! Please check your email to confirm.";
+      message.style.color = "green";
+      
       //  setTimeout(() => {
      //   window.location.href = "signin.html";
       //}, 800);

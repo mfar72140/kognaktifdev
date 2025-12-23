@@ -120,17 +120,12 @@
 <!-- MediaPipe & p5.js -->
 <script src="https://cdn.jsdelivr.net/npm/p5/lib/p5.min.js"></script>
 
-<!-- ✅ Supabase client -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-  const supabaseUrl = "https://ijugaqvsszticpzrznnb.supabase.co";
-  const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImlqdWdhcXZzc3p0aWNwenJ6bm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTc2MjIwMjksImV4cCI6MjA3MzE5ODAyOX0.kx29Dr1eAIKdeRwpH9VBYerKuHYWz2wIvNYc85ms5mY";  // use anon key only
-  window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-</script>
-
-<!-- ✅ Authentication check -->
+<!-- ✅ Supabase client & Authentication check -->
 <script type="module">
   import { supabase } from '/js/supabaseClient.js';
+  
+  // Make supabase available globally for other scripts
+  window.supabase = supabase;
 
   // Check authentication
   async function checkAuth() {
