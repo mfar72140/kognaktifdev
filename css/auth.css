@@ -293,13 +293,13 @@ body {
 }
 
 .reset-card input {
-  width: 100%;
+  width: 90%;
   padding: 12px;
   margin-bottom: 16px;
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 14px;
-  font-family: poppins, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .reset-card button {
@@ -317,7 +317,7 @@ body {
   align-items: center;
   gap: 8px;
   transition: background 0.3s ease;
-  font-family: poppins, sans-serif;
+  font-family: 'Poppins', sans-serif;
 }
 
 .reset-card button:hover {
