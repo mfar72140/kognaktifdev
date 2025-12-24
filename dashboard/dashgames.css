@@ -129,12 +129,13 @@ body {
 }
 
 /* =======================
-   MAIN CONTENT
+  MAIN CONTENT
 ======================= */
 
 /* Header Description */
 .headerdescription h2 {
-  text-align: center;  
+  text-align: center;
+  font-size: 30px;  
 }
 
 .headerdescription p {
@@ -142,6 +143,80 @@ body {
   color: #555;
   margin-top: -10px;
   margin-bottom: 20px;
+}
+
+/* Guide Section */
+.guide-section {
+  max-width: 600px;
+  margin: 0 auto 30px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
+  border-radius: 12px;
+  padding: 25px 30px;
+  box-shadow: 0 3px 10px rgba(142, 36, 170, 0.1);
+  border: 1px solid #e8e8f0;
+}
+
+.guide-section h3 {
+  margin: 0 0 20px;
+  color: #8e24aa;
+  font-size: 19px;
+  font-weight: 600;
+  padding-bottom: 12px;
+  border-bottom: 2px solid #8e24aa;
+  text-align: center;
+}
+
+.guide-section ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Achievement Badge Styling */
+.guide-section li {
+  position: relative;
+  padding: 12px 14px 12px 48px;
+  background: #fff;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  transition: all 0.3s ease;
+  font-size: 15px;
+}
+
+.guide-section li:hover {
+  transform: translateX(8px);
+  box-shadow: 0 4px 12px rgba(142, 36, 170, 0.2);
+  border-left-color: #43a047;
+}
+
+.guide-section li::before {
+  content: "✓";
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background: linear-gradient(135deg, #8e24aa 0%, #ab47bc 100%);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  margin: 0;
+}
+
+.guide-section li:hover::before {
+  background: linear-gradient(135deg, #43a047 0%, #66bb6a 100%);
+  animation: pulse 0.5s ease;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: translateY(-50%) scale(1); }
+  50% { transform: translateY(-50%) scale(1.1); }
 }
 
 /* Games Section */
