@@ -119,14 +119,17 @@
 <script type="module">
   import { supabase } from '/js/supabaseClient.js';
 
-async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
-
+// ===========================
+// AUTH STATE LISTENER
+// ===========================
+supabase.auth.onAuthStateChange(async (event, session) => {
   if (!session) {
+    // User is NOT logged in → redirect
     window.location.href = "/signin";
     return;
   }
 
+  // User is logged in
   const user = session.user;
   const userEmail = user.email;
 
@@ -135,7 +138,7 @@ async function checkAuth() {
     .from('profiles')
     .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
     .eq('id', user.id)
-    .maybeSingle();  // prevents crash if no row
+    .maybeSingle(); // prevents crash if no row
 
   // Determine display name
   let displayName = userEmail; // fallback
@@ -143,10 +146,11 @@ async function checkAuth() {
     displayName = profile.firstname;
   }
 
+  // Update DOM
   document.getElementById("userName").textContent = displayName;
   document.getElementById("welcomeName").textContent = displayName;
 
-  // Update child information (safe)
+  // Update child info safely
   if (profile) {
     const childFullName = `${profile.cfirstname || ''} ${profile.clastname || ''}`.trim();
     document.getElementById("childName").textContent = childFullName || 'Not available';
@@ -168,9 +172,11 @@ async function checkAuth() {
     document.getElementById("childHealthCategory").textContent = 'Not available';
   }
 
-  // Fetch game results
-  await fetchLastSession(userEmail);
-}
+  // Fetch last game session for this user
+  if (typeof fetchLastSession === 'function') {
+    await fetchLastSession(userEmail);
+  }
+});
 
 async function fetchLastSession(userEmail) {
   const { data: buzzTap } = await supabase
