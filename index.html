@@ -20,19 +20,19 @@
       <img src="/assets/images/signcover.png" alt="Illustration" class="cover-img">
     </div>
 
-      <!-- Right panel -->
-      <div class="auth-card">
-        <h2>Sign In</h2>
-        <p class="subtitle">Welcome back! Please sign in to continue</p>
+    <!-- Right panel -->
+    <div class="auth-card">
+      <h2>Sign In</h2>
+      <p class="subtitle">Welcome back! Please sign in to continue</p>
         
         <form id="signin-form">
           <button type="button" id="googleSignInBtn" class="google-btn">
-          <img src="/assets/images/google-icon.png" alt="Google" />
-          Sign in with Google
+            <img src="/assets/images/google-icon.png" alt="Google" />
+            Coming Soon...
           </button>
 
           <div class="divider">
-          <span>or</span>
+            <span>or</span>
           </div>
 
           <label>Email</label>
@@ -49,144 +49,114 @@
           <span id="btn-text">Sign In</span>
           <div class="spinner" id="spinner" style="display: none;"></div>
         </button>
-        </form>
+      </form>
 
-        <p class="alt">
+      <p class="alt">
         Forgot your password? <a href="#" id="forgotPasswordLink">Reset here</a><br>
-        Don't have an account? <a href="/auth/signup">Sign Up</a>
-        </p>
-        <p id="message"></p>
-      </div>
-      </div>
+        Don’t have an account? <a href="/auth/signup">Sign Up</a>
+      </p>
+      <p id="message"></p>
+    </div>
+  </div>
 
-      <!-- Forgot Password Popup -->
-      <div id="forgotPopup" class="popup-overlay">
-      <div class="popup-card">
-        <h3>Reset Password</h3>
-        <p>Enter your email to receive a password reset link.</p>
-        <input type="email" id="resetEmail" placeholder="Enter your email" required>
-        <button id="resetPasswordBtn">Send Reset Link</button>
-        <p id="resetNotice" style="display:none; color:green; margin-top:10px;">✔ Reset email sent! Please check your inbox.</p>
-        <button class="close-btn" onclick="document.getElementById('forgotPopup').style.display='none'">Close</button>
-      </div>
-      </div>
+  <!-- Forgot Password Popup -->
+  <div id="forgotPopup" class="popup-overlay">
+    <div class="popup-card">
+      <h3>Reset Password</h3>
+      <p>Enter your email to receive a password reset link.</p>
+      <input type="email" id="resetEmail" placeholder="Enter your email" required>
+      <button id="resetPasswordBtn">Send Reset Link</button>
+      <p id="resetNotice" style="display:none; color:green; margin-top:10px;">✔ Reset email sent! Please check your inbox.</p>
+      <button class="close-btn" onclick="document.getElementById('forgotPopup').style.display='none'">Close</button>
+    </div>
+  </div>
 
-      <script>
-      // Toggle password visibility
-      const togglePassword = document.getElementById("togglePassword");
-      const passwordInput = document.getElementById("password");
+  <script>
+    // Toggle password visibility
+    const togglePassword = document.getElementById("togglePassword");
+    const passwordInput = document.getElementById("password");
 
-      togglePassword.addEventListener("click", () => {
-        const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
-        passwordInput.setAttribute("type", type);
-        togglePassword.textContent = type === "password" ? "👁️" : "🙈";
-      });
-      </script> 
+    togglePassword.addEventListener("click", () => {
+      const type = passwordInput.getAttribute("type") === "password" ? "text" : "password";
+      passwordInput.setAttribute("type", type);
+      togglePassword.textContent = type === "password" ? "👁️" : "🙈";
+    });
+  </script> 
 
-      <!-- Screen width check -->
-      <script>
-      function checkScreen() {
-        if (window.innerWidth < 768) {
+  <!-- Screen width check -->
+  <script>
+    function checkScreen() {
+      if (window.innerWidth < 768) {
         document.body.innerHTML = `
           <div style="display:flex;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:Poppins,sans-serif;padding:20px;">
-          <h2>⚠️ This app is only available on laptop or desktop.<br>Please use a larger screen.</h2>
+            <h2>⚠️ This app is only available on laptop or desktop.<br>Please use a larger screen.</h2>
           </div>`;
-        }
       }
-      checkScreen();
-      window.addEventListener("resize", checkScreen);
-      </script>
+    }
+    checkScreen();
+    window.addEventListener("resize", checkScreen);
+  </script>
 
-      <!-- Module script using supabaseClient.js -->
-      <script type="module">
-      import { supabase } from '/js/supabaseClient.js';
+  <!-- Module script using supabaseClient.js -->
+  <script type="module">
+    import { supabase } from '/js/supabaseClient.js';
 
-      const form = document.getElementById("signin-form");
-      const message = document.getElementById("message");
-      const signinButton = document.getElementById("signin-btn");
-      const spinner = document.getElementById("spinner");
-      const googleBtn = document.getElementById("googleSignInBtn");
+    const form = document.getElementById("signin-form");
+    const message = document.getElementById("message");
+    const signinButton = document.getElementById("signin-btn");
+    const spinner = document.getElementById("spinner");
 
-      /* ==========================
-        AUTH STATE LISTENER (KEY FIX)
-      ========================== */
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (session) {
+    // Sign in
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const email = document.getElementById("email").value;
+      const password = document.getElementById("password").value;
+
+      spinner.style.display = "inline-block";
+      signinButton.disabled = true;
+
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+      spinner.style.display = "none";
+      signinButton.disabled = false;
+
+      if (error) {
+        message.textContent = "⚠️ Incorrect email or password. Please try again.";
+        message.style.color = "red";
+      } else {
+        message.textContent = "✅ Sign in successful!";
+        message.style.color = "green";
+
+        // ✅ SET COOKIE FOR WORDPRESS
+        document.cookie = "kognaktif_logged_in=true; domain=.kognaktif.com; path=/; max-age=2592000";
+
+
+        setTimeout(() => {
           window.location.href = "/dashboard/main";
-        }
+        }, 800);
+      }
+    });
+
+    // Forgot password
+    const resetBtn = document.getElementById("resetPasswordBtn");
+    resetBtn.addEventListener("click", async () => {
+      const email = document.getElementById("resetEmail").value;
+      if (!email) return alert("Please enter your email.");
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: "/auth/reset"
       });
 
-      /* ==========================
-        GOOGLE SIGN-IN
-      ========================== */
-      googleBtn.addEventListener("click", async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: window.location.origin + "/dashboard/main"
-          }
-        });
+      if (error) alert(error.message);
+      else document.getElementById("resetNotice").style.display = "block";
+    });
 
-        if (error) {
-          alert("Google sign-in failed: " + error.message);
-        }
-      });
-
-      /* ==========================
-        EMAIL + PASSWORD SIGN-IN
-      ========================== */
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-
-        const email = document.getElementById("email").value;
-        const password = document.getElementById("password").value;
-
-        spinner.style.display = "inline-block";
-        signinButton.disabled = true;
-
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-
-        spinner.style.display = "none";
-        signinButton.disabled = false;
-
-        if (error) {
-          message.textContent = "⚠️ Incorrect email or password. Please try again.";
-          message.style.color = "red";
-        } else {
-          message.textContent = "✅ Sign in successful!";
-          message.style.color = "green";
-
-          // optional cookie
-          document.cookie = "kognaktif_logged_in=true; path=/; max-age=2592000";
-
-          window.location.href = "/dashboard/main";
-        }
-      });
-
-      /* ==========================
-        FORGOT PASSWORD
-      ========================== */
-      const resetBtn = document.getElementById("resetPasswordBtn");
-      resetBtn.addEventListener("click", async () => {
-        const email = document.getElementById("resetEmail").value;
-        if (!email) return alert("Please enter your email.");
-
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin + "/auth/reset"
-        });
-
-        if (error) alert(error.message);
-        else document.getElementById("resetNotice").style.display = "block";
-      });
-
-      /* ==========================
-        SHOW FORGOT POPUP
-      ========================== */
-      document.getElementById("forgotPasswordLink").addEventListener("click", (e) => {
-        e.preventDefault();
-        document.getElementById("forgotPopup").style.display = "flex";
-      });
-      </script>
-
+    // Show forgot popup
+    document.getElementById("forgotPasswordLink").addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("forgotPopup").style.display = "flex";
+    });
+  </script>
 </body>
 </html>
