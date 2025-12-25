@@ -105,23 +105,36 @@
       const message = document.getElementById("message");
       const signinButton = document.getElementById("signin-btn");
       const spinner = document.getElementById("spinner");
-
-      // Google Sign-In
       const googleBtn = document.getElementById("googleSignInBtn");
-      googleBtn.addEventListener("click", async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: window.location.origin + "/dashboard/main"
-        }
-        });
 
-        if (error) {
-        alert("Google sign-in failed: " + error.message);
+      /* ==========================
+        AUTH STATE LISTENER (KEY FIX)
+      ========================== */
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (session) {
+          window.location.href = "/dashboard/main";
         }
       });
 
-      // Sign in
+      /* ==========================
+        GOOGLE SIGN-IN
+      ========================== */
+      googleBtn.addEventListener("click", async () => {
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            redirectTo: window.location.origin + "/dashboard/main"
+          }
+        });
+
+        if (error) {
+          alert("Google sign-in failed: " + error.message);
+        }
+      });
+
+      /* ==========================
+        EMAIL + PASSWORD SIGN-IN
+      ========================== */
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
 
@@ -137,41 +150,43 @@
         signinButton.disabled = false;
 
         if (error) {
-        message.textContent = "⚠️ Incorrect email or password. Please try again.";
-        message.style.color = "red";
+          message.textContent = "⚠️ Incorrect email or password. Please try again.";
+          message.style.color = "red";
         } else {
-        message.textContent = "✅ Sign in successful!";
-        message.style.color = "green";
+          message.textContent = "✅ Sign in successful!";
+          message.style.color = "green";
 
-        // ✅ SET COOKIE FOR WORDPRESS
-        document.cookie = "kognaktif_logged_in=true; domain=.kognaktif.com; path=/; max-age=2592000";
+          // optional cookie
+          document.cookie = "kognaktif_logged_in=true; path=/; max-age=2592000";
 
-
-        setTimeout(() => {
           window.location.href = "/dashboard/main";
-        }, 800);
         }
       });
 
-      // Forgot password
+      /* ==========================
+        FORGOT PASSWORD
+      ========================== */
       const resetBtn = document.getElementById("resetPasswordBtn");
       resetBtn.addEventListener("click", async () => {
         const email = document.getElementById("resetEmail").value;
         if (!email) return alert("Please enter your email.");
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: "/auth/reset"
+          redirectTo: window.location.origin + "/auth/reset"
         });
 
         if (error) alert(error.message);
         else document.getElementById("resetNotice").style.display = "block";
       });
 
-      // Show forgot popup
+      /* ==========================
+        SHOW FORGOT POPUP
+      ========================== */
       document.getElementById("forgotPasswordLink").addEventListener("click", (e) => {
         e.preventDefault();
         document.getElementById("forgotPopup").style.display = "flex";
       });
       </script>
+
 </body>
 </html>
