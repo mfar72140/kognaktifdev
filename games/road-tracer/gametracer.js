@@ -134,7 +134,7 @@ const countdownSound = new Audio("/assets/sounds/countdown2.wav");
 const endApplause = new Audio("/assets/sounds/endapplause.wav");
 endApplause.volume = 0.7;
 
-const bgMusic = new Audio("/assets/sounds/03Backmusic30s.mp3");
+const bgMusic = new Audio("/assets/sounds/04Backmusic28s.mp3");
 bgMusic.loop = true;
 bgMusic.volume = 0.9;
 
@@ -167,7 +167,7 @@ function drawCover() {
         ctx.drawImage(backgroundCoverImg, 0, 0, canvas.width, canvas.height);
     }
 
-    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 }
 
@@ -188,7 +188,7 @@ function initGame() {
     state.useGameBackground = true;
 
     // Calculate road boundaries (centered vertically, full width)
-    const roadHeight = canvas.height * 0.8; // Road takes 80% of canvas height 
+    const roadHeight = canvas.height * 0.75; // Road takes 80% of canvas height 
     ROAD_TOP = (canvas.height - roadHeight) / 2;
     ROAD_BOTTOM = ROAD_TOP + roadHeight;
     ROAD_HEIGHT = roadHeight;
