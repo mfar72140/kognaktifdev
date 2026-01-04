@@ -43,6 +43,7 @@ const state = {
     // NEW: Tracking metrics
     attempts: 0,
     boundryHits: 0,
+    successfulPinches: 0, // NEW: Count pinches that reach finish line
 
     // timer
     startTime: null,
@@ -135,6 +136,7 @@ medalImg.src = "/assets/images/medal.png";
 // sound assets
 const dingSound = new Audio("/assets/sounds/dingeffect.wav");
 const countdownSound = new Audio("/assets/sounds/countdown2.wav");
+const boundarySound = new Audio('/assets/sounds/touch2.mp3');
 const endApplause = new Audio("/assets/sounds/endapplause.wav");
 endApplause.volume = 0.7;
 
@@ -187,9 +189,10 @@ function initGame() {
     state.totalDistance = 0;
     state.lastCarPos = null;
 
-    // NEW: Reset tracking metrics
+    // Reset tracking metrics
     state.attempts = 0;
     state.boundryHits = 0;
+    state.successfulPinches = 0;
 
     state.lastFrameTime = 0;
     state.deltaTime = 0;
@@ -327,6 +330,10 @@ function updateCar() {
         state.score++;
         updateScore();
 
+        // NEW: Increment successful pinches when reaching finish line
+        state.successfulPinches++;
+        console.log(`Success! Total successful pinches: ${state.successfulPinches}`);
+
         try { dingSound.currentTime = 0; dingSound.play(); } catch (e) { }
 
         // Reset car after delay
@@ -360,9 +367,15 @@ function updateCarGlow() {
         state.car.glowColor = "rgba(255, 0, 0, 0.8)"; // Red flash
         if (!state.carOutsideRoad) {
             state.carOutsideRoad = true;
-            // NEW: Increment boundary hits
             state.boundryHits++;
             console.log(`Boundary hit! Total: ${state.boundryHits}`);
+            
+            try {
+                boundarySound.currentTime = 0;
+                boundarySound.play();
+            } catch (e) {
+                console.warn("Could not play boundary sound:", e);
+            }
             
             // Reset to initial position
             setTimeout(() => {
@@ -476,7 +489,6 @@ function handlePinchStart(x, y) {
         state.car.controlled = true;
         state.lastCarPos = { x: state.car.x, y: state.car.y };
         
-        // NEW: Increment attempts only when successfully pinching the car
         state.attempts++;
         console.log(`Car pinched! Total attempts: ${state.attempts}`);
     }
@@ -487,8 +499,7 @@ function handlePinchRelease() {
         state.car.controlled = false;
         state.lastCarPos = null;
         
-        // Reset car to initial position
-        resetCarToStart();
+        // Car stays at current position - no reset
     }
 }
 
@@ -850,6 +861,33 @@ async function calculateConsistency(userEmail) {
 }
 
 /* =========================
+    === NEW CALCULATIONS ====
+    ========================= */
+
+function calculatePinchAccuracy() {
+    // pinch accuracy (%) = (Success pinch until finish line / (total pinch attempts - number hit boundary)) * 100
+    const validAttempts = state.attempts - state.boundryHits;
+    if (validAttempts === 0) return 0;
+    const accuracy = (state.successfulPinches / validAttempts) * 100;
+    return Math.round(accuracy * 100) / 100; // Round to 2 decimal places
+}
+
+function calculateTraceStability() {
+    // trace stability (%) = (1 – normalized(boundryhitrate)) * 100
+    // boundryhitrate = the number car hit boundary / total time taken
+    const finalTime = state.finalElapsed ?? 1; // Avoid division by zero
+    const boundaryHitRate = state.boundryHits / finalTime;
+    
+    // Normalize: assume 1 hit per second as maximum (normalized = 1)
+    // Adjust this threshold based on your game's difficulty
+    const maxExpectedRate = 1.0;
+    const normalizedRate = Math.min(boundaryHitRate / maxExpectedRate, 1);
+    
+    const stability = (1 - normalizedRate) * 100;
+    return Math.max(0, Math.round(stability * 100) / 100); // Ensure non-negative, round to 2 decimals
+}
+
+/* =========================
     ======= SAVE RESULT =====
     ========================= */
 
@@ -871,7 +909,12 @@ async function saveGameResult() {
     const boundryHits = state.boundryHits;
 
     const consistency = await calculateConsistency(user.email);
+    const pinchAccuracy = calculatePinchAccuracy();
+    const traceStability = calculateTraceStability();
+
     console.log("Calculated consistency:", consistency);
+    console.log("Calculated pinch accuracy:", pinchAccuracy);
+    console.log("Calculated trace stability:", traceStability);
 
     const { error: insertError } = await supabase
         .from("roadtracer_results")
@@ -883,7 +926,9 @@ async function saveGameResult() {
             totaldistance: totalDistance,
             consistency: consistency,
             attempts: attempts,
-            boundryhits: boundryHits
+            boundryhits: boundryHits,
+            pinchaccuracy: pinchAccuracy,
+            tracestability: traceStability
         }])
         .select();
 
@@ -893,8 +938,11 @@ async function saveGameResult() {
         console.log("Result saved successfully!");
         console.log(`Total distance: ${totalDistance}px`);
         console.log(`Attempts: ${attempts}`);
+        console.log(`Successful pinches: ${state.successfulPinches}`);
         console.log(`Boundary hits: ${boundryHits}`);
         console.log(`Consistency: ${consistency}`);
+        console.log(`Pinch accuracy: ${pinchAccuracy}%`);
+        console.log(`Trace stability: ${traceStability}%`);
     }
 }
 

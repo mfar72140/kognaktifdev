@@ -40,6 +40,10 @@ const state = {
     totalDistance: 0,
     lastCarPos: null,
 
+    // NEW: Tracking metrics
+    attempts: 0,
+    boundryHits: 0,
+
     // timer
     startTime: null,
     timerIntervalId: null,
@@ -131,6 +135,7 @@ medalImg.src = "/assets/images/medal.png";
 // sound assets
 const dingSound = new Audio("/assets/sounds/dingeffect.wav");
 const countdownSound = new Audio("/assets/sounds/countdown2.wav");
+const boundarySound = new Audio('/assets/sounds/touch2.mp3');
 const endApplause = new Audio("/assets/sounds/endapplause.wav");
 endApplause.volume = 0.7;
 
@@ -182,6 +187,10 @@ function initGame() {
 
     state.totalDistance = 0;
     state.lastCarPos = null;
+
+    // NEW: Reset tracking metrics
+    state.attempts = 0;
+    state.boundryHits = 0;
 
     state.lastFrameTime = 0;
     state.deltaTime = 0;
@@ -352,6 +361,17 @@ function updateCarGlow() {
         state.car.glowColor = "rgba(255, 0, 0, 0.8)"; // Red flash
         if (!state.carOutsideRoad) {
             state.carOutsideRoad = true;
+            // NEW: Increment boundary hits
+            state.boundryHits++;
+            console.log(`Boundary hit! Total: ${state.boundryHits}`);
+            
+            try {
+                boundarySound.currentTime = 0;
+                boundarySound.play();
+            } catch (e) {
+                console.warn("Could not play boundary sound:", e);
+            }
+            
             // Reset to initial position
             setTimeout(() => {
                 resetCarToStart();
@@ -463,6 +483,10 @@ function handlePinchStart(x, y) {
     if (dist < 100) { // Within 100px of car
         state.car.controlled = true;
         state.lastCarPos = { x: state.car.x, y: state.car.y };
+        
+        // NEW: Increment attempts only when successfully pinching the car
+        state.attempts++;
+        console.log(`Car pinched! Total attempts: ${state.attempts}`);
     }
 }
 
@@ -471,8 +495,7 @@ function handlePinchRelease() {
         state.car.controlled = false;
         state.lastCarPos = null;
         
-        // Reset car to initial position
-        resetCarToStart();
+        // Car stays at current position - no reset
     }
 }
 
@@ -563,14 +586,16 @@ function drawScene() {
     // Draw hand pointer
     if (state.handPointer) {
         const handSize = 90;
+        const pinchSize = handSize * 0.8; // Reduce pinch image by 20%
         const imgToUse = state.isPinching ? pinchImg : handImg;
+        const currentSize = state.isPinching ? pinchSize : handSize;
         
         if (imgToUse.complete) {
             ctx.drawImage(imgToUse, 
-                state.handPointer.x - handSize / 2, 
-                state.handPointer.y - handSize / 2, 
-                handSize, 
-                handSize);
+                state.handPointer.x - currentSize / 2, 
+                state.handPointer.y - currentSize / 2, 
+                currentSize, 
+                currentSize);
         }
     }
 }
@@ -849,11 +874,13 @@ async function saveGameResult() {
     const finalTime = state.finalElapsed ?? 0;
     const score = state.score ?? 0;
     const totalDistance = Math.round(state.totalDistance);
+    const attempts = state.attempts;
+    const boundryHits = state.boundryHits;
 
     const consistency = await calculateConsistency(user.email);
     console.log("Calculated consistency:", consistency);
 
-    const { data: insertData, error: insertError } = await supabase
+    const { error: insertError } = await supabase
         .from("roadtracer_results")
         .insert([{
             player_email: user.email,
@@ -861,7 +888,9 @@ async function saveGameResult() {
             level: "BEGINNER",
             time_taken: finalTime,
             totaldistance: totalDistance,
-            consistency: consistency
+            consistency: consistency,
+            attempts: attempts,
+            boundryhits: boundryHits
         }])
         .select();
 
@@ -870,6 +899,8 @@ async function saveGameResult() {
     } else {
         console.log("Result saved successfully!");
         console.log(`Total distance: ${totalDistance}px`);
+        console.log(`Attempts: ${attempts}`);
+        console.log(`Boundary hits: ${boundryHits}`);
         console.log(`Consistency: ${consistency}`);
     }
 }
