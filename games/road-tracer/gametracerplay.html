@@ -82,7 +82,7 @@
 
 <!-- Load game script based on selected level -->
 <script>
-  const level = localStorage.getItem("orbCatcherLevel") || "beginner";
+  const level = localStorage.getItem("roadtracerLevel") || "beginner";
 
   // Update level text
   const levelBar = document.getElementById("level");
@@ -99,8 +99,8 @@
   }
 
   if (level === "trial") loadScript("/games/orb-catcher/gameorb_trial.js");
-  if (level === "beginner") loadScript("/games/road-tracer/gametracer.js");
-  if (level === "intermediate") loadScript("/games/orb-catcher/gameorb_inter.js");
+  if (level === "beginner") loadScript("/games/road-tracer/gametracer_inter.js");
+  if (level === "intermediate") loadScript("/games/road-tracer/gametracer_inter.js");
   if (level === "advanced") loadScript("/games/orb-catcher/gameorb_adv.js");
 </script>
 

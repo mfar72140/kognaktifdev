@@ -107,10 +107,16 @@ const backgroundCoverImg = new Image();
 backgroundCoverImg.src = "/assets/images/roadbackgcover.png";
 
 const backgroundGameImg = new Image();
-backgroundGameImg.src = "/assets/images/roadbackg.png";
+backgroundGameImg.src = "/assets/images/roadbackg2.png";
 
 const roadImg = new Image();
-roadImg.src = "/assets/images/road1.png";
+roadImg.src = "/assets/images/road2.png";
+
+const roadMaskImg = new Image();
+roadMaskImg.src = "/assets/images/road2mask.png";
+
+const roadConeImg = new Image();
+roadConeImg.src = "/assets/images/roadcone.png";
 
 const carImg = new Image();
 carImg.src = "/assets/images/car.png";
@@ -151,7 +157,7 @@ bgMusic.volume = 0.9;
 function preloadAssets() {
     const promises = [];
     const images = [
-        backgroundCoverImg, backgroundGameImg, roadImg, carImg,
+        backgroundCoverImg, backgroundGameImg, roadImg, roadMaskImg, roadConeImg, carImg,
         handImg, pinchImg, goArrowImg, stopImg, policeImg, medalImg
     ];
 
@@ -206,8 +212,8 @@ function initGame() {
 
     // Initialize car at left side, centered on road
     const carSize = 80;
-    state.carInitialX = 100;
-    state.carInitialY = canvas.height / 2;
+    state.carInitialX = 150;
+    state.carInitialY = canvas.height / 2 - 120;
 
     state.car = {
         x: state.carInitialX,
@@ -315,56 +321,49 @@ function runCountdownAndStart() {
 }
 
 /* =========================
-    ====== CAR LOGIC ========
+    ====== MASK DETECTION ===
     ========================= */
 
-function updateCar() {
-    if (!state.car) return;
-
-    // Check if car reached end (right side)
-    if (state.car.x >= canvas.width - 120 && !state.reachedEnd) {
-        state.reachedEnd = true;
-        state.showGoodText = true;
-        state.goodTextTime = Date.now();
-        state.runsCompleted++;
-        state.score++;
-        updateScore();
-
-        // NEW: Increment successful pinches when reaching finish line
-        state.successfulPinches++;
-        console.log(`Success! Total successful pinches: ${state.successfulPinches}`);
-
-        try { dingSound.currentTime = 0; dingSound.play(); } catch (e) { }
-
-        // Reset car after delay
-        setTimeout(() => {
-            resetCarToStart();
-            state.reachedEnd = false;
-            checkWinCondition();
-        }, 1000);
-    }
-
-    // Update glow based on position
-    updateCarGlow();
-}
-
-function resetCarToStart() {
-    if (state.car) {
-        state.car.x = state.carInitialX;
-        state.car.y = state.carInitialY;
-        state.car.controlled = false;
-        state.carOutsideRoad = false;
-    }
-}
-
-function updateCarGlow() {
-    if (!state.car) return;
-
-    const carCenterY = state.car.y;
+function getPixelColor(x, y) {
+    if (!roadMaskImg.complete) return null;
     
-    // Check if outside road
-    if (carCenterY < ROAD_TOP + 150 || carCenterY > ROAD_BOTTOM - 160) {
-        state.car.glowColor = "rgba(255, 0, 0, 0.8)"; // Red flash
+    // Create hidden canvas for mask
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = canvas.width;
+    tempCanvas.height = canvas.height;
+    const tempCtx = tempCanvas.getContext('2d');
+    
+    // Calculate road dimensions maintaining aspect ratio (increased by 40%)
+    const roadAspectRatio = roadMaskImg.width / roadMaskImg.height;
+    const roadWidth = ROAD_HEIGHT * roadAspectRatio * 1.4; 
+    const roadHeight = ROAD_HEIGHT * 1.3;
+    const roadX = (canvas.width - roadWidth) / 2;
+    const roadY = ROAD_TOP - (roadHeight - ROAD_HEIGHT) / 2;
+    
+    // Draw mask image at same position and size as road
+    tempCtx.drawImage(roadMaskImg, roadX, roadY, roadWidth, roadHeight);
+    
+    // Get pixel data
+    const pixel = tempCtx.getImageData(x, y, 1, 1).data;
+    
+    return {
+        r: pixel[0],
+        g: pixel[1],
+        b: pixel[2]
+    };
+}
+
+function checkCarPosition() {
+    if (!state.car || !roadMaskImg.complete) return;
+    
+    const carCenterX = Math.floor(state.car.x);
+    const carCenterY = Math.floor(state.car.y);
+    
+    const pixelColor = getPixelColor(carCenterX, carCenterY);
+    if (!pixelColor) return;
+    
+    // Check if pixel is black (outside road - boundary)
+    if (pixelColor.r < 30 && pixelColor.g < 30 && pixelColor.b < 50) {
         if (!state.carOutsideRoad) {
             state.carOutsideRoad = true;
             state.boundryHits++;
@@ -382,10 +381,34 @@ function updateCarGlow() {
                 resetCarToStart();
             }, 300);
         }
-    } else {
+        state.car.glowColor = "rgba(255, 0, 0, 0.8)"; // Red flash
+    }
+    // Check if pixel is red (finish line)
+    else if (pixelColor.r > 200 && pixelColor.g < 50 && pixelColor.b < 50 && !state.reachedEnd) {
+        state.reachedEnd = true;
+        state.showGoodText = true;
+        state.goodTextTime = Date.now();
+        state.runsCompleted++;
+        state.score++;
+        updateScore();
+
+        state.successfulPinches++;
+        console.log(`Success! Total successful pinches: ${state.successfulPinches}`);
+
+        try { dingSound.currentTime = 0; dingSound.play(); } catch (e) { }
+
+        // Reset car after delay
+        setTimeout(() => {
+            resetCarToStart();
+            state.reachedEnd = false;
+            checkWinCondition();
+        }, 1000);
+    }
+    // Check if pixel is white (on road - safe)
+    else if (pixelColor.r > 200 && pixelColor.g > 200 && pixelColor.b > 200) {
         state.carOutsideRoad = false;
         
-        // Calculate distance from road edges
+        // Calculate distance from road edges for glow effect
         const distFromTop = carCenterY - ROAD_TOP;
         const distFromBottom = ROAD_BOTTOM - carCenterY;
         const minDist = Math.min(distFromTop, distFromBottom);
@@ -396,6 +419,26 @@ function updateCarGlow() {
         } else {
             state.car.glowColor = "rgba(0, 255, 0, 0.4)"; // Green
         }
+    }
+}
+
+/* =========================
+    ====== CAR LOGIC ========
+    ========================= */
+
+function updateCar() {
+    if (!state.car) return;
+    
+    // Check car position against mask
+    checkCarPosition();
+}
+
+function resetCarToStart() {
+    if (state.car) {
+        state.car.x = state.carInitialX;
+        state.car.y = state.carInitialY;
+        state.car.controlled = false;
+        state.carOutsideRoad = false;
     }
 }
 
@@ -518,9 +561,23 @@ function drawScene() {
         ctx.drawImage(bgImg, 0, 0, canvas.width, canvas.height);
     }
 
-    // Draw road (centered, full width, increased size)
+    // Draw road (centered, maintain aspect ratio)
     if (roadImg.complete) {
-        ctx.drawImage(roadImg, 0, ROAD_TOP, canvas.width, ROAD_HEIGHT);
+        const roadAspectRatio = roadImg.width / roadImg.height;
+        const roadWidth = ROAD_HEIGHT * roadAspectRatio * 1.4; // Increased by 40%
+        const roadHeight = ROAD_HEIGHT * 1.3; // Increased by 30%
+        const roadX = (canvas.width - roadWidth) / 2;
+        const roadY = ROAD_TOP - (roadHeight - ROAD_HEIGHT) / 2; // Center vertically
+        ctx.drawImage(roadImg, roadX, roadY, roadWidth, roadHeight);
+    }
+
+
+    // Draw road cone at center
+    if (roadConeImg.complete) {
+        const coneSize = 80;
+        const coneX = canvas.width / 2 - coneSize / 2;
+        const coneY = canvas.height / 2 - coneSize / 2;
+        ctx.drawImage(roadConeImg, 20, coneY + 120, coneSize, coneSize);
     }
 
     // Draw icons
@@ -528,21 +585,20 @@ function drawScene() {
     
     // Left side: Police + Go arrow
     if (policeImg.complete) {
-        ctx.drawImage(policeImg, 20, canvas.height / 2 - 130, iconSize, iconSize);
+        ctx.drawImage(policeImg, 20, canvas.height / 2 - 200, iconSize, iconSize);
     }
     
-    // Right side: Stop (reduced by 20%)
+    // Left side: arrow (reduced by 20%)
     const go_arrowSize = iconSize * 0.8;
     if (goArrowImg.complete) {
-        ctx.drawImage(goArrowImg, 110, canvas.height / 2 - 125, go_arrowSize, go_arrowSize);
+        ctx.drawImage(goArrowImg, 30, canvas.height / 2 - 115, go_arrowSize, go_arrowSize);
     }
 
     // Right side: Stop (reduced by 20%)
     const stopSize = iconSize * 0.8;
     if (stopImg.complete) {
-        ctx.drawImage(stopImg, canvas.width - stopSize - 30, canvas.height / 2 - 125, stopSize, stopSize);
+        ctx.drawImage(stopImg, 190, canvas.height / 2, stopSize, stopSize);
     }
-
 
     // Draw car with glow
     if (state.car && carImg.complete) {
@@ -833,7 +889,7 @@ async function calculateConsistency(userEmail) {
             .from("roadtracer_results")
             .select("time_taken")
             .eq("player_email", userEmail)
-            .eq("level", "BEGINNER")
+            .eq("level", "INTERMEDIATE")
             .order("created_at", { ascending: false })
             .limit(5);
 
@@ -921,7 +977,7 @@ async function saveGameResult() {
         .insert([{
             player_email: user.email,
             score: score,
-            level: "BEGINNER",
+            level: "INTERMEDIATE",
             time_taken: finalTime,
             totaldistance: totalDistance,
             consistency: consistency,
