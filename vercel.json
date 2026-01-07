@@ -51,7 +51,17 @@
     {
       "source": "/games/orb-catcher/cover",
       "destination": "/games/orb-catcher/gameorbcover.html"
-    }   
+    },
+    {
+      "source": "/games/road-tracer/play",
+      "destination": "/games/road-tracer/gametracerplay.html"
+    },
+    {
+      "source": "/games/road-tracer/cover",
+      "destination": "/games/road-tracer/gametracercover.html"
+    }
+    
+
 
   ],
   "redirects": [
@@ -119,7 +129,18 @@
       "source": "/games/orb-catcher/gameorbcover.html",
       "destination": "/games/orb-catcher/cover",
       "permanent": true
+    },
+    {
+      "source": "/games/road-tracer/gametracerplay.html",
+      "destination": "/games/road-tracer/play",
+      "permanent": true
+    },
+    {
+      "source": "/games/road-tracer/gametracercover.html",
+      "destination": "/games/road-tracer/cover",
+      "permanent": true
     }
+
 
   ]
 }
