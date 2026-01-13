@@ -197,6 +197,14 @@ async function fetchLastSession(userEmail) {
     .limit(1)
     .maybeSingle();
 
+  const { data: roadTracer } = await supabase
+    .from('roadtracer_results')
+    .select('created_at')
+    .eq("player_email", userEmail)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
   // Determine last played
   let lastSession = null;
   let gameModule = '';
@@ -205,6 +213,7 @@ async function fetchLastSession(userEmail) {
   if (buzzTap) sessions.push({ date: new Date(buzzTap.created_at), name: 'Buzz Tap!' });
   if (shapeSense) sessions.push({ date: new Date(shapeSense.created_at), name: 'Shape Sense' });
   if (orbCatcher) sessions.push({ date: new Date(orbCatcher.created_at), name: 'Orb Catcher' });
+  if (roadTracer) sessions.push({ date: new Date(roadTracer.created_at), name: 'Road Tracer' });
 
   if (sessions.length > 0) {
     sessions.sort((a, b) => b.date - a.date);

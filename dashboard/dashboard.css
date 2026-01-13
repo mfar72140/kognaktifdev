@@ -151,7 +151,7 @@ body {
   width: 80px; 
   height: 80px; 
   border-radius: 50%; 
-  background: #ddd url('https://cdn-icons-png.flaticon.com/512/3135/3135715.png') center/cover no-repeat; 
+  background: #ffffff url('/assets/images/profile.png') center/cover no-repeat; 
 } 
 
 .welcome h2 { 
