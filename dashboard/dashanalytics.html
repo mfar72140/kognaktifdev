@@ -42,6 +42,7 @@
             <option value="buzz">Buzz Tap!</option>
             <option value="shape">Shape Sense</option>
             <option value="orb">Orb Catcher</option>
+            <option value="road">Road Tracer</option>
         </select>
     </div>
 
@@ -124,6 +125,12 @@
             <img src="/assets/images/precision.png" class="tab-icon">
             Grasp Stability
           </button>
+
+          <button id="tabTraceStability" class="tab-btn" data-chart="tracestability">
+            <img src="/assets/images/trace.png" class="tab-icon">
+            Trace Stability
+          </button>
+
         </div>
 
         <!-- Single Canvas -->
@@ -215,6 +222,7 @@
         <p><strong>Movement Stability:</strong> <span id="scMovementStabilityList">-</span></p>
         <p><strong>Pinch Accuracy:</strong> <span id="scPinchAccuracyList">-</span></p>
         <p><strong>Grasp Stability:</strong> <span id="scGraspStabilityList">-</span></p>
+        <p><strong>Trace Stability:</strong> <span id="scTraceStabilityList">-</span></p>
       </div>
 
       <button id="downloadScorePDF" class="download-btn">Download PDF</button>
@@ -253,6 +261,7 @@
         <p><strong>Movement Stability:</strong> <span id="pdfMovementStabilityList"></span></p>
         <p><strong>Pinch Accuracy:</strong> <span id="pdfPinchAccuracyList"></span></p>
         <p><strong>Grasp Stability:</strong> <span id="pdfGraspStabilityList"></span></p>
+        <p><strong>Trace Stability:</strong> <span id="pdfTraceStabilityList"></span></p>
     </div>
 
     <div class="footer">
