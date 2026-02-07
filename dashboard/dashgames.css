@@ -236,6 +236,7 @@ body {
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   transition: transform 0.2s ease-in-out;
+  background: #808080;
 }
 
 .game-card:hover {
@@ -257,7 +258,7 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0,0,0,0.5); /* semi-transparent overlay */
+  background: rgba(0,0,0,0.1); /* semi-transparent overlay */
   color: white;
   display: flex;
   flex-direction: column;
@@ -285,6 +286,10 @@ body {
   cursor: pointer;
   transition: 0.3s;
   margin-bottom: 10px;
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .play-btn:hover {
@@ -295,6 +300,11 @@ body {
   font-size: 14px;
   margin: 0;
   text-align: center;
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
 }
 
 /* =======================
