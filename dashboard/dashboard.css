@@ -293,6 +293,111 @@ body {
   gap: 5px;
 }
 
+/* Feedback Card - Alternative */
+.feedback-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 22px;
+  background: #faf7fc;
+  border-radius: 12px;
+  border: 1px solid #e6d8ee;
+  box-shadow: 0 4px 10px rgba(142, 36, 170, 0.08);
+}
+
+/* Title */
+.feedback-card h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #8e24aa;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Optional icon before title */
+.feedback-card h3::before {
+  content: "🗣";
+  font-size: 20px;
+}
+
+/* Form */
+.feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Info Item */
+.feedback-form .info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Labels */
+.feedback-form .info-item label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #666;
+}
+
+/* Inputs */
+.rating-select select,
+.feedback-form textarea {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  background: #ffffff;
+  transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.rating-select select:focus,
+.feedback-form textarea:focus {
+  outline: none;
+  border-color: #8e24aa;
+  box-shadow: 0 0 0 2px rgba(142, 36, 170, 0.15);
+}
+
+/* Textarea */
+.feedback-form textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+/* Submit Button */
+.submit-btn {
+  width: 100%;
+  padding: 12px;
+  margin-top: 6px;
+
+  background: linear-gradient(
+    to right,
+    #43a047,
+    #66bb6a
+  );
+  color: #ffffff;
+
+  border: none;
+  border-radius: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.submit-btn:hover {
+  box-shadow: 0 6px 14px rgba(67, 160, 71, 0.35);
+}
+
+.submit-btn:active {
+  box-shadow: 0 3px 8px rgba(67, 160, 71, 0.25);
+}
+
 
 /* =======================
    FOOTER

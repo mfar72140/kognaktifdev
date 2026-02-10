@@ -93,176 +93,250 @@
         <h3>Status</h3>
         <div class="status-details">
           <div class="info-item">
-            <label>Activity Level:</label>
-            <span id="activityLevel">-</span>
+        <label>Activity Level:</label>
+        <span id="activityLevel">-</span>
           </div>
           <div class="info-item">
-            <label>Progress:</label>
-            <span id="progressStatus">-</span>
+        <label>Progress:</label>
+        <span id="progressStatus">-</span>
           </div>
         </div>
       </div>
-    </div>
-  </main>
 
-  <!-- Footer -->
-  <section id="footer" class="footer-section">
-    <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
-    <div class="footer-links">
+      <!-- Feedback Card -->
+      <div class="profile-card feedback-card">
+        <h3>We value your feedback!</h3>
+        <div class="feedback-form" id="feedbackForm">
+          <div class="info-item">
+        <label>Rate your experience:</label>
+        <div class="rating-select">
+          <select id="feedbackRating">
+        <option value="">Select your rate 1-5</option>
+        <option value="1">1 - Poor</option>
+        <option value="2">2 - Fair</option>
+        <option value="3">3 - Good</option>
+        <option value="4">4 - Very Good</option>
+        <option value="5">5 - Excellent</option>
+          </select>
+        </div>
+          </div>
+          <div class="info-item">
+        
+        <textarea id="feedbackText" rows="4" placeholder="Write your feedback........."></textarea>
+          </div>
+          <button id="submitFeedback" class="submit-btn">Submit</button>
+        </div>
+        <div id="thankYouMessage" style="display:none; text-align:center; color:green; font-weight:bold;">
+          Thank you for your feedback!
+        </div>
+      </div>
+        </div>
+      </main>
+
+
+      <!-- Footer -->
+      <section id="footer" class="footer-section">
+        <div class="footer-text">© 2025 kognaktif.com — All Rights Reserved</div>
+        <div class="footer-links">
       <a href="#">Terms of Service</a>
       <a href="#">Privacy Policy</a>
-    </div>
-  </section>
+        </div>
+      </section>
 
 
-  <!-- Supabase Auth Script -->
-<script type="module">
-  import { supabase } from '/js/supabaseClient.js';
+      <!-- Supabase Auth Script -->
+    <script type="module">
+      import { supabase } from '/js/supabaseClient.js';
 
-async function checkAuth() {
-  const { data: { session } } = await supabase.auth.getSession();
+    async function checkAuth() {
+      const { data: { session } } = await supabase.auth.getSession();
 
-  if (!session) {
-    window.location.href = "/signin";
-    return;
-  }
+      if (!session) {
+        window.location.href = "/signin";
+        return;
+      }
 
-  const user = session.user;
-  const userEmail = user.email;
+      const user = session.user;
+      const userEmail = user.email;
 
-  // Fetch user profile
-  const { data: profile, error } = await supabase
-    .from('profiles')
-    .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
-    .eq('id', user.id)
-    .maybeSingle();  // prevents crash if no row
+      // Fetch user profile
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('firstname, cfirstname, clastname, birthday, healthcategory, cgender')
+        .eq('id', user.id)
+        .maybeSingle();  // prevents crash if no row
 
-  // Determine display name
-  let displayName = userEmail; // fallback
-  if (profile && profile.firstname && profile.firstname.trim() !== "") {
-    displayName = profile.firstname;
-  }
+      // Determine display name
+      let displayName = userEmail; // fallback
+      if (profile && profile.firstname && profile.firstname.trim() !== "") {
+        displayName = profile.firstname;
+      }
 
-  document.getElementById("userName").textContent = displayName;
-  document.getElementById("welcomeName").textContent = displayName;
+      document.getElementById("userName").textContent = displayName;
+      document.getElementById("welcomeName").textContent = displayName;
 
-  // Update child information (safe)
-  if (profile) {
-    const childFullName = `${profile.cfirstname || ''} ${profile.clastname || ''}`.trim();
-    document.getElementById("childName").textContent = childFullName || 'Not available';
+      // Update child information (safe)
+      if (profile) {
+        const childFullName = `${profile.cfirstname || ''} ${profile.clastname || ''}`.trim();
+        document.getElementById("childName").textContent = childFullName || 'Not available';
 
-    if (profile.birthday) {
+        if (profile.birthday) {
       const birthDate = new Date(profile.birthday);
       const age = Math.floor((new Date() - birthDate) / (365.25 * 24 * 60 * 60 * 1000));
       document.getElementById("childAge").textContent = age + ' years old';
-    } else {
+        } else {
       document.getElementById("childAge").textContent = 'Not available';
+        }
+
+        document.getElementById("childGender").textContent = profile.cgender || 'Not available';
+        document.getElementById("childHealthCategory").textContent = profile.healthcategory || 'Not available';
+      } else {
+        document.getElementById("childName").textContent = 'Not available';
+        document.getElementById("childAge").textContent = 'Not available';
+        document.getElementById("childGender").textContent = 'Not available';
+        document.getElementById("childHealthCategory").textContent = 'Not available';
+      }
+
+      // Fetch game results
+      await fetchLastSession(userEmail);
+      
+      // Setup feedback submission
+      setupFeedbackSubmission(userEmail);
     }
 
-    document.getElementById("childGender").textContent = profile.cgender || 'Not available';
-    document.getElementById("childHealthCategory").textContent = profile.healthcategory || 'Not available';
-  } else {
-    document.getElementById("childName").textContent = 'Not available';
-    document.getElementById("childAge").textContent = 'Not available';
-    document.getElementById("childGender").textContent = 'Not available';
-    document.getElementById("childHealthCategory").textContent = 'Not available';
-  }
+    async function fetchLastSession(userEmail) {
+      const { data: buzzTap } = await supabase
+        .from('buzztap_results')
+        .select('created_at')
+        .eq("player_email", userEmail)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  // Fetch game results
-  await fetchLastSession(userEmail);
-}
+      const { data: shapeSense } = await supabase
+        .from('shapesense_results')
+        .select('created_at')
+        .eq("player_email", userEmail)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-async function fetchLastSession(userEmail) {
-  const { data: buzzTap } = await supabase
-    .from('buzztap_results')
-    .select('created_at')
-    .eq("player_email", userEmail)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+      const { data: orbCatcher } = await supabase
+        .from('orbcatcher_results')
+        .select('created_at')
+        .eq("player_email", userEmail)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  const { data: shapeSense } = await supabase
-    .from('shapesense_results')
-    .select('created_at')
-    .eq("player_email", userEmail)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+      const { data: roadTracer } = await supabase
+        .from('roadtracer_results')
+        .select('created_at')
+        .eq("player_email", userEmail)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-  const { data: orbCatcher } = await supabase
-    .from('orbcatcher_results')
-    .select('created_at')
-    .eq("player_email", userEmail)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+      // Determine last played
+      let lastSession = null;
+      let gameModule = '';
 
-  const { data: roadTracer } = await supabase
-    .from('roadtracer_results')
-    .select('created_at')
-    .eq("player_email", userEmail)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+      const sessions = [];
+      if (buzzTap) sessions.push({ date: new Date(buzzTap.created_at), name: 'Buzz Tap!' });
+      if (shapeSense) sessions.push({ date: new Date(shapeSense.created_at), name: 'Shape Sense' });
+      if (orbCatcher) sessions.push({ date: new Date(orbCatcher.created_at), name: 'Orb Catcher' });
+      if (roadTracer) sessions.push({ date: new Date(roadTracer.created_at), name: 'Road Tracer' });
 
-  // Determine last played
-  let lastSession = null;
-  let gameModule = '';
+      if (sessions.length > 0) {
+        sessions.sort((a, b) => b.date - a.date);
+        lastSession = sessions[0].date;
+        gameModule = sessions[0].name;
+      }
 
-  const sessions = [];
-  if (buzzTap) sessions.push({ date: new Date(buzzTap.created_at), name: 'Buzz Tap!' });
-  if (shapeSense) sessions.push({ date: new Date(shapeSense.created_at), name: 'Shape Sense' });
-  if (orbCatcher) sessions.push({ date: new Date(orbCatcher.created_at), name: 'Orb Catcher' });
-  if (roadTracer) sessions.push({ date: new Date(roadTracer.created_at), name: 'Road Tracer' });
-
-  if (sessions.length > 0) {
-    sessions.sort((a, b) => b.date - a.date);
-    lastSession = sessions[0].date;
-    gameModule = sessions[0].name;
-  }
-
-  // Update UI
-  if (lastSession) {
-    document.getElementById("lastSessionDate").textContent =
+      // Update UI
+      if (lastSession) {
+        document.getElementById("lastSessionDate").textContent =
       lastSession.toLocaleDateString('en-GB');
-    document.getElementById("lastSessionTime").textContent =
+        document.getElementById("lastSessionTime").textContent =
       lastSession.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: true });
-    document.getElementById("lastSessionGameModule").textContent = gameModule;
-  } else {
-    document.getElementById("lastSessionDate").textContent = 'No session yet';
-    document.getElementById("lastSessionTime").textContent = '-';
-    document.getElementById("lastSessionGameModule").textContent = '-';
-  }
-}
+        document.getElementById("lastSessionGameModule").textContent = gameModule;
+      } else {
+        document.getElementById("lastSessionDate").textContent = 'No session yet';
+        document.getElementById("lastSessionTime").textContent = '-';
+        document.getElementById("lastSessionGameModule").textContent = '-';
+      }
+    }
 
-checkAuth();
+    function setupFeedbackSubmission(userEmail) {
+      const submitBtn = document.getElementById("submitFeedback");
+      const ratingSelect = document.getElementById("feedbackRating");
+      const feedbackText = document.getElementById("feedbackText");
+      const feedbackForm = document.getElementById("feedbackForm");
+      const thankYouMsg = document.getElementById("thankYouMessage");
 
-// Logout
-async function logout() {
-  await supabase.auth.signOut();
+      submitBtn.addEventListener("click", async () => {
+        const rating = ratingSelect.value;
+        const comment = feedbackText.value.trim();
 
-  // ✅ REMOVE CROSS-SUBDOMAIN COOKIE
-  document.cookie = "kognaktif_logged_in=; domain=.kognaktif.com; path=/; max-age=0";
-  
-  window.location.href = "https://kognaktif.com";
-}
+        if (!rating) {
+      alert("Please select a rating");
+      return;
+        }
 
-document.getElementById("logout-btn").addEventListener("click", logout);
+        if (!comment) {
+      alert("Please write a comment");
+      return;
+        }
 
-// User menu dropdown
-const userMenu = document.querySelector(".user-menu");
-const userName = document.getElementById("userName");
+        // Insert feedback into Supabase
+        const { error } = await supabase
+      .from("user_feedback")
+      .insert([
+        {
+          player_email: userEmail,
+          rating: parseInt(rating),
+          comment: comment
+        }
+      ]);
 
-userName.addEventListener("click", () => {
-  userMenu.classList.toggle("active");
-});
+        if (error) {
+      alert("Error submitting feedback: " + error.message);
+      return;
+        }
 
-document.addEventListener("click", (e) => {
-  if (!userMenu.contains(e.target) && e.target !== userName) {
-    userMenu.classList.remove("active");
-  }
-});
+        // Show thank you message
+        feedbackForm.style.display = "none";
+        thankYouMsg.style.display = "block";
+      });
+    }
 
+    checkAuth();
+
+    // Logout
+    async function logout() {
+      await supabase.auth.signOut();
+
+      // ✅ REMOVE CROSS-SUBDOMAIN COOKIE
+      document.cookie = "kognaktif_logged_in=; domain=.kognaktif.com; path=/; max-age=0";
+      
+      window.location.href = "https://kognaktif.com";
+    }
+
+    document.getElementById("logout-btn").addEventListener("click", logout);
+
+    // User menu dropdown
+    const userMenu = document.querySelector(".user-menu");
+    const userName = document.getElementById("userName");
+
+    userName.addEventListener("click", () => {
+      userMenu.classList.toggle("active");
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!userMenu.contains(e.target) && e.target !== userName) {
+        userMenu.classList.remove("active");
+      }
+    });
 
 </script>
 
