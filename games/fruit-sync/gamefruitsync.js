@@ -37,6 +37,12 @@ const state = {
     lastLeftHandPos: null,
     lastRightHandPos: null,
 
+    // Grab tracking
+    leftHandGrabCount: 0,
+    rightHandGrabCount: 0,
+    lastLeftGraspState: false,
+    lastRightGraspState: false,
+
     // Cards
     cards: [],
     leftTouchingCard: null,
@@ -121,11 +127,11 @@ medalImg.src = "/assets/images/medal.png";
 
 // sound assets
 const matchSound = new Audio("/assets/sounds/dingeffect.wav");
-const countdownSound = new Audio("/assets/sounds/countdown2.wav");
+const countdownSound = new Audio("/assets/sounds/countdown.wav");
 const endApplause = new Audio("/assets/sounds/endapplause.wav");
 endApplause.volume = 0.7;
 
-const bgMusic = new Audio("/assets/sounds/04Backmusic28s.mp3");
+const bgMusic = new Audio("/assets/sounds/05Backmusic59s.mp3");
 bgMusic.loop = true;
 bgMusic.volume = 0.9;
 
@@ -175,6 +181,11 @@ function initGame() {
     state.rightHandDistance = 0;
     state.lastLeftHandPos = null;
     state.lastRightHandPos = null;
+
+    state.leftHandGrabCount = 0;
+    state.rightHandGrabCount = 0;
+    state.lastLeftGraspState = false;
+    state.lastRightGraspState = false;
 
     state.lastFrameTime = 0;
     state.deltaTime = 0;
@@ -314,7 +325,7 @@ function runCountdownAndStart() {
                 gameLoop();
             }, 1000);
         } else {
-            try { countdownSound.currentTime = 6; countdownSound.play(); } catch (e) { }
+            try { countdownSound.currentTime = 2; countdownSound.play(); } catch (e) { }
         }
 
         state.countdown--;
@@ -444,15 +455,17 @@ async function updateHandDetection() {
                     }
                     state.lastLeftHandPos = { x: canvasX, y: canvasY };
 
-                    // Handle grasp
-                    if (isGrasping && !state.leftGrasping && !state.matchInProgress) {
+                    // Count grab attempts (transition from not grasping to grasping)
+                    if (isGrasping && !state.lastLeftGraspState) {
                         const card = checkCardTouch(canvasX, canvasY);
                         if (card && !card.matched) {
+                            state.leftHandGrabCount++;
                             state.leftSelectedCard = card;
                         }
                     } else if (!isGrasping) {
                         state.leftSelectedCard = null;
                     }
+                    state.lastLeftGraspState = isGrasping;
                     state.leftGrasping = isGrasping;
 
                 } else if (handedness === "Right") {
@@ -468,15 +481,17 @@ async function updateHandDetection() {
                     }
                     state.lastRightHandPos = { x: canvasX, y: canvasY };
 
-                    // Handle grasp
-                    if (isGrasping && !state.rightGrasping && !state.matchInProgress) {
+                    // Count grab attempts (transition from not grasping to grasping)
+                    if (isGrasping && !state.lastRightGraspState) {
                         const card = checkCardTouch(canvasX, canvasY);
                         if (card && !card.matched) {
+                            state.rightHandGrabCount++;
                             state.rightSelectedCard = card;
                         }
                     } else if (!isGrasping) {
                         state.rightSelectedCard = null;
                     }
+                    state.lastRightGraspState = isGrasping;
                     state.rightGrasping = isGrasping;
                 }
             });
@@ -836,6 +851,26 @@ async function calculateConsistency(userEmail) {
 }
 
 /* =========================
+    ===== GRASP PRECISION ====
+    ========================= */
+
+function calculateGraspPrecision() {
+    const leftGrabs = state.leftHandGrabCount ?? 0;
+    const rightGrabs = state.rightHandGrabCount ?? 0;
+    
+    // Avoid division by zero
+    if (rightGrabs === 0) {
+        return 0;
+    }
+    
+    const graspRatio = leftGrabs + rightGrabs;
+    const graspPrecision = (6 / graspRatio) * 100;
+    
+    // Clamp between 0 and 100
+    return Math.max(0, Math.min(100, Math.round(graspPrecision * 100) / 100));
+}
+
+/* =========================
     ======= SAVE RESULT =====
     ========================= */
 
@@ -855,10 +890,14 @@ async function saveGameResult() {
     const totalDistance = Math.round(state.totalDistance);
     const leftHandDistance = Math.round(state.leftHandDistance);
     const rightHandDistance = Math.round(state.rightHandDistance);
+    const leftHandGrabCount = state.leftHandGrabCount ?? 0;
+    const rightHandGrabCount = state.rightHandGrabCount ?? 0;
 
     const consistency = await calculateConsistency(user.email);
+    const graspPrecision = calculateGraspPrecision();
 
     console.log("Calculated consistency:", consistency);
+    console.log("Calculated grasp precision:", graspPrecision);
 
     const { error: insertError } = await supabase
         .from("fruitsync_results")
@@ -870,7 +909,10 @@ async function saveGameResult() {
             totaldistance: totalDistance,
             r_hand_distance: rightHandDistance,
             l_hand_distance: leftHandDistance,
-            consistency: consistency
+            l_hand_grab: leftHandGrabCount,
+            r_hand_grab: rightHandGrabCount,
+            consistency: consistency,
+            grasp_precision: graspPrecision
         }])
         .select();
 
@@ -881,7 +923,10 @@ async function saveGameResult() {
         console.log(`Total distance: ${totalDistance}px`);
         console.log(`Left hand distance: ${leftHandDistance}px`);
         console.log(`Right hand distance: ${rightHandDistance}px`);
+        console.log(`Left hand grab attempts: ${leftHandGrabCount}`);
+        console.log(`Right hand grab attempts: ${rightHandGrabCount}`);
         console.log(`Consistency: ${consistency}`);
+        console.log(`Grasp Precision: ${graspPrecision}`);
     }
 }
 
