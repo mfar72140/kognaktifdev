@@ -81,7 +81,7 @@
 
 <!-- Load game script based on selected level -->
 <script>
-  const level = localStorage.getItem("roadtracerLevel") || "beginner";
+  const level = localStorage.getItem("fruitsyncLevel") || "beginner";
 
   // Update level text
   const levelBar = document.getElementById("level");
@@ -97,10 +97,10 @@
     document.body.appendChild(s);
   }
 
-  if (level === "trial") loadScript("/games/road-tracer/gametracer_trial.js");
-  if (level === "beginner") loadScript("/games/fruit-sync/gamefruitsync.js");
-  if (level === "intermediate") loadScript("/games/road-tracer/gametracer_inter.js");
-  if (level === "advanced") loadScript("/games/road-tracer/gametracer_adv.js");
+  if (level === "trial") loadScript("/games/fruit-sync/gamefruitsync_trial.js");
+  if (level === "beginner") loadScript("/games/fruit-sync/gamefruitsync_inter.js");
+  if (level === "intermediate") loadScript("/games/fruit-sync/gamefruitsync_inter1.js");
+  if (level === "advanced") loadScript("/games/fruit-sync/gamefruitsync_adv.js");
 </script>
  
 
@@ -155,7 +155,7 @@
 
     // Exit confirmed
     confirmExitBtn.addEventListener("click", () => {
-      window.location.href = "/games/road-tracer/cover";
+      window.location.href = "/games/fruit-sync/cover";
     });
 
     // Cancel exit
