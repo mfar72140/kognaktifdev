@@ -43,6 +43,7 @@
             <option value="shape">Shape Sense</option>
             <option value="orb">Orb Catcher</option>
             <option value="road">Road Tracer</option>
+            <option value="fruit">Fruit Sync</option>
         </select>
     </div>
 
@@ -131,6 +132,11 @@
             Trace Stability
           </button>
 
+          <button id="tabGraspPrecision" class="tab-btn" data-chart="graspprecision">
+             <img src="/assets/images/precision.png" class="tab-icon">
+             Grasp Precision
+          </button>
+
         </div>
 
         <!-- Single Canvas -->
@@ -181,6 +187,9 @@
         <div class="info-item">
         <strong>Trace Stability:</strong> How well your child can keep the car inside the road while moving. Higher trace stability means better control, focus, and ability to follow the path without touching the edges.
         </div>
+        <div class="info-item">
+        <strong>Grasp Precision:</strong> Reflects how steadily and accurately your child uses both hands to complete the task. Higher values suggest stronger motor control and coordination.
+        </div>
       </div>
       </div>
     </section>
@@ -225,6 +234,7 @@
         <p><strong>Pinch Accuracy:</strong> <span id="scPinchAccuracyList">-</span></p>
         <p><strong>Grasp Stability:</strong> <span id="scGraspStabilityList">-</span></p>
         <p><strong>Trace Stability:</strong> <span id="scTraceStabilityList">-</span></p>
+        <p><strong>Grasp Precision:</strong> <span id="scGraspPrecisionList">-</span></p>
       </div>
 
       <button id="downloadScorePDF" class="download-btn">Download PDF</button>
@@ -264,6 +274,7 @@
         <p><strong>Pinch Accuracy:</strong> <span id="pdfPinchAccuracyList"></span></p>
         <p><strong>Grasp Stability:</strong> <span id="pdfGraspStabilityList"></span></p>
         <p><strong>Trace Stability:</strong> <span id="pdfTraceStabilityList"></span></p>
+        <p><strong>Grasp Precision:</strong> <span id="pdfGraspPrecisionList"></span></p>
     </div>
 
     <div class="footer">
