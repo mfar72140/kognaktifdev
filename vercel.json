@@ -59,6 +59,15 @@
     {
       "source": "/games/road-tracer/cover",
       "destination": "/games/road-tracer/gametracercover.html"
+    },
+
+    {
+      "source": "/games/fruit-sync/play",
+      "destination": "/games/fruit-sync/gamefruitsyncplay.html"
+    },
+    {
+      "source": "/games/fruit-sync/cover",
+      "destination": "/games/fruit-sync/gamefruitsynccover.html"
     }
     
 
@@ -139,7 +148,20 @@
       "source": "/games/road-tracer/gametracercover.html",
       "destination": "/games/road-tracer/cover",
       "permanent": true
+    },
+
+   {
+      "source": "/games/fruit-sync/gamefruitsyncplay.html",
+      "destination": "/games/fruit-sync/play",
+      "permanent": true
+    },
+
+    {
+      "source": "/games/fruit-sync/gamefruitsynccover.html",
+      "destination": "/games/fruit-sync/cover",
+      "permanent": true
     }
+
 
 
   ]
