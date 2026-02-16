@@ -380,63 +380,66 @@ body {
 /* =====================
   Consistency Gauge
 ===================== */
-#consistencyGauge {
-  width: 100%;       /* full width of container */
-  height: 120px;      /* reduce height */
-  display: block;
-  margin: 0 auto;
-  padding-bottom: 10px;
+/* =====================
+   Consistency Gauge - Modern Design
+===================== */
+
+.gauge-card {
+  background: linear-gradient(145deg, #ffffff, #fafafa);
+  border-radius: 18px;
+  padding: 25px 30px;
+  box-shadow: 0 10px 25px rgba(94, 53, 177, 0.08);
+  width: 850px;
+  margin: 30px auto;
+  transition: all 0.3s ease;
+}
+
+.gauge-card:hover {
+  box-shadow: 0 14px 32px rgba(94, 53, 177, 0.15);
+}
+
+.gauge-card h3 {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #5e35b1;
+  letter-spacing: 0.5px;
 }
 
 .gauge-wrapper {
   display: flex;
   align-items: center;
-  justify-content: space-between; /* spread gauge and legend */
-  padding: 10px 20px;             /* add breathing space inside */
-  gap: 20px;
+  justify-content: center;
+  gap: 40px;
 }
 
-.gauge-wrapper canvas {
-  flex: 1 1 60%;    /* gauge takes about 70% */
-  max-width: 600px; /* limit gauge width */
-  height: 120px;    /* fixed height */
+#consistencyGauge {
+  width: 100%;
+  max-width: 450px;
+  height: 160px;
 }
 
 .gauge-legend {
-  flex: 0 0 120px; /* fixed width so it doesn't overflow */
   font-family: 'Poppins', sans-serif;
   font-size: 14px;
-  color: #333;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .legend-box {
   display: inline-block;
   width: 14px;
   height: 14px;
-  margin-right: 6px;
-  border-radius: 2px;
+  margin-right: 8px;
+  border-radius: 4px;
 }
 
-.legend-box.green { background: #4CAF50; }
-.legend-box.yellow { background: #FFEB3B; }
-.legend-box.red { background: #F44336; }
+.legend-box.strong { background: #43a047; }
+.legend-box.developing { background: #fbc02d; }
+.legend-box.support { background: #e53935; }
 
-.gauge-card {
-  background: white;
-  border-radius: 12px;
-  padding: 15px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  transition: transform 0.2s ease;
-  width: 950px;          /* control chart width */
-  margin: 20px auto 0;   /* center + spacing top */
-}
-
-.gauge-card:hover {
-  transform: translateY(-3px);
-}
 
 /* =====================
   Info Card (Progress Guide) - Compact Design

@@ -101,34 +101,52 @@ export function initConsistencyGauge(value) {
 
   // Decide gauge color
   let color;
-  if (value >= 70) color = "#4CAF50";      // green
-  else if (value >= 40) color = "#FFEB3B"; // yellow
-  else color = "#F44336";                  // red
+  if (value >= 75) color = "#43a047";       // strong
+  else if (value >= 50) color = "#fbc02d";  // developing
+  else color = "#e53935";                   // needs support
+
 
   // Center text plugin
   const centerTextPlugin = {
     id: "centerText",
     afterDraw(chart) {
-      const { ctx, chartArea: { width, height } } = chart;
+      const { ctx, chartArea } = chart;
+      const centerX = chartArea.left + (chartArea.right - chartArea.left) / 2;
+      const centerY = chartArea.top + (chartArea.bottom - chartArea.top) / 1.3;
+
       ctx.save();
-      ctx.font = "bold 16px Poppins";
+
+      ctx.font = "bold 22px Poppins";
       ctx.fillStyle = "#333";
       ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(value.toFixed(1) + "%", width / 2, height * 0.75);
+      ctx.fillText(value.toFixed(0) + "%", centerX, centerY);
+
+      ctx.font = "12px Poppins";
+      ctx.fillStyle = "#777";
+      ctx.fillText("Consistency Score", centerX, centerY + 20);
+
       ctx.restore();
     }
   };
+
 
   window.consistencyGaugeChart = new Chart(ctx, {
     type: "doughnut",
     data: {
       labels: ["Consistency", "Remaining"],
       datasets: [{
-        data: [value, 100 - value],
-        backgroundColor: [color, "#e0e0e0"],
-        borderWidth: 0
+        data: [
+          value,                 // filled portion
+          100 - value            // empty
+        ],
+        backgroundColor: [
+          color,
+          "#eeeeee"
+        ],
+        borderWidth: 0,
+        borderRadius: 8
       }]
+
     },
     options: {
       responsive: true,
