@@ -33,6 +33,7 @@ const scDistanceList = document.getElementById("scDistanceList");
 const scMovementStabilityList = document.getElementById("scMovementStabilityList");
 const scPinchAccuracyList = document.getElementById("scPinchAccuracyList");
 const scGraspStabilityList = document.getElementById("scGraspStabilityList");
+const scGraspPrecisionList = document.getElementById("scGraspPrecisionList");
 const scTraceStabilityList = document.getElementById("scTraceStabilityList");
 
 // Printable/PDF fields
@@ -52,6 +53,7 @@ const pdfDistanceList = document.getElementById("pdfDistanceList");
 const pdfMovementStabilityList = document.getElementById("pdfMovementStabilityList");
 const pdfPinchAccuracyList = document.getElementById("pdfPinchAccuracyList");
 const pdfGraspStabilityList = document.getElementById("pdfGraspStabilityList");
+const pdfGraspPrecisionList = document.getElementById("pdfGraspPrecisionList");
 const pdfTraceStabilityList = document.getElementById("pdfTraceStabilityList");
 
 // Download button
@@ -143,7 +145,7 @@ async function getGameStatsByDate() {
 
     if (!selectedDate) {
         return {
-            gameName: game === "buzz" ? "Buzz Tap!" : game === "shape" ? "Shape Sense" : game === "orb" ? "Orb Catcher" : "Road Tracer",
+            gameName: getGameTitle(game),
             gameLevel: levelSelect.value ? levelSelect.value.toUpperCase() : levelRaw,
             date: "-",
             bestTime: "-",
@@ -154,6 +156,7 @@ async function getGameStatsByDate() {
             movementStabilityList: "-",
             pinchAccuracyList: "-",
             graspStabilityList: "-",
+            graspPrecisionList: "-",
             traceStabilityList: "-"
         };
     }
@@ -183,6 +186,9 @@ async function getGameStatsByDate() {
     } else if (game === "road") {
         table = "roadtracer_results";
         gameTitle = "Road Tracer";
+    } else if (game === "fruit") {
+        table = "fruitsync_results";
+        gameTitle = "Fruit Sync";
     }
 
     // Local day range (timezone-safe)
@@ -221,6 +227,7 @@ async function getGameStatsByDate() {
             movementStabilityList: "-",
             pinchAccuracyList: "-",
             graspStabilityList: "-",
+            graspPrecisionList: "-",
             traceStabilityList: "-"
         };
     }
@@ -234,9 +241,9 @@ async function getGameStatsByDate() {
     const timeList = data?.map(r => (typeof r.time_taken === "number" ? r.time_taken.toFixed(1) + "s" : null))
                        .filter(v => v !== null) || [];
 
-    // Distance list (for Buzz Tap, Shape Sense, Orb Catcher, and Road Tracer)
+    // Distance list (for Buzz Tap, Shape Sense, Orb Catcher, Road Tracer, and Fruit Sync)
     let distanceList = "-";
-    if (game === "buzz" || game === "shape" || game === "orb" || game === "road") {
+    if (game === "buzz" || game === "shape" || game === "orb" || game === "road" || game === "fruit") {
         const dist = data?.map(r => (r.totaldistance != null ? r.totaldistance.toFixed(1) + "px" : null))
                           .filter(v => v !== null) || [];
         distanceList = dist.length > 0 ? dist.join(", ") : "-";
@@ -252,6 +259,10 @@ async function getGameStatsByDate() {
 
     // Grasp Stability (graspstability) - for Orb Catcher
     const graspStabilityList = data?.map(r => (r.graspstability != null ? r.graspstability.toFixed(1) + "%" : null))
+                                    .filter(v => v !== null) || [];
+ 
+    // Grasp Precision (graspprecision) - for Fruit Sync
+    const graspPrecisionList = data?.map(r => (r.grasp_precision != null ? r.grasp_precision.toFixed(1) + "%" : null))
                                     .filter(v => v !== null) || [];
 
     // Trace Stability (tracestability) - for Road Tracer
@@ -270,11 +281,27 @@ async function getGameStatsByDate() {
         movementStabilityList: movementStabilityList.length > 0 ? movementStabilityList.join(", ") : "-",
         pinchAccuracyList: pinchAccuracyList.length > 0 ? pinchAccuracyList.join(", ") : "-",
         graspStabilityList: graspStabilityList.length > 0 ? graspStabilityList.join(", ") : "-",
+        graspPrecisionList: graspPrecisionList.length > 0 ? graspPrecisionList.join(", ") : "-",
         traceStabilityList: traceStabilityList.length > 0 ? traceStabilityList.join(", ") : "-"
     };
 
     cache[cacheKey] = result;
     return result;
+}
+
+
+// ==========================================================
+// FUNCTION: Get Game Title
+// ==========================================================
+function getGameTitle(game) {
+    const titles = {
+        buzz: "Buzz Tap!",
+        shape: "Shape Sense",
+        orb: "Orb Catcher",
+        road: "Road Tracer",
+        fruit: "Fruit Sync"
+    };
+    return titles[game] || "Unknown Game";
 }
 
 
@@ -286,22 +313,26 @@ function updateFieldVisibility(game) {
     const scMovementStabilityRow = scMovementStabilityList?.closest('p');
     const scPinchAccuracyRow = scPinchAccuracyList?.closest('p');
     const scGraspStabilityRow = scGraspStabilityList?.closest('p');
+    const scGraspPrecisionRow = scGraspPrecisionList?.closest('p');
     const scTraceStabilityRow = scTraceStabilityList?.closest('p');
 
     // PDF elements
     const pdfMovementStabilityRow = pdfMovementStabilityList?.closest('p');
     const pdfPinchAccuracyRow = pdfPinchAccuracyList?.closest('p');
     const pdfGraspStabilityRow = pdfGraspStabilityList?.closest('p');
+    const pdfGraspPrecisionRow = pdfGraspPrecisionList?.closest('p');
     const pdfTraceStabilityRow = pdfTraceStabilityList?.closest('p');
 
     // Hide all first
     if (scMovementStabilityRow) scMovementStabilityRow.style.display = 'none';
     if (scPinchAccuracyRow) scPinchAccuracyRow.style.display = 'none';
     if (scGraspStabilityRow) scGraspStabilityRow.style.display = 'none';
+    if (scGraspPrecisionRow) scGraspPrecisionRow.style.display = 'none';
     if (scTraceStabilityRow) scTraceStabilityRow.style.display = 'none';
     if (pdfMovementStabilityRow) pdfMovementStabilityRow.style.display = 'none';
     if (pdfPinchAccuracyRow) pdfPinchAccuracyRow.style.display = 'none';
     if (pdfGraspStabilityRow) pdfGraspStabilityRow.style.display = 'none';
+    if (pdfGraspPrecisionRow) pdfGraspPrecisionRow.style.display = 'none';
     if (pdfTraceStabilityRow) pdfTraceStabilityRow.style.display = 'none';
 
     // Show relevant field based on game
@@ -317,6 +348,9 @@ function updateFieldVisibility(game) {
     } else if (game === "road") {
         if (scTraceStabilityRow) scTraceStabilityRow.style.display = 'block';
         if (pdfTraceStabilityRow) pdfTraceStabilityRow.style.display = 'block';
+    } else if (game === "fruit") {
+        if (scGraspPrecisionRow) scGraspPrecisionRow.style.display = 'block';
+        if (pdfGraspPrecisionRow) pdfGraspPrecisionRow.style.display = 'block';
     }
 }
 
@@ -345,6 +379,7 @@ scoreCardBtn.addEventListener("click", async () => {
     scMovementStabilityList.textContent = result.movementStabilityList;
     scPinchAccuracyList.textContent = result.pinchAccuracyList;
     scGraspStabilityList.textContent = result.graspStabilityList;
+    scGraspPrecisionList.textContent = result.graspPrecisionList;
     scTraceStabilityList.textContent = result.traceStabilityList;
 
     // Update visibility based on game
@@ -377,6 +412,7 @@ async function updateScoreCard() {
     scMovementStabilityList.textContent = result.movementStabilityList;
     scPinchAccuracyList.textContent = result.pinchAccuracyList;
     scGraspStabilityList.textContent = result.graspStabilityList;
+    scGraspPrecisionList.textContent = result.graspPrecisionList;
     scTraceStabilityList.textContent = result.traceStabilityList;
 
     // Update visibility based on game
@@ -416,6 +452,7 @@ downloadBtn.addEventListener("click", async () => {
     pdfMovementStabilityList.textContent = scMovementStabilityList.textContent;
     pdfPinchAccuracyList.textContent = scPinchAccuracyList.textContent;
     pdfGraspStabilityList.textContent = scGraspStabilityList.textContent;
+    pdfGraspPrecisionList.textContent = scGraspPrecisionList.textContent;
     pdfTraceStabilityList.textContent = scTraceStabilityList.textContent;
 
     const element = document.getElementById("scorecardPrint");
