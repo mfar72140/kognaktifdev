@@ -228,17 +228,21 @@ body {
 .stats {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 20px;
+  gap: 15px;
   margin-bottom: 25px;
   max-width: 1000px;
   margin-left: auto;
   margin-right: auto;
 }
 
+/* =========================
+   Stats Card 1
+========================= */
+
 .stats-card {
   background: white;
   border-radius: 12px;
-  padding: 20px 25px;
+  padding: 20px 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.08);
   text-align: center;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -264,25 +268,62 @@ body {
   margin: 0;
 }
 
-.summary-card {
-  background: white;
-  border-radius: 12px;
+/* =========================
+   Stats Card 2 
+========================= */
+
+.stats-card-2 {
+  background: linear-gradient(135deg, #f3e5f5, #ede7f6);
   padding: 20px;
-  margin-top: 30px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-  overflow-x: auto;
-  max-width: 900px;
-  margin-left: auto;
-  margin-right: auto;
+  border-radius: 18px;
+  box-shadow: 0 8px 20px rgba(142, 36, 170, 0.08);
 }
 
-.summary-card h3 {
-  font-size: 16px;
-  margin: 0 0 15px 0;
-  color: #8e24aa;
-  text-align: left;
-  font-weight: 600;
+.stats-card-2 .stats-card {
+  background: white;
+  border: 2px solid rgba(142, 36, 170, 0.08);
+  border-radius: 14px;
+  padding: 22px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
+
+/* Soft top accent line */
+.stats-card-2 .stats-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 4px;
+  width: 100%;
+  background: linear-gradient(90deg, #8e24aa, #5e35b1);
+}
+
+/* Hover effect */
+.stats-card-2 .stats-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 10px 22px rgba(94, 53, 177, 0.18);
+  border-color: rgba(94, 53, 177, 0.25);
+}
+
+/* Title style */
+.stats-card-2 .stats-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #5e35b1;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+
+/* Value style */
+.stats-card-2 .stats-card p {
+  font-size: 24px;
+  font-weight: 700;
+  color: #4a148c;
+}
+
 
 /* =====================
    CHARTS
@@ -389,7 +430,7 @@ body {
   border-radius: 18px;
   padding: 25px 30px;
   box-shadow: 0 10px 25px rgba(94, 53, 177, 0.08);
-  width: 850px;
+  width: 700px;
   margin: 30px auto;
   transition: all 0.3s ease;
 }
