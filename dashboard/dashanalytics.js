@@ -98,6 +98,21 @@ function activateTab(activeBtn) {
     activeBtn.classList.add("active");
 }
 
+/* Calculate unique days played from data */
+function calculateUniqueDaysPlayed(data) {
+    if (!data || data.length === 0) return 0;
+    
+    const uniqueDates = new Set();
+    data.forEach(record => {
+        if (record.created_at) {
+            const date = new Date(record.created_at).toLocaleDateString("en-GB");
+            uniqueDates.add(date);
+        }
+    });
+    
+    return uniqueDates.size;
+}
+
 /* -----------------------------
        MAIN HANDLER
 ------------------------------*/
@@ -185,6 +200,9 @@ async function loadBuzzTap(level) {
     document.getElementById("lastDate").textContent =
         last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
     document.getElementById("totalGames").textContent = data.length;
+    
+    const totalSessions = calculateUniqueDaysPlayed(data);
+    document.getElementById("totalSessions").textContent = totalSessions;
 
     const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
     document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
@@ -272,6 +290,9 @@ async function loadShapeSense(level) {
       document.getElementById("lastDate").textContent =
                last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
       document.getElementById("totalGames").textContent = data.length;
+      
+      const totalSessions = calculateUniqueDaysPlayed(data);
+      document.getElementById("totalSessions").textContent = totalSessions;
 
       const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
       document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
@@ -379,6 +400,9 @@ async function loadOrbCatcher(level) {
      document.getElementById("lastDate").textContent =
           last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
      document.getElementById("totalGames").textContent = data.length;
+     
+     const totalSessions = calculateUniqueDaysPlayed(data);
+     document.getElementById("totalSessions").textContent = totalSessions;
 
      const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
      document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
@@ -483,6 +507,9 @@ async function loadRoadTracer(level) {
      document.getElementById("lastDate").textContent =
           last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
      document.getElementById("totalGames").textContent = data.length;
+     
+     const totalSessions = calculateUniqueDaysPlayed(data);
+     document.getElementById("totalSessions").textContent = totalSessions;
 
      const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
      document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
@@ -587,6 +614,9 @@ async function loadFruitSync(level) {
       document.getElementById("lastDate").textContent =
             last.created_at ? new Date(last.created_at).toLocaleDateString("en-GB") : "";
       document.getElementById("totalGames").textContent = data.length;
+      
+      const totalSessions = calculateUniqueDaysPlayed(data);
+      document.getElementById("totalSessions").textContent = totalSessions;
 
       const best = Math.min(...data.map(r => r.time_taken ?? Infinity));
       document.getElementById("bestTime").textContent = isFinite(best) ? best.toFixed(2) + "s" : "";
@@ -691,12 +721,11 @@ function clearStatsCards() {
      document.getElementById("lastScore").textContent = "";
      document.getElementById("lastDate").textContent = "";
      document.getElementById("totalGames").textContent = "";
+     document.getElementById("totalSessions").textContent = "";
      document.getElementById("bestTime").textContent = "";
      // hide no-data message area if present
      const nd = document.getElementById("noDataMessage");
      if (nd) nd.style.display = "none";
-     // keep tabs visible as appropriate will be set by showBuzzTapUI/showShapeSenseUI
-     // destroy existing chart/gauge handled by caller
 }
 
 function showNoData() {
