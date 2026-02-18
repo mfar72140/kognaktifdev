@@ -18,6 +18,8 @@ let ballSpawnTime = null;
 let cameraReady = false;
 let previousArrowX = null;
 let previousHandType = "Left";
+let guidePopup, howToPlayBtn, closeGuideBtn;
+let fireworksRunning = false;
 
 // Path Deviation using Distance
 let startPos = null;
@@ -123,6 +125,10 @@ window.onload = () => {
   videoElement = document.createElement("video");
   videoElement.style.display = "none";
 
+  guidePopup = document.getElementById("guidePopup");
+  howToPlayBtn = document.getElementById("howToPlayBtn");
+  closeGuideBtn = document.getElementById("closeGuideBtn");
+
   requestAnimationFrame(gameLoop);
 };
 
@@ -157,7 +163,7 @@ function startCountdown() {
   loadingOverlay.style.display = "flex";
   loadingOverlay.innerText = "📷 Loading... Starting Camera";
 
-  camera = new Camera(videoElement, {
+  camera = new window.Camera(videoElement, {
     onFrame: async () => {
       await hands.send({ image: videoElement });
     },
@@ -472,6 +478,7 @@ function endGame() {
     endGameSound.play();
   }
 
+  fireworksRunning = true;
   startFireworks();
 
   let fireworksDuration = 2500;
@@ -748,6 +755,22 @@ howToPlayBtn.addEventListener("click", showPopup);
 closeGuideBtn.addEventListener("click", hidePopup);
 window.addEventListener("load", showPopup);
 
+
+// =================================================
+// Fireworks Functions
+// =================================================
+
+function startFireworks() {
+  fireworksRunning = true;
+}
+
+function stopFireworks() {
+  fireworksRunning = false;
+}
+
+function drawFireworks(ctx) {
+  // Placeholder fireworks drawing - add your implementation here
+}
 
 // =================================================
 // Helper: perpendicular distance from point to line
