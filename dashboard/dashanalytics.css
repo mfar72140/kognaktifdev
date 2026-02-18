@@ -421,9 +421,6 @@ body {
 /* =====================
   Consistency Gauge
 ===================== */
-/* =====================
-   Consistency Gauge - Modern Design
-===================== */
 
 .gauge-card {
   background: linear-gradient(145deg, #ffffff, #fafafa);
@@ -480,6 +477,62 @@ body {
 .legend-box.strong { background: #43a047; }
 .legend-box.developing { background: #fbc02d; }
 .legend-box.support { background: #e53935; }
+
+/* =====================
+  Performance Section
+===================== */
+
+.performance-section {
+  width: 700px;
+  margin: 10px auto;
+  background: white;
+  border-radius: 16px;
+  padding: 20px 30px;
+  box-shadow: 0 10px 25px rgba(94, 53, 177, 0.08);
+  transition: all 0.3s ease;
+}
+
+.performance-section:hover {
+  box-shadow: 0 14px 32px rgba(94, 53, 177, 0.15);
+}
+
+.performance-section h3 {
+  margin-bottom: 20px;
+  font-weight: 600;
+  color: #5e35b1;
+  font-size: 18px;
+  letter-spacing: 0.5px;
+}
+
+.metric-row {
+  display: grid;
+  grid-template-columns: 1.5fr 1fr 1fr;
+  padding: 14px 0;
+  border-bottom: 1px solid #eee;
+  align-items: center;
+  gap: 15px;
+}
+
+.metric-row:last-child {
+  border-bottom: none;
+}
+
+.metric-name {
+  font-weight: 500;
+  color: #444;
+  font-size: 14px;
+}
+
+.metric-value {
+  font-weight: 700;
+  font-size: 16px;
+  color: #333;
+}
+.metric-message {
+  font-size: 13px;
+  color: #8e24aa;
+  font-weight: 400;
+}
 
 
 /* =====================

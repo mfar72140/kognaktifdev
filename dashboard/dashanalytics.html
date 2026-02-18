@@ -169,15 +169,46 @@
     <!-- Consistency Gauge Section -->
     <section class="charts">
       <div class="gauge-card" id="gaugeSection">
-        <h3>Consistency</h3>
-        <div class="gauge-wrapper">
-          <canvas id="consistencyGauge"></canvas>
-          <div class="gauge-legend">
-            <div><span class="legend-box strong"></span> Strong</div>
-            <div><span class="legend-box developing"></span> Developing</div>
-            <div><span class="legend-box support"></span> Needs Support</div>
-          </div>
+      <h3>Consistency</h3>
+      <div class="gauge-wrapper">
+        <canvas id="consistencyGauge"></canvas>
+        <div class="gauge-legend">
+        <div><span class="legend-box strong"></span> Strong</div>
+        <div><span class="legend-box developing"></span> Developing</div>
+        <div><span class="legend-box support"></span> Needs Support</div>
         </div>
+      </div>
+      </div>
+    </section>
+
+    <!-- Performance Section -->
+    <section class="charts">
+      <div class="performance-section">
+      <h3>Latest Session Performance</h3>
+
+      <div class="metric-row">
+        <span class="metric-name" id="txttimeTaken">Time Taken</span>
+        <span class="metric-value" id="avgssTimeTaken">loading..</span>
+        <span class="metric-message" id="msgtimeImprovement">loading..</span>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-name" id="txtotalDistance">Total Distance</span>
+        <span class="metric-value" id="avgssTotalDistance">loading..</span>
+        <span class="metric-message" id="msgdistanceImprovement">loading..</span>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-name" id="txtmovementStability">Movement Stability</span>
+        <span class="metric-value" id="avgssMovementStability">loading..</span>
+        <span class="metric-message" id="msgstabilityImprovement">loading..</span>
+      </div>
+
+      <div class="metric-row">
+        <span class="metric-name" id="txtconsistency">Consistency</span>
+        <span class="metric-value" id="avgssConsistency">loading..</span>
+        <span class="metric-message" id="msgconsistencyImprovement">loading..</span>
+      </div>
       </div>
     </section>
 

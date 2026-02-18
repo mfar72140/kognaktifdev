@@ -11,6 +11,20 @@ const orbCache = {};    // { [level]: dataArray }
 const roadCache = {};   // { [level]: dataArray }
 const fruitCache = {};  // { [level]: dataArray }
 
+/* Improvement message mapping */
+function getImprovementMessage(improvement) {
+    if (improvement === null) return "";
+    
+    const imp = Math.abs(improvement);
+    if (improvement >= 20) return "🌟 Amazing boost!";
+    if (improvement >= 10) return "🚀 Great upgrade!";
+    if (improvement >= 1) return "👍 Nice progress!";
+    if (improvement >= -1 && improvement < 1) return "😎 Holding steady!";
+    if (improvement >= -9) return "🤏 Just a small dip";
+    if (improvement >= -19) return "⚠ Let's refocus";
+    return "💡 Time for comeback!";
+}
+
 /* -----------------------------
     SHOW / HIDE SPECIFIC TABS
 ------------------------------*/
@@ -190,9 +204,212 @@ function calculateAverageGraspPrecision(data) {
     return (sum / validGraspPrec.length).toFixed(2);
 }
 
-/* -----------------------------
-      MAIN HANDLER
-------------------------------*/
+/* Filter data by latest date */
+function filterDataByLatestDate(data) {
+    if (!data || data.length === 0) return [];
+    
+    const latestRecord = data[data.length - 1];
+    const latestDate = new Date(latestRecord.created_at).toLocaleDateString("en-GB");
+    
+    return data.filter(record => 
+        new Date(record.created_at).toLocaleDateString("en-GB") === latestDate
+    );
+}
+
+/* Filter data by previous date (before latest) */
+function filterDataByPreviousDate(data) {
+    if (!data || data.length === 0) return [];
+    
+    const latestRecord = data[data.length - 1];
+    const latestDate = new Date(latestRecord.created_at).toLocaleDateString("en-GB");
+    
+    // Find all records before latest date
+    const previousData = data.filter(record => 
+        new Date(record.created_at).toLocaleDateString("en-GB") !== latestDate
+    );
+    
+    if (previousData.length === 0) return [];
+    
+    // Get the latest previous date
+    const previousRecord = previousData[previousData.length - 1];
+    const previousDate = new Date(previousRecord.created_at).toLocaleDateString("en-GB");
+    
+    return data.filter(record => 
+        new Date(record.created_at).toLocaleDateString("en-GB") === previousDate
+    );
+}
+
+/* Calculate improvement percentage
+   For decreasing metrics (timeTaken, distance): lower is better
+   For increasing metrics (stability, precision, consistency): higher is better
+*/
+function calculateImprovement(currentValue, previousValue, isDecreasingBetter = false) {
+    currentValue = parseFloat(currentValue);
+    previousValue = parseFloat(previousValue);
+    
+    if (previousValue === 0 || isNaN(previousValue) || isNaN(currentValue)) return null;
+    
+    let improvement;
+    if (isDecreasingBetter) {
+        // For time and distance: lower is better
+        improvement = ((previousValue - currentValue) / previousValue) * 100;
+    } else {
+        // For stability, precision, etc: higher is better
+        improvement = ((currentValue - previousValue) / previousValue) * 100;
+    }
+    
+    return improvement;
+}
+
+/* Get improvement arrow and color */
+function getImprovementDisplay(improvement) {
+    if (improvement === null) return { text: "", color: "", arrow: "" };
+    
+    const absImprovement = Math.abs(improvement).toFixed(1);
+    if (improvement > 0) {
+        return { 
+            text: ` +${absImprovement}% ⇧ <br><span style="font-size: 0.85em; color: #999;"> (compare to last session)</span>`, 
+            color: "#4CAF50",  // Green
+            arrow: "⇧"
+        };
+    } else if (improvement < 0) {
+        return { 
+            text: ` ${absImprovement}% ⇩ <br><span style="font-size: 0.85em; color: #999;"> (compare to last session)</span>`, 
+            color: "#f44336",  // Red
+            arrow: "⇩"
+        };
+    } else {
+        return { 
+            text: ` 0% ⇨ <br><span style="font-size: 0.85em; color: #999;"> (compare to last session)</span>`, 
+            color: "#999",    // Gray
+            arrow: "⇨"
+        };
+    }
+}
+
+/* Update performance section with improvement indicators */
+function updatePerformanceSectionWithImprovement(currentData, previousData) {
+    const currentAvgTime = calculateAverageTimeTaken(currentData);
+    const currentAvgDistance = calculateAverageTotalDistance(currentData);
+    const previousAvgTime = calculateAverageTimeTaken(previousData);
+    const previousAvgDistance = calculateAverageTotalDistance(previousData);
+    
+    // Time improvement (lower is better)
+    const timeImprovement = calculateImprovement(currentAvgTime, previousAvgTime, true);
+    const timeDisplay = getImprovementDisplay(timeImprovement);
+    const timeMessage = getImprovementMessage(timeImprovement);
+    
+    // Distance improvement (lower is better)
+    const distanceImprovement = calculateImprovement(currentAvgDistance, previousAvgDistance, true);
+    const distanceDisplay = getImprovementDisplay(distanceImprovement);
+    const distanceMessage = getImprovementMessage(distanceImprovement);
+    
+    // Update time element
+    const timeEl = document.getElementById("avgssTimeTaken");
+    if (timeEl) {
+        timeEl.innerHTML = `${currentAvgTime}s <span style="color: ${timeDisplay.color}; font-size: 0.9em;">${timeDisplay.text}</span>`;
+    }
+    
+    // Update time message
+    const timeMsgEl = document.getElementById("msgtimeImprovement");
+    if (timeMsgEl) {
+        timeMsgEl.textContent = timeMessage;
+    }
+    
+    // Update distance element
+    const distanceEl = document.getElementById("avgssTotalDistance");
+    if (distanceEl) {
+        distanceEl.innerHTML = `${currentAvgDistance}px <span style="color: ${distanceDisplay.color}; font-size: 0.9em;">${distanceDisplay.text}</span>`;
+    }
+    
+    // Update distance message
+    const distanceMsgEl = document.getElementById("msgdistanceImprovement");
+    if (distanceMsgEl) {
+        distanceMsgEl.textContent = distanceMessage;
+    }
+    
+    return { timeImprovement, distanceImprovement };
+}
+
+/* Update performance section with stability/precision improvement */
+function updatePerformanceStabilityWithImprovement(currentData, previousData, metric = "stability") {
+    let currentValue, previousValue;
+    
+    if (metric === "stability") {
+        currentValue = calculateAverageMovementStability(currentData);
+        previousValue = calculateAverageMovementStability(previousData);
+    } else if (metric === "precision") {
+        currentValue = calculateAveragePrecision(currentData);
+        previousValue = calculateAveragePrecision(previousData);
+    } else if (metric === "graspstability") {
+        currentValue = calculateAverageGraspStability(currentData);
+        previousValue = calculateAverageGraspStability(previousData);
+    } else if (metric === "tracestability") {
+        currentValue = calculateAverageTraceStability(currentData);
+        previousValue = calculateAverageTraceStability(previousData);
+    } else if (metric === "graspprecision") {
+        currentValue = calculateAverageGraspPrecision(currentData);
+        previousValue = calculateAverageGraspPrecision(previousData);
+    }
+    
+    // Stability/precision improvement (higher is better)
+    const improvement = calculateImprovement(currentValue, previousValue, false);
+    const display_info = getImprovementDisplay(improvement);
+    const stabilityMessage = getImprovementMessage(improvement);
+    
+    const el = document.getElementById("avgssMovementStability");
+    if (el) {
+        el.innerHTML = `${currentValue}% <span style="color: ${display_info.color}; font-size: 0.9em;">${display_info.text}</span>`;
+    }
+    
+    // Update stability message
+    const stabilityMsgEl = document.getElementById("msgstabilityImprovement");
+    if (stabilityMsgEl) {
+        stabilityMsgEl.textContent = stabilityMessage;
+    }
+    
+    return improvement;
+}
+
+/* Update consistency with improvement */
+function updateConsistencyWithImprovement(currentConsistency, previousConsistency) {
+    const consistencyPercent = (currentConsistency ?? 0) * 100;
+    const previousConsistencyPercent = (previousConsistency ?? 0) * 100;
+    
+    const improvement = calculateImprovement(consistencyPercent, previousConsistencyPercent, false);
+    const display_info = getImprovementDisplay(improvement);
+    const consistencyMessage = getImprovementMessage(improvement);
+    
+    const el = document.getElementById("avgssConsistency");
+    if (el) {
+        el.innerHTML = `${consistencyPercent.toFixed(2)}% <span style="color: ${display_info.color}; font-size: 0.9em;">${display_info.text}</span>`;
+    }
+    
+    // Update consistency message
+    const consistencyMsgEl = document.getElementById("msgconsistencyImprovement");
+    if (consistencyMsgEl) {
+        consistencyMsgEl.textContent = consistencyMessage;
+    }
+    
+    return improvement;
+}
+
+
+/* Clear performance section */
+function clearPerformanceSection() {
+    document.getElementById("avgssTimeTaken").textContent = "loading..";
+    document.getElementById("avgssTotalDistance").textContent = "loading..";
+    document.getElementById("avgssMovementStability").textContent = "loading..";
+    document.getElementById("avgssConsistency").textContent = "loading..";
+    document.getElementById("msgtimeImprovement").textContent = "";
+    document.getElementById("msgdistanceImprovement").textContent = "";
+    document.getElementById("msgstabilityImprovement").textContent = "";
+    document.getElementById("msgconsistencyImprovement").textContent = "";
+}
+
+/* ==========================================================
+             MAIN HANDLER
+==========================================================*/
 async function updateGameAnalytics() {
     const gameSelect = document.getElementById("gameSelect");
     const levelSelect = document.getElementById("levelSelect");
@@ -221,6 +438,7 @@ async function updateGameAnalytics() {
 
     // Clear no-data message and cards by default
     clearStatsCards();
+    clearPerformanceSection();
 
     if (game === "buzz") {
     showBuzzTapUI();
@@ -294,6 +512,20 @@ async function loadBuzzTap(level) {
     document.getElementById("avgMovementStability").textContent = avgMovementStability + "%";
     document.getElementById("txtAvgMovementStability").textContent = "Average Movement Stability";
 
+    // Update performance section with latest date data and improvement indicators
+    const latestDateData = filterDataByLatestDate(data);
+    const previousDateData = filterDataByPreviousDate(data);
+    
+    const perfConsistency = last.consistency ?? 0;
+    
+    // Update time and distance with improvement
+    updatePerformanceSectionWithImprovement(latestDateData, previousDateData);
+    
+    // Update stability with improvement
+    updatePerformanceStabilityWithImprovement(latestDateData, previousDateData, "stability");
+    
+    // Update consistency with improvement
+    updateConsistencyWithImprovement(perfConsistency, previousDateData.length > 0 ? previousDateData[previousDateData.length - 1].consistency ?? 0 : 0);
 
     // Gauge
     const consistencyPercent = (last.consistency ?? 0) * 100;
@@ -395,6 +627,21 @@ async function loadShapeSense(level) {
      document.getElementById("avgMovementStability").textContent = avgPrecision + "%";
      document.getElementById("txtAvgMovementStability").textContent = "Average Pinch Accuracy";
 
+     // Update performance section with latest date data and improvement indicators
+     const latestDateData = filterDataByLatestDate(data);
+     const previousDateData = filterDataByPreviousDate(data);
+     
+     const perfConsistency = last.consistency ?? 0;
+     
+     // Update time and distance with improvement
+     updatePerformanceSectionWithImprovement(latestDateData, previousDateData);
+     
+     // Update precision with improvement
+     updatePerformanceStabilityWithImprovement(latestDateData, previousDateData, "precision");
+     
+     // Update consistency with improvement
+    updateConsistencyWithImprovement(perfConsistency / 100, previousDateData.length > 0 ? (previousDateData[previousDateData.length - 1].consistency ?? 0) / 100 : 0);
+     document.getElementById("txtmovementStability").textContent = "Pinch Accuracy";
 
      // Gauge for consistency
      const consistencyPercent = (last.consistency ?? 0);
@@ -516,6 +763,21 @@ async function loadOrbCatcher(level) {
     document.getElementById("avgMovementStability").textContent = avgGraspStability + "%";
     document.getElementById("txtAvgMovementStability").textContent = "Average Grasp Stability";
 
+    // Update performance section with latest date data and improvement indicators
+    const latestDateData = filterDataByLatestDate(data);
+    const previousDateData = filterDataByPreviousDate(data);
+    
+    const perfConsistency = last.consistency ?? 0;
+    
+    // Update time and distance with improvement
+    updatePerformanceSectionWithImprovement(latestDateData, previousDateData);
+    
+    // Update grasp stability with improvement
+    updatePerformanceStabilityWithImprovement(latestDateData, previousDateData, "graspstability");
+    
+    // Update consistency with improvement
+    updateConsistencyWithImprovement(perfConsistency / 100, previousDateData.length > 0 ? (previousDateData[previousDateData.length - 1].consistency ?? 0) / 100 : 0);
+    document.getElementById("txtmovementStability").textContent = "Grasp Stability";
 
     // Gauge for consistency
     const consistencyPercent = (last.consistency ?? 0);
@@ -634,6 +896,22 @@ async function loadRoadTracer(level) {
     document.getElementById("avgMovementStability").textContent = avgTraceStability + "%";
     document.getElementById("txtAvgMovementStability").textContent = "Average Trace Stability";
 
+    // Update performance section with latest date data and improvement indicators
+    const latestDateData = filterDataByLatestDate(data);
+    const previousDateData = filterDataByPreviousDate(data);
+    
+    const perfConsistency = last.consistency ?? 0;
+    
+    // Update time and distance with improvement
+    updatePerformanceSectionWithImprovement(latestDateData, previousDateData);
+    
+    // Update trace stability with improvement
+    updatePerformanceStabilityWithImprovement(latestDateData, previousDateData, "tracestability");
+    
+    // Update consistency with improvement
+    updateConsistencyWithImprovement(perfConsistency / 100, previousDateData.length > 0 ? (previousDateData[previousDateData.length - 1].consistency ?? 0) / 100 : 0);
+    document.getElementById("txtmovementStability").textContent = "Trace Stability";
+
     // Gauge for consistency
     const consistencyPercent = (last.consistency ?? 0);
     currentGauge = initConsistencyGauge(consistencyPercent);
@@ -751,6 +1029,22 @@ async function loadFruitSync(level) {
      document.getElementById("avgMovementStability").textContent = avgGraspPrecision + "%";
      document.getElementById("txtAvgMovementStability").textContent = "Average Grasp Precision";
 
+     // Update performance section with latest date data and improvement indicators
+     const latestDateData = filterDataByLatestDate(data);
+     const previousDateData = filterDataByPreviousDate(data);
+     
+     const perfConsistency = last.consistency ?? 0;
+     
+     // Update time and distance with improvement
+     updatePerformanceSectionWithImprovement(latestDateData, previousDateData);
+     
+     // Update grasp precision with improvement
+     updatePerformanceStabilityWithImprovement(latestDateData, previousDateData, "graspprecision");
+     
+     // Update consistency with improvement
+    updateConsistencyWithImprovement(perfConsistency / 100, previousDateData.length > 0 ? (previousDateData[previousDateData.length - 1].consistency ?? 0) / 100 : 0);
+     document.getElementById("txtmovementStability").textContent = "Grasp Precision";
+
      // Gauge for consistency
      const consistencyPercent = (last.consistency ?? 0);
      currentGauge = initConsistencyGauge(consistencyPercent);
@@ -864,6 +1158,7 @@ function clearStatsCards() {
 function showNoData() {
     // Leave UI empty (no text in cards, no chart)
     clearStatsCards();
+    clearPerformanceSection();
     
     // Show no data message
     const nd = document.getElementById("noDataMessage");
