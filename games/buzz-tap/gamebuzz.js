@@ -15,7 +15,7 @@ let bgMusic;
 let isMuted = false;
 let reactionTimes = [];
 let ballSpawnTime = null;
-let cameraReady = false;
+let cameraReady = false; 
 let previousArrowX = null;
 let previousHandType = "Left";
 
