@@ -745,14 +745,17 @@ class HoneySplash {
 // ========================
 
 function showPopup() {
-  guidePopup.style.display = "flex";
+  if (guidePopup) guidePopup.style.display = "flex";
 }
 function hidePopup() {
-  guidePopup.style.display = "none";
+  if (guidePopup) guidePopup.style.display = "none";
 }
-howToPlayBtn.addEventListener("click", showPopup);
-closeGuideBtn.addEventListener("click", hidePopup);
-window.addEventListener("load", showPopup);
+
+if (howToPlayBtn) howToPlayBtn.addEventListener("click", showPopup);
+if (closeGuideBtn) closeGuideBtn.addEventListener("click", hidePopup);
+window.addEventListener("load", () => {
+  if (guidePopup) showPopup();
+});
 
 
 // =================================================
