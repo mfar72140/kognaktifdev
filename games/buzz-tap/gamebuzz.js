@@ -19,7 +19,6 @@ let cameraReady = false;
 let previousArrowX = null;
 let previousHandType = "Left";
 let guidePopup, howToPlayBtn, closeGuideBtn;
-let fireworksRunning = false;
 
 // Path Deviation using Distance
 let startPos = null;
