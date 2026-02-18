@@ -18,7 +18,6 @@ let ballSpawnTime = null;
 let cameraReady = false;
 let previousArrowX = null;
 let previousHandType = "Left";
-let guidePopup, howToPlayBtn, closeGuideBtn;
 
 // Path Deviation using Distance
 let startPos = null;
@@ -104,7 +103,7 @@ window.onload = () => {
     startCountdown();
   });
 
-  hands = new window.Hands({
+  hands = new Hands({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
   });
   hands.setOptions({
@@ -123,10 +122,6 @@ window.onload = () => {
 
   videoElement = document.createElement("video");
   videoElement.style.display = "none";
-
-  guidePopup = document.getElementById("guidePopup");
-  howToPlayBtn = document.getElementById("howToPlayBtn");
-  closeGuideBtn = document.getElementById("closeGuideBtn");
 
   requestAnimationFrame(gameLoop);
 };
@@ -162,7 +157,7 @@ function startCountdown() {
   loadingOverlay.style.display = "flex";
   loadingOverlay.innerText = "📷 Loading... Starting Camera";
 
-  camera = new window.Camera(videoElement, {
+  camera = new Camera(videoElement, {
     onFrame: async () => {
       await hands.send({ image: videoElement });
     },
@@ -477,7 +472,6 @@ function endGame() {
     endGameSound.play();
   }
 
-  fireworksRunning = true;
   startFireworks();
 
   let fireworksDuration = 2500;
@@ -695,7 +689,7 @@ calculateConsistency(elapsed).then(consistency => {
   document.getElementById("nextBtn").onclick = () => {
     window.location.href = "/games/buzz-tap/cover";
   };
-}
+} 
 
 
 // ============================================
@@ -745,34 +739,15 @@ class HoneySplash {
 // ========================
 
 function showPopup() {
-  if (guidePopup) guidePopup.style.display = "flex";
+  guidePopup.style.display = "flex";
 }
 function hidePopup() {
-  if (guidePopup) guidePopup.style.display = "none";
+  guidePopup.style.display = "none";
 }
+howToPlayBtn.addEventListener("click", showPopup);
+closeGuideBtn.addEventListener("click", hidePopup);
+window.addEventListener("load", showPopup);
 
-if (howToPlayBtn) howToPlayBtn.addEventListener("click", showPopup);
-if (closeGuideBtn) closeGuideBtn.addEventListener("click", hidePopup);
-window.addEventListener("load", () => {
-  if (guidePopup) showPopup();
-});
-
-
-// =================================================
-// Fireworks Functions
-// =================================================
-
-function startFireworks() {
-  fireworksRunning = true;
-}
-
-function stopFireworks() {
-  fireworksRunning = false;
-}
-
-function drawFireworks() {
-  // Placeholder fireworks drawing - add your implementation here
-}
 
 // =================================================
 // Helper: perpendicular distance from point to line
