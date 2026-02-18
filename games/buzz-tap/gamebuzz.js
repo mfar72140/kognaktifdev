@@ -105,7 +105,7 @@ window.onload = () => {
     startCountdown();
   });
 
-  hands = new Hands({
+  hands = new window.Hands({
     locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
   });
   hands.setOptions({
@@ -768,7 +768,7 @@ function stopFireworks() {
   fireworksRunning = false;
 }
 
-function drawFireworks(ctx) {
+function drawFireworks() {
   // Placeholder fireworks drawing - add your implementation here
 }
 
