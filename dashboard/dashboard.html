@@ -31,102 +31,110 @@
     </div>
   </nav>
 
-  <!-- Main Dashboard Content -->
-  <main class="dashboard">
-    <div class="profile-card">
-      <div class="avatar"></div>
-      <div class="welcome">
-        <h2>Hi <span id="welcomeName">User</span>!</h2>
-        <p>Welcome to <strong>KognAktif</strong>! Hope you're having a great day.</p>
+<!-- Main Dashboard Content -->
+<main class="dashboard">
+
+  <!-- Welcome / Profile Section -->
+  <div class="profile-card">
+    <div class="avatar"></div>
+    <div class="welcome">
+      <h2>Hi <span id="welcomeName">User</span>!</h2>
+      <p>Welcome to <strong>KognAktif</strong>! Hope you're having a great day.</p>
+    </div>
+  </div>
+
+  <!-- Dashboard Cards Container -->
+  <div class="dashboard-cards">
+
+    <!-- Child Information Card -->
+    <div class="profile-card child-info-card">
+      <h3>Your Child Information</h3>
+      <div class="child-details">
+        <div class="info-item">
+          <label>Name:</label>
+          <span id="childName">-</span>
+        </div>
+        <div class="info-item">
+          <label>Age:</label>
+          <span id="childAge">-</span>
+        </div>
+        <div class="info-item">
+          <label>Gender:</label>
+          <span id="childGender">-</span>
+        </div>
+        <div class="info-item">
+          <label>Health Category:</label>
+          <span id="childHealthCategory">-</span>
+        </div>
       </div>
     </div>
 
-    <!-- Dashboard Cards Container -->
-    <div class="dashboard-cards">
-      <!-- Child Information Card -->
-      <div class="profile-card child-info-card">
-        <h3>Your Child Information</h3> 
-        <div class="child-details">
-          <div class="info-item">
-            <label>Name:</label>
-            <span id="childName">-</span>
-          </div>
-          <div class="info-item">
-            <label>Age:</label>
-            <span id="childAge">-</span>
-          </div>
-          <div class="info-item">
-            <label>Gender:</label>
-            <span id="childGender">-</span>
-          </div>
-          <div class="info-item">
-            <label>Health Category:</label>
-            <span id="childHealthCategory">-</span>
-          </div>
+    <!-- Last Session Card -->
+    <div class="profile-card session-card">
+      <h3>Last Session Dated</h3>
+      <div class="session-details">
+        <div class="info-item">
+          <img src="/assets/images/date.png" alt="Date icon" class="info-icon">
+          <label>Date:</label>
+          <span id="lastSessionDate">-</span>
+        </div>
+        <div class="info-item">
+          <img src="/assets/images/time2.png" alt="Time icon" class="info-icon">
+          <label>Time:</label>
+          <span id="lastSessionTime">-</span>
+        </div>
+        <div class="info-item">
+          <img src="/assets/images/module2.png" alt="Module icon" class="info-icon">
+          <label>Module:</label>
+          <span id="lastSessionGameModule">-</span>
         </div>
       </div>
+    </div>
 
-      <!-- Last Session Card -->
-      <div class="profile-card session-card">
-        <h3>Last Session Dated</h3>
-        <div class="session-details">
-          <div class="info-item">
-        <img src="/assets/images/date.png" alt="Date icon" class="info-icon">
-        <label>Date:</label>
-        <span id="lastSessionDate">-</span>
-          </div>
-          <div class="info-item">
-        <img src="/assets/images/time2.png" alt="Time icon" class="info-icon">
-        <label>Time:</label>
-        <span id="lastSessionTime">-</span>
-          </div>
-          <div class="info-item">
-        <img src="/assets/images/module2.png" alt="Module icon" class="info-icon">
-        <label>Module:</label>
-        <span id="lastSessionGameModule">-</span>
-          </div>
+    <!-- Status Card -->
+    <div class="profile-card status-card">
+      <h3>Release Status</h3>
+      <div class="status-details">
+        <div class="info-item">
+          <label>Version:</label>
+          <span id="version">v2.0 Beta</span>
+        </div>
+        <div class="info-item">
+          <label>System Status:</label>
+          <span id="systemStatus">Live & Improving</span>
+        </div>
+        <div class="info-item">
+          <label>Last Update:</label>
+          <span id="lastUpdate">18 Feb 2026</span>
         </div>
       </div>
+    </div>
 
-      <!-- Status Card -->
-      <div class="profile-card status-card">
-        <h3>Release Status</h3>
-        <div class="status-details">
-          <div class="info-item">
-        <label>Version:</label>
-        <span id="version">v2.0 Beta</span>
-          </div>
-          <div class="info-item">
-        <label>System Status:</label>
-        <span id="systemStatus">Live & Improving</span>
-          </div>
-          <div class="info-item">
-        <label>Last Update:</label>
-        <span id="lastUpdate">18 Feb 2026</span>
-          </div>
-        </div> 
-      </div>
+    </main>
 
-      <!-- Feedback Card -->
+    <!-- Feedback Section -->
+    <section class="feedback-section">
       <div class="profile-card feedback-card">
         <h3>We value your feedback!</h3>
+
         <div class="feedback-form" id="feedbackForm">
+
           <div class="info-item">
-        <label>Rate your experience:</label>
-        <div class="rating-select">
-          <select id="feedbackRating">
-        <option value="">Select your rate 1-5</option>
-        <option value="1">1 - Poor</option>
-        <option value="2">2 - Fair</option>
-        <option value="3">3 - Good</option>
-        <option value="4">4 - Very Good</option>
-        <option value="5">5 - Excellent</option>
-          </select>
-        </div>
+            <label>Rate your experience:</label>
+            <div class="rating-select">
+              <select id="feedbackRating">
+                <option value="">Select your rate 1-5</option>
+                <option value="1">1 - Poor</option>
+                <option value="2">2 - Fair</option>
+                <option value="3">3 - Good</option>
+                <option value="4">4 - Very Good</option>
+                <option value="5">5 - Excellent</option>
+              </select>
+            </div>
           </div>
+
           <div class="info-item">
-        
-        <textarea id="feedbackText" rows="4" placeholder="Write your feedback........."></textarea>
+            <textarea id="feedbackText" rows="4" placeholder="Write your feedback........."></textarea>
           </div>
           <button id="submitFeedback" class="submit-btn">Submit</button>
         </div>
@@ -134,8 +142,10 @@
           Thank you for your feedback!
         </div>
       </div>
-        </div>
-      </main>
+    </section>
+  </div>
+</main>
+
 
 
       <!-- Footer -->
