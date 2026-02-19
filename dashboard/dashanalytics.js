@@ -13,9 +13,8 @@ const fruitCache = {};  // { [level]: dataArray }
 
 /* Improvement message mapping */
 function getImprovementMessage(improvement) {
-    if (improvement === null) return "";
+    if (improvement === null) return "🌱 First session completed! Great start!";
     
-    const imp = Math.abs(improvement);
     if (improvement >= 20) return "🌟 Amazing boost!";
     if (improvement >= 10) return "🚀 Great upgrade!";
     if (improvement >= 1) return "👍 Nice progress!";
