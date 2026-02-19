@@ -100,8 +100,8 @@
       "permanent": true
     },
     {
-      "source": "/dashboard/dashsettings.html",
-      "destination": "/dashboard/settings",
+      "source": "/dashboard/dashsetting.html",
+      "destination": "/dashboard/setting",
       "permanent": true
     },
     {
